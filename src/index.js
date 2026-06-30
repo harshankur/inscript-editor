@@ -1,6 +1,7 @@
 import './styles/index.css';
 
 export { useInscriptEditor } from './hooks/useInscriptEditor.js';
+export { InscriptEditor } from './InscriptEditor.jsx';
 
 export { Youtube, FontSize, CustomTable, CustomImage } from './extensions/index.js';
 export { getTableNode, isHeaderRowActive, isHeaderColumnActive, setTableLayout } from './utils/tableHelpers.js';
