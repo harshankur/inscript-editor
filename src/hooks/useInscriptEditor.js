@@ -122,10 +122,21 @@ export function useInscriptEditor({
         }
     }, [editor, isReadonly]);
 
-    // Clear the pending debounced history push when the editor is destroyed/recreated
-    // (contentKey change) or unmounted. Otherwise a stale timer can fire after the
-    // editor is gone, pushing content into the wrong document's history.
+    // Clear the pending debounced history push whenever the editor identity changes
+    // (contentKey change) or unmounts.
+    //
+    // A freshly (re)created editor can dispatch its own doc-changing transaction as
+    // part of @tiptap/react's own mount effects for that editor — which, since
+    // useEditor() is called earlier in this hook than this effect, run *before* this
+    // effect's body for the same `editor` value. So on mount/recreation this body
+    // clears that spurious timer as soon as it exists, before it can survive to fire
+    // a phantom history entry. The cleanup below additionally covers real unmount and
+    // the *next* editor swap, in case a genuine user-triggered timer is still pending.
     useEffect(() => {
+        if (historyDebounceRef.current) {
+            clearTimeout(historyDebounceRef.current);
+            historyDebounceRef.current = null;
+        }
         return () => {
             if (historyDebounceRef.current) {
                 clearTimeout(historyDebounceRef.current);
