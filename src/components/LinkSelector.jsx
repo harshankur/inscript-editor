@@ -4,7 +4,7 @@ import { Link as LinkIcon, Link2Off } from 'lucide-react';
 import { ToolbarButton } from './ToolbarButton.jsx';
 
 export const LinkSelector = ({ editor }) => {
-    const { t } = useTranslation();
+    const { t } = useTranslation('inscript-editor');
     const [isOpen, setIsOpen] = useState(false);
     const [url, setUrl] = useState('');
 
@@ -37,7 +37,7 @@ export const LinkSelector = ({ editor }) => {
             <ToolbarButton
                 onClick={() => setIsOpen(!isOpen)}
                 active={isActive}
-                title={t('insertLink')}
+                title={t('insertLink', 'Insert Link')}
             >
                 <LinkIcon size={16} />
             </ToolbarButton>
@@ -48,12 +48,12 @@ export const LinkSelector = ({ editor }) => {
                         onSubmit={handleApply}
                         className="absolute top-full left-0 mt-2 p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg shadow-xl z-[80] min-w-[260px] animate-in slide-in-from-top-2 fade-in flex flex-col gap-3"
                     >
-                        <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{t('insertLink')}</div>
+                        <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{t('insertLink', 'Insert Link')}</div>
                         <input
                             type="text"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
-                            placeholder={t('enterUrl')}
+                            placeholder={t('enterUrl', 'Enter URL...')}
                             className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
                             autoFocus
                         />
@@ -62,14 +62,14 @@ export const LinkSelector = ({ editor }) => {
                                 type="submit"
                                 className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2 rounded transition-colors"
                             >
-                                {t('apply')}
+                                {t('apply', 'Apply')}
                             </button>
                             {isActive && (
                                 <button
                                     type="button"
                                     onClick={handleRemove}
                                     className="p-2 text-red-400 hover:bg-red-400/10 rounded transition-colors"
-                                    title={t('removeLink')}
+                                    title={t('removeLink', 'Remove Link')}
                                 >
                                     <Link2Off size={16} />
                                 </button>

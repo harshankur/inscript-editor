@@ -4,7 +4,7 @@ import { ALargeSmall, CheckCircle, XCircle } from 'lucide-react';
 import { ToolbarButton, TOOLBAR_SIZES } from './ToolbarButton.jsx';
 
 export const FontSizeSelector = ({ editor }) => {
-    const { t } = useTranslation();
+    const { t } = useTranslation('inscript-editor');
     const [isOpen, setIsOpen] = useState(false);
     const sizes = [12, 14, 16, 18, 20, 24, 30, 36, 48, 60, 72];
     const currentSize = editor?.getAttributes('textStyle')?.fontSize;
@@ -14,7 +14,7 @@ export const FontSizeSelector = ({ editor }) => {
             <ToolbarButton
                 onClick={() => setIsOpen(!isOpen)}
                 active={!!currentSize}
-                title={t('fontSize')}
+                title={t('fontSize', 'Font Size')}
                 width={TOOLBAR_SIZES.CUSTOM}
             >
                 <div className="flex items-center justify-center gap-0.5">
@@ -41,7 +41,7 @@ export const FontSizeSelector = ({ editor }) => {
                             className="px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-xs text-red-400 border-t border-zinc-200 dark:border-zinc-800 mt-1 flex items-center gap-2"
                         >
                             <XCircle size={12} />
-                            {t('reset')}
+                            {t('reset', 'Reset')}
                         </button>
                     </div>
                 </>

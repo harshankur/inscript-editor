@@ -7,9 +7,11 @@ import {
 } from 'lucide-react';
 import { ToolbarButton } from '../ToolbarButton.jsx';
 import { getTableNode, isHeaderRowActive, isHeaderColumnActive, setTableLayout } from '../../utils/tableHelpers.js';
+import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTranslations.js';
 
 export const TableBubbleMenu = ({ editor, isReadonly }) => {
-    const { t } = useTranslation();
+    useInscriptEditorTranslations();
+    const { t } = useTranslation('inscript-editor');
     if (!editor) return null;
     return (
         <BubbleMenu
@@ -106,13 +108,13 @@ export const TableBubbleMenu = ({ editor, isReadonly }) => {
 
                 {/* Layout Group */}
                 <div className="flex items-center gap-0.5 bg-zinc-100/50 dark:bg-zinc-800/30 p-0.5 rounded border border-zinc-200 dark:border-zinc-800">
-                    <ToolbarButton onClick={() => setTableLayout(editor, { align: 'left' })} active={getTableNode(editor.state)?.node.attrs.align === 'left'} title="Align Left">
+                    <ToolbarButton onClick={() => setTableLayout(editor, { align: 'left' })} active={getTableNode(editor.state)?.node.attrs.align === 'left'} title={t('alignLeft', 'Align Left')}>
                         <AlignLeft size={15} />
                     </ToolbarButton>
-                    <ToolbarButton onClick={() => setTableLayout(editor, { align: 'center' })} active={getTableNode(editor.state)?.node.attrs.align === 'center' || !getTableNode(editor.state)?.node.attrs.align} title="Align Center">
+                    <ToolbarButton onClick={() => setTableLayout(editor, { align: 'center' })} active={getTableNode(editor.state)?.node.attrs.align === 'center' || !getTableNode(editor.state)?.node.attrs.align} title={t('alignCenter', 'Align Center')}>
                         <AlignCenter size={15} />
                     </ToolbarButton>
-                    <ToolbarButton onClick={() => setTableLayout(editor, { align: 'right' })} active={getTableNode(editor.state)?.node.attrs.align === 'right'} title="Align Right">
+                    <ToolbarButton onClick={() => setTableLayout(editor, { align: 'right' })} active={getTableNode(editor.state)?.node.attrs.align === 'right'} title={t('alignRight', 'Align Right')}>
                         <AlignRight size={15} />
                     </ToolbarButton>
                 </div>

@@ -4,7 +4,7 @@ import { XCircle } from 'lucide-react';
 import { ToolbarButton } from './ToolbarButton.jsx';
 
 export const ColorSelector = ({ icon: Icon, title, activeColor, onChange, onRemove, presets, variant = 'text' }) => {
-    const { t } = useTranslation();
+    const { t } = useTranslation('inscript-editor');
     const [isOpen, setIsOpen] = useState(false);
     return (
         <div className="relative">
@@ -24,7 +24,7 @@ export const ColorSelector = ({ icon: Icon, title, activeColor, onChange, onRemo
                 <>
                     <div className="fixed inset-0 z-[70]" onClick={() => setIsOpen(false)} />
                     <div className="absolute top-full right-0 md:left-1/2 md:-translate-x-1/2 mt-2 p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg shadow-xl z-[80] min-w-[200px] animate-in slide-in-from-top-2 fade-in">
-                        <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2 uppercase tracking-wider">{t('presets')}</div>
+                        <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2 uppercase tracking-wider">{t('presets', 'Presets')}</div>
                         <div className="grid grid-cols-5 gap-1.5 mb-3">
                             {presets.map(color => (
                                 <button
@@ -49,7 +49,7 @@ export const ColorSelector = ({ icon: Icon, title, activeColor, onChange, onRemo
                                         onChange={(e) => { onChange(e.target.value); }}
                                     />
                                 </div>
-                                <span>{t('customColor')}</span>
+                                <span>{t('customColor', 'Custom Color...')}</span>
                             </label>
 
                             <button
@@ -57,7 +57,7 @@ export const ColorSelector = ({ icon: Icon, title, activeColor, onChange, onRemo
                                 className="flex items-center gap-2 text-xs text-red-400 hover:text-red-300 px-1 py-1 rounded hover:bg-red-400/10 transition-colors"
                             >
                                 <XCircle size={14} />
-                                <span>{variant === 'text' ? t('resetToDefault') : t('noHighlight')}</span>
+                                <span>{variant === 'text' ? t('resetToDefault', 'Reset to Default') : t('noHighlight', 'No Highlight')}</span>
                             </button>
                         </div>
                     </div>

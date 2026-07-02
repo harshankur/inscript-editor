@@ -1,8 +1,12 @@
+import { useTranslation } from 'react-i18next';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { AlignCenter, AlignLeft, AlignRight, ExternalLink, Trash2 } from 'lucide-react';
 import { ToolbarButton } from '../ToolbarButton.jsx';
+import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTranslations.js';
 
 export const YoutubeBubbleMenu = ({ editor, isReadonly }) => {
+    useInscriptEditorTranslations();
+    const { t } = useTranslation('inscript-editor');
     if (!editor) return null;
     return (
         <BubbleMenu
@@ -18,7 +22,7 @@ export const YoutubeBubbleMenu = ({ editor, isReadonly }) => {
                             key={w}
                             onClick={() => editor.chain().focus().updateAttributes('youtube', { width: w }).run()}
                             active={editor.getAttributes('youtube').width === w}
-                            title={`Video width ${w}`}
+                            title={t('videoWidth', 'Video width {{width}}', { width: w })}
                         >
                             <span className="text-[10px] font-mono px-0.5">{w}</span>
                         </ToolbarButton>
@@ -26,13 +30,13 @@ export const YoutubeBubbleMenu = ({ editor, isReadonly }) => {
                 </div>
                 <div className="w-px h-4 bg-zinc-100 dark:bg-zinc-800 mx-0.5" />
                 <div className="flex items-center gap-0.5 bg-zinc-100/50 dark:bg-zinc-800/30 p-0.5 rounded border border-zinc-200 dark:border-zinc-800">
-                    <ToolbarButton onClick={() => editor.chain().focus().updateAttributes('youtube', { align: 'left' }).run()} active={editor.getAttributes('youtube').align === 'left'} title="Align Left">
+                    <ToolbarButton onClick={() => editor.chain().focus().updateAttributes('youtube', { align: 'left' }).run()} active={editor.getAttributes('youtube').align === 'left'} title={t('alignLeft', 'Align Left')}>
                         <AlignLeft size={15} />
                     </ToolbarButton>
-                    <ToolbarButton onClick={() => editor.chain().focus().updateAttributes('youtube', { align: 'center' }).run()} active={editor.getAttributes('youtube').align === 'center' || !editor.getAttributes('youtube').align} title="Align Center">
+                    <ToolbarButton onClick={() => editor.chain().focus().updateAttributes('youtube', { align: 'center' }).run()} active={editor.getAttributes('youtube').align === 'center' || !editor.getAttributes('youtube').align} title={t('alignCenter', 'Align Center')}>
                         <AlignCenter size={15} />
                     </ToolbarButton>
-                    <ToolbarButton onClick={() => editor.chain().focus().updateAttributes('youtube', { align: 'right' }).run()} active={editor.getAttributes('youtube').align === 'right'} title="Align Right">
+                    <ToolbarButton onClick={() => editor.chain().focus().updateAttributes('youtube', { align: 'right' }).run()} active={editor.getAttributes('youtube').align === 'right'} title={t('alignRight', 'Align Right')}>
                         <AlignRight size={15} />
                     </ToolbarButton>
                 </div>
@@ -43,13 +47,13 @@ export const YoutubeBubbleMenu = ({ editor, isReadonly }) => {
                             const id = editor.getAttributes('youtube')['data-youtube-video'];
                             if (id) window.open(`https://www.youtube.com/watch?v=${id}`, '_blank');
                         }}
-                        title="Open in YouTube"
+                        title={t('openInYoutube', 'Open in YouTube')}
                     >
                         <ExternalLink size={15} />
                     </ToolbarButton>
                     <ToolbarButton
                         onClick={() => editor.chain().focus().deleteSelection().run()}
-                        title="Delete video"
+                        title={t('deleteVideo', 'Delete video')}
                         className="hover:bg-red-500/10 hover:text-red-500"
                     >
                         <Trash2 size={15} className="text-red-500" />

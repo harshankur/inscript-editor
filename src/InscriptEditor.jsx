@@ -6,6 +6,7 @@ import { TextBubbleMenu } from './components/bubble-menus/TextBubbleMenu.jsx';
 import { TableBubbleMenu } from './components/bubble-menus/TableBubbleMenu.jsx';
 import { ImageBubbleMenu } from './components/bubble-menus/ImageBubbleMenu.jsx';
 import { YoutubeBubbleMenu } from './components/bubble-menus/YoutubeBubbleMenu.jsx';
+import { useInscriptEditorTranslations } from './hooks/useInscriptEditorTranslations.js';
 
 /**
  * Top-level editor rendering component. Composes toolbar, bubble menus,
@@ -33,6 +34,8 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     restoreVersion,
     markSaved,
 }, ref) {
+    useInscriptEditorTranslations();
+
     useImperativeHandle(ref, () => ({
         getHTML: () => editor?.getHTML() ?? '',
         getText: () => editor?.getText() ?? '',

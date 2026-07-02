@@ -8,6 +8,9 @@
   "main": "./dist/inscript-editor.cjs.js",
   "module": "./dist/inscript-editor.es.js",
   "types": "./src/types.d.ts",
+  "sideEffects": [
+    "**/*.css"
+  ],
   "files": [
     "dist",
     "src/types.d.ts",
@@ -20,8 +23,25 @@
       "types": "./src/types.d.ts"
     },
     "./styles": "./dist/styles/inscript-editor.css",
-    "./locales": "./src/locales/index.js"
+    "./locales": {
+      "import": "./src/locales/index.js",
+      "types": "./src/locales/types.d.ts"
+    }
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harshankur/inscript-editor.git"
+  },
+  "keywords": [
+    "tiptap",
+    "rich-text-editor",
+    "wysiwyg",
+    "react",
+    "editor",
+    "prosemirror",
+    "cms",
+    "i18n"
+  ],
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch"

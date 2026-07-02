@@ -3,9 +3,11 @@ import { useTranslation } from 'react-i18next';
 import * as Diff from 'diff';
 import { Redo } from 'lucide-react';
 import { getTextContent } from '../utils/getTextContent.js';
+import { useInscriptEditorTranslations } from '../hooks/useInscriptEditorTranslations.js';
 
 export const HistoryView = ({ history, originalHtml, originalTitle: originalTitleProp, originalTags = [], originalCategories = [], current, currentIndex, onSelect }) => {
-    const { t, i18n } = useTranslation();
+    useInscriptEditorTranslations();
+    const { t, i18n } = useTranslation('inscript-editor');
     const [selectedIdx, setSelectedIdx] = useState(currentIndex);
     const [mode, setMode] = useState('visual'); // 'visual' | 'source' | 'text'
 
@@ -81,11 +83,11 @@ export const HistoryView = ({ history, originalHtml, originalTitle: originalTitl
                         <span key={item} className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-xs border border-zinc-300 dark:border-zinc-700">{item}</span>
                     ))}
                     {forOriginal ? removed.map(item => (
-                        <span key={item} className="px-2 py-0.5 rounded bg-red-900/20 text-red-400 text-xs border border-red-900/30 line-through decoration-red-400/50" title="Removed">
+                        <span key={item} className="px-2 py-0.5 rounded bg-red-900/20 text-red-400 text-xs border border-red-900/30 line-through decoration-red-400/50" title={t('removed', 'Removed')}>
                             {item}
                         </span>
                     )) : added.map(item => (
-                        <span key={item} className="px-2 py-0.5 rounded bg-emerald-900/20 text-emerald-400 text-xs border border-emerald-900/30 font-bold" title="Added">
+                        <span key={item} className="px-2 py-0.5 rounded bg-emerald-900/20 text-emerald-400 text-xs border border-emerald-900/30 font-bold" title={t('added', 'Added')}>
                             + {item}
                         </span>
                     ))}
@@ -114,7 +116,7 @@ export const HistoryView = ({ history, originalHtml, originalTitle: originalTitl
             <div className="w-full md:w-64 h-56 md:h-auto bg-white dark:bg-zinc-950 border-b md:border-b-0 md:border-r border-zinc-200 dark:border-zinc-800 flex flex-col flex-shrink-0">
                 <div className="h-10 md:h-16 flex items-center px-4 md:px-6 border-b border-zinc-200 dark:border-zinc-800">
                     <span className="font-bold text-zinc-500 dark:text-zinc-400 text-xs uppercase tracking-wider">
-                        Version History
+                        {t('versionHistory', 'Version History')}
                     </span>
                 </div>
                 <div className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-zinc-900/30">
@@ -134,10 +136,10 @@ export const HistoryView = ({ history, originalHtml, originalTitle: originalTitl
                             >
                                 <div className="flex justify-between items-center mb-1">
                                     <span className={`text-sm font-bold ${isOriginal ? 'text-blue-400' : 'text-zinc-700 dark:text-zinc-300'}`}>
-                                        {isOriginal ? 'Original' : `Version ${idx}`}
+                                        {isOriginal ? t('original', 'Original') : t('version', 'Version {{n}}', { n: idx })}
                                     </span>
                                     {isCurrent && (
-                                        <span className="text-[10px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Active</span>
+                                        <span className="text-[10px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">{t('active', 'Active')}</span>
                                     )}
                                 </div>
                                 <span className="text-[10px] font-mono text-zinc-400 dark:text-zinc-500">
@@ -156,7 +158,7 @@ export const HistoryView = ({ history, originalHtml, originalTitle: originalTitl
                         className="w-full py-2 md:py-2.5 bg-zinc-100 hover:bg-white text-black font-bold rounded-lg text-xs uppercase tracking-wide transition-colors shadow-lg flex items-center justify-center gap-2"
                     >
                         <span className="md:hidden"><Redo size={14} /></span>
-                        Restore Version
+                        {t('restoreVersion', 'Restore Version')}
                     </button>
                 </div>
             </div>
@@ -164,17 +166,17 @@ export const HistoryView = ({ history, originalHtml, originalTitle: originalTitl
             {/* Diff Area - Flex Col on Mobile (Split Top/Bottom), Grid on Desktop (Split Left/Right) */}
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div className="p-2 min-h-12 md:min-h-16 md:p-3 bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center sticky top-0 bg-white dark:bg-zinc-950/95 backdrop-blur z-20">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 pl-1 md:pl-2">Original (Reference)</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 pl-1 md:pl-2">{t('originalReference', 'Original (Reference)')}</span>
                     <div className="flex bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-0.5 shadow-sm">
-                        <button onClick={() => setMode('visual')} className={`px-2 py-1 text-[10px] font-bold rounded transition-all ${mode === 'visual' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white'}`}>Preview</button>
-                        <button onClick={() => setMode('text')} className={`px-2 py-1 text-[10px] font-bold rounded transition-all ${mode === 'text' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white'}`}>Text</button>
-                        <button onClick={() => setMode('source')} className={`px-2 py-1 text-[10px] font-bold rounded transition-all ${mode === 'source' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white'}`}>Source</button>
+                        <button onClick={() => setMode('visual')} className={`px-2 py-1 text-[10px] font-bold rounded transition-all ${mode === 'visual' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white'}`}>{t('preview', 'Preview')}</button>
+                        <button onClick={() => setMode('text')} className={`px-2 py-1 text-[10px] font-bold rounded transition-all ${mode === 'text' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white'}`}>{t('text', 'Text')}</button>
+                        <button onClick={() => setMode('source')} className={`px-2 py-1 text-[10px] font-bold rounded transition-all ${mode === 'source' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white'}`}>{t('source', 'Source')}</button>
                     </div>
                 </div>
                 <div ref={leftRef} onScroll={handleScroll('left')} className="flex-1 overflow-y-auto custom-scrollbar">
                     {/* Title Display/Diff */}
                     <div className="px-4 md:px-8 pt-4 md:pt-6 pb-2 border-b border-zinc-200 dark:border-zinc-800/50">
-                        <div className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-2">Title</div>
+                        <div className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-2">{t('title', 'Title')}</div>
                         {mode === 'visual' ? (
                             <div className="text-lg md:text-xl font-bold text-zinc-500 dark:text-zinc-400 mb-4 md:mb-6 break-words">{originalTitleProp}</div>
                         ) : (
@@ -186,13 +188,13 @@ export const HistoryView = ({ history, originalHtml, originalTitle: originalTitl
                         {/* Metadata Original/Diff Left */}
                         {mode !== 'visual' ? (
                             <>
-                                {renderMetadataDiff(tagDiff, 'Tags', true)}
-                                {renderMetadataDiff(catDiff, 'Categories', true)}
+                                {renderMetadataDiff(tagDiff, t('tags', 'Tags'), true)}
+                                {renderMetadataDiff(catDiff, t('categories', 'Categories'), true)}
                             </>
                         ) : (
                             <>
-                                {renderMetadataCurrent(originalTags, 'Tags')}
-                                {renderMetadataCurrent(originalCategories, 'Categories')}
+                                {renderMetadataCurrent(originalTags, t('tags', 'Tags'))}
+                                {renderMetadataCurrent(originalCategories, t('categories', 'Categories'))}
                             </>
                         )}
                     </div>
@@ -207,12 +209,12 @@ export const HistoryView = ({ history, originalHtml, originalTitle: originalTitl
             </div>
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-zinc-50 dark:bg-zinc-900/20">
                 <div className="p-2 min-h-12 md:min-h-16 md:p-3 bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-emerald-500 sticky top-0 bg-white dark:bg-zinc-950/95 backdrop-blur z-10">
-                    Selected Version ({selectedIdx})
+                    {t('selectedVersion', 'Selected Version ({{n}})', { n: selectedIdx })}
                 </div>
                 <div ref={rightRef} onScroll={handleScroll('right')} className="flex-1 overflow-y-auto custom-scrollbar">
                     {/* Title Display/Diff */}
                     <div className="px-4 md:px-8 pt-4 md:pt-6 pb-2 border-b border-zinc-200 dark:border-zinc-800/50 shrink-0">
-                        <div className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-2">Title</div>
+                        <div className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-2">{t('title', 'Title')}</div>
                         {mode === 'visual' ? (
                             <div className="text-lg md:text-xl font-bold text-zinc-900 dark:text-zinc-200 mb-4 md:mb-6 break-words">{selectedState.title}</div>
                         ) : (
@@ -224,13 +226,13 @@ export const HistoryView = ({ history, originalHtml, originalTitle: originalTitl
                         {/* Metadata Current/Diff Right */}
                         {mode !== 'visual' ? (
                             <>
-                                {renderMetadataDiff(tagDiff, 'Tags', false)}
-                                {renderMetadataDiff(catDiff, 'Categories', false)}
+                                {renderMetadataDiff(tagDiff, t('tags', 'Tags'), false)}
+                                {renderMetadataDiff(catDiff, t('categories', 'Categories'), false)}
                             </>
                         ) : (
                             <>
-                                {renderMetadataCurrent(selectedState.tags, 'Tags')}
-                                {renderMetadataCurrent(selectedState.categories, 'Categories')}
+                                {renderMetadataCurrent(selectedState.tags, t('tags', 'Tags'))}
+                                {renderMetadataCurrent(selectedState.categories, t('categories', 'Categories'))}
                             </>
                         )}
                     </div>

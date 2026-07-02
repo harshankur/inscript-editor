@@ -13,17 +13,19 @@ import { ToolbarButton, TOOLBAR_SIZES } from './ToolbarButton.jsx';
 import { ColorSelector } from './ColorSelector.jsx';
 import { FontSizeSelector } from './FontSizeSelector.jsx';
 import { LinkSelector } from './LinkSelector.jsx';
+import { useInscriptEditorTranslations } from '../hooks/useInscriptEditorTranslations.js';
 
 export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube }) => {
-    const { t } = useTranslation();
+    useInscriptEditorTranslations();
+    const { t } = useTranslation('inscript-editor');
     const containerRef = useRef(null);
     const [visibleCount, setVisibleCount] = useState(100);
     const [showMore, setShowMore] = useState(false);
 
     // Tools Configuration
     const tools = useMemo(() => (!editor ? [] : [
-        { id: 'undo', icon: Undo, action: onHistoryUndo, disabled: !canUndo, title: t('undo') },
-        { id: 'redo', icon: Redo, action: onHistoryRedo, disabled: !canRedo, title: t('redo') },
+        { id: 'undo', icon: Undo, action: onHistoryUndo, disabled: !canUndo, title: t('undo', 'Undo') },
+        { id: 'redo', icon: Redo, action: onHistoryRedo, disabled: !canRedo, title: t('redo', 'Redo') },
         { type: 'divider' },
         { id: 'bold', icon: Bold, action: () => editor.chain().focus().toggleBold().run(), active: editor?.isActive('bold') },
         { id: 'italic', icon: Italic, action: () => editor.chain().focus().toggleItalic().run(), active: editor?.isActive('italic') },
@@ -44,7 +46,7 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
             id: 'highlight', type: 'custom', render: () => (
                 <ColorSelector
                     icon={Highlighter}
-                    title={t('highlightColor')}
+                    title={t('highlightColor', 'Highlight Color')}
                     activeColor={editor?.getAttributes('highlight').color}
                     onChange={(color) => editor.chain().focus().toggleHighlight({ color }).run()}
                     onRemove={() => editor.chain().focus().unsetHighlight().run()}
@@ -57,7 +59,7 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
             id: 'color', type: 'custom', render: () => (
                 <ColorSelector
                     icon={Palette}
-                    title={t('textColor')}
+                    title={t('textColor', 'Text Color')}
                     activeColor={editor?.getAttributes('textStyle').color}
                     onChange={(color) => editor.chain().focus().setColor(color).run()}
                     onRemove={() => editor.chain().focus().unsetColor().run()}
@@ -83,12 +85,12 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
         { id: 'code', icon: Code, action: () => editor.chain().focus().toggleCodeBlock().run(), active: editor?.isActive('codeBlock') },
         { id: 'quote', icon: Quote, action: () => editor.chain().focus().toggleBlockquote().run(), active: editor?.isActive('blockquote') },
         { type: 'divider' },
-        { id: 'image', icon: ImageIcon, action: onShowMediaLibrary, title: t('insertImage') },
-        { id: 'youtube', icon: YoutubeIcon, action: onAddYoutube, title: t('embedYoutube') },
-        { id: 'table', icon: TableIcon, action: () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), title: t('insertTable') },
+        { id: 'image', icon: ImageIcon, action: onShowMediaLibrary, title: t('insertImage', 'Insert Image') },
+        { id: 'youtube', icon: YoutubeIcon, action: onAddYoutube, title: t('embedYoutube', 'Embed YouTube Video') },
+        { id: 'table', icon: TableIcon, action: () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), title: t('insertTable', 'Insert Table') },
         {
             id: 'tags', type: 'custom', render: () => (
-                <ToolbarButton onClick={onShowMetadataModal} active={showMetadataActive} title={t('manageMetadata')} width={TOOLBAR_SIZES.CUSTOM}>
+                <ToolbarButton onClick={onShowMetadataModal} active={showMetadataActive} title={t('manageMetadata', 'Manage Tags & Categories')} width={TOOLBAR_SIZES.CUSTOM}>
                     <div className="relative flex items-center justify-center">
                         <Tag size={18} />
                         {hasMetadata && <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full" />}
@@ -180,7 +182,7 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                         onClick={() => setShowMore(!showMore)}
                         style={{ width: `${TOOLBAR_SIZES.BUTTON}px`, height: `${TOOLBAR_SIZES.BUTTON}px` }}
                         className={`flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors shrink-0 ${showMore ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white' : ''}`}
-                        title={t('moreTools')}
+                        title={t('moreTools', 'More tools')}
                     >
                         <ChevronsRight size={18} />
                     </button>
