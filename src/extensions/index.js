@@ -1,12 +1,18 @@
-import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
+// Named (not default) imports throughout: Rollup/Rolldown's CJS-output interop
+// double-wraps a default import when the dependency already ships __esModule
+// plus a matching named export (every @tiptap/extension-* package does this),
+// silently losing the real export and breaking `X.extend is not a function`
+// for any require()-based (CJS) consumer. Named imports sidestep that interop
+// entirely, since there's no `.default` unwrapping involved.
+import { StarterKit } from '@tiptap/starter-kit';
+import { Underline } from '@tiptap/extension-underline';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
-import Highlight from '@tiptap/extension-highlight';
-import Subscript from '@tiptap/extension-subscript';
-import Superscript from '@tiptap/extension-superscript';
-import TextAlign from '@tiptap/extension-text-align';
-import Link from '@tiptap/extension-link';
+import { Highlight } from '@tiptap/extension-highlight';
+import { Subscript } from '@tiptap/extension-subscript';
+import { Superscript } from '@tiptap/extension-superscript';
+import { TextAlign } from '@tiptap/extension-text-align';
+import { Link } from '@tiptap/extension-link';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';

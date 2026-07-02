@@ -8,7 +8,11 @@ export default defineConfig({
         lib: {
             entry: path.resolve(__dirname, 'src/index.js'),
             formats: ['es', 'cjs'],
-            fileName: (fmt) => `inscript-editor.${fmt}.js`,
+            // The package sets "type": "module", so a CJS file named *.cjs.js would be
+            // parsed as ESM by Node regardless of its contents (extension wins over
+            // package "type" only for .mjs/.cjs) — use the real .cjs extension so
+            // require()-based consumers don't hit "exports is not defined".
+            fileName: (fmt) => fmt === 'cjs' ? 'inscript-editor.cjs' : `inscript-editor.${fmt}.js`,
         },
         rollupOptions: {
             external: [

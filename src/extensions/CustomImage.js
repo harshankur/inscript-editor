@@ -1,4 +1,6 @@
-import TiptapImage from '@tiptap/extension-image';
+// Named import — see the comment in extensions/index.js on why default imports
+// from @tiptap/extension-* packages break under CJS-output interop.
+import { Image as TiptapImage } from '@tiptap/extension-image';
 
 export const CustomImage = TiptapImage.extend({
     addAttributes() {

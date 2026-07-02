@@ -5,7 +5,7 @@
   "author": "Harsh Ankur <harshankur@outlook.com>",
   "license": "MIT",
   "type": "module",
-  "main": "./dist/inscript-editor.cjs.js",
+  "main": "./dist/inscript-editor.cjs",
   "module": "./dist/inscript-editor.es.js",
   "types": "./src/types.d.ts",
   "sideEffects": [
@@ -19,7 +19,7 @@
   "exports": {
     ".": {
       "import": "./dist/inscript-editor.es.js",
-      "require": "./dist/inscript-editor.cjs.js",
+      "require": "./dist/inscript-editor.cjs",
       "types": "./src/types.d.ts"
     },
     "./styles": "./dist/styles/inscript-editor.css",
