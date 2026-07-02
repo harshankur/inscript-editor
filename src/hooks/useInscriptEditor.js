@@ -67,6 +67,15 @@ export function useInscriptEditor({
         historyIndexRef.current = historyIndex;
     }, [history, historyIndex]);
 
+    // Reset history/dirty state whenever the editor is recreated for a new document.
+    // Without this, switching documents (contentKey change) keeps the previous
+    // document's history stack alive on the new one.
+    useEffect(() => {
+        setHistory([]);
+        setHistoryIndex(-1);
+        setIsDirty(false);
+    }, [contentKey]);
+
     // --- TipTap editor ---
     const editor = useEditor({
         extensions: [
@@ -155,6 +164,18 @@ export function useInscriptEditor({
         }
     }, [editor, isReadonly]);
 
+    // Clear the pending debounced history push when the editor is destroyed/recreated
+    // (contentKey change) or unmounted. Otherwise a stale timer can fire after the
+    // editor is gone, pushing content into the wrong document's history.
+    useEffect(() => {
+        return () => {
+            if (historyDebounceRef.current) {
+                clearTimeout(historyDebounceRef.current);
+                historyDebounceRef.current = null;
+            }
+        };
+    }, [editor]);
+
     /**
      * Restore editor content to a history entry without triggering an onUpdate push.
      * The consumer is responsible for updating title/tags/categories from the history entry.
@@ -162,10 +183,8 @@ export function useInscriptEditor({
     const restoreVersion = useCallback((index) => {
         const target = historyRef.current[index];
         if (!target || !editor || editor.isDestroyed) return;
-        isSyncingRef.current = true;
-        editor.commands.setContent(target.html);
+        editor.commands.setContent(target.html, { emitUpdate: false });
         setHistoryIndex(index);
-        setTimeout(() => { isSyncingRef.current = false; }, 100);
     }, [editor]);
 
     /** Reset the dirty flag after a successful save. */

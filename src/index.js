@@ -6,6 +6,7 @@ export { InscriptEditor } from './InscriptEditor.jsx';
 export { Youtube, FontSize, CustomTable, CustomImage } from './extensions/index.js';
 export { getTableNode, isHeaderRowActive, isHeaderColumnActive, setTableLayout } from './utils/tableHelpers.js';
 export { getTextContent } from './utils/getTextContent.js';
+export { extractYoutubeId } from './utils/youtubeUrl.js';
 
 export { ToolbarButton, TOOLBAR_SIZES } from './components/ToolbarButton.jsx';
 export { ColorSelector } from './components/ColorSelector.jsx';

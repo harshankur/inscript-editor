@@ -81,22 +81,6 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                         <ImageBubbleMenu editor={editor} isReadonly={isReadonly} />
                         <YoutubeBubbleMenu editor={editor} isReadonly={isReadonly} />
                         <EditorContent editor={editor} />
-                        <footer className="mt-auto pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-zinc-400 dark:text-zinc-500">
-                                <span>
-                                    &copy; {new Date().getFullYear()}{' '}
-                                    <a href="https://github.com/harshankur" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
-                                        Harsh Ankur
-                                    </a>
-                                </span>
-                                <span>
-                                    Powered by{' '}
-                                    <a href="https://inscript.harshankur.com" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
-                                        Inscript
-                                    </a>
-                                </span>
-                            </div>
-                        </footer>
                     </div>
                 )}
             </div>

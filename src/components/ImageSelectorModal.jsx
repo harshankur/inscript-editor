@@ -1,13 +1,29 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Filter, Image as ImageIcon, Plus, X } from 'lucide-react';
+import { Filter, Image as ImageIcon, Loader2, Plus, X } from 'lucide-react';
+import { InlineNotice } from './InlineNotice.jsx';
 
 export const ImageSelectorModal = ({ isOpen, onClose, images, onSelect, onUpload }) => {
     const { t } = useTranslation();
     const [search, setSearch] = useState('');
+    const [uploading, setUploading] = useState(false);
+    const [uploadError, setUploadError] = useState(null);
 
     if (!isOpen) return null;
     const filteredImages = images.filter(img => img.name.toLowerCase().includes(search.toLowerCase()));
+
+    const handleUpload = async (file) => {
+        if (!file) return;
+        setUploading(true);
+        setUploadError(null);
+        try {
+            await onUpload(file);
+        } catch (err) {
+            setUploadError('Upload failed. Please try again.');
+        } finally {
+            setUploading(false);
+        }
+    };
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
@@ -35,12 +51,24 @@ export const ImageSelectorModal = ({ isOpen, onClose, images, onSelect, onUpload
                             <Filter size={16} />
                         </div>
                     </div>
-                    <label className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-zinc-900 dark:text-white font-bold rounded-lg cursor-pointer transition-colors flex items-center gap-2 shadow-lg shadow-emerald-900/20">
-                        <Plus size={18} />
+                    <label className={`px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-zinc-900 dark:text-white font-bold rounded-lg cursor-pointer transition-colors flex items-center gap-2 shadow-lg shadow-emerald-900/20 ${uploading ? 'opacity-60 pointer-events-none' : ''}`}>
+                        {uploading ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
                         <span>{t('uploadNew')}</span>
-                        <input type="file" className="hidden" onChange={(e) => { const file = e.target.files[0]; if (file) onUpload(file); }} accept="image/*" />
+                        <input
+                            type="file"
+                            className="hidden"
+                            disabled={uploading}
+                            onChange={(e) => { const file = e.target.files[0]; handleUpload(file); e.target.value = ''; }}
+                            accept="image/*"
+                        />
                     </label>
                 </div>
+
+                {uploadError && (
+                    <div className="px-4 pt-4">
+                        <InlineNotice variant="error">{uploadError}</InlineNotice>
+                    </div>
+                )}
 
                 {/* Grid */}
                 <div className="flex-1 overflow-y-auto p-4 bg-white dark:bg-zinc-950/30">

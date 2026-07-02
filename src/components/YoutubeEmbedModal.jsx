@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
-import { AlertCircle, Filter, Plus, X, Youtube as YoutubeIcon } from 'lucide-react';
+import { Filter, Plus, X, Youtube as YoutubeIcon } from 'lucide-react';
+import { InlineNotice } from './InlineNotice.jsx';
+import { extractYoutubeId } from '../utils/youtubeUrl.js';
 
 export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch }) => {
     const [activeTab, setActiveTab] = useState('link'); // 'link' or 'search'
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [searching, setSearching] = useState(false);
+    const [searchError, setSearchError] = useState(null);
     const [linkInput, setLinkInput] = useState('');
     const [previewId, setPreviewId] = useState(null);
 
@@ -13,6 +16,7 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch }) => {
         if (!isOpen) {
             setQuery('');
             setResults([]);
+            setSearchError(null);
             setLinkInput('');
             setPreviewId(null);
         }
@@ -23,23 +27,20 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch }) => {
         if (!query.trim() || !onSearch) return;
 
         setSearching(true);
+        setSearchError(null);
         try {
             const items = await onSearch(query);
             setResults(items || []);
         } catch (err) {
-            console.error('YouTube Search Failed:', err);
+            setResults([]);
+            setSearchError('Search failed. Please try again, or use the Direct Link tab instead.');
         } finally {
             setSearching(false);
         }
     };
 
-    const extractId = (url) => {
-        const match = url.match(/(?:embed\/|v=|vi\/|youtu\.be\/|shorts\/|\/)([a-zA-Z0-9_-]{11})/);
-        return match ? match[1] : (url.length === 11 ? url : null);
-    };
-
     useEffect(() => {
-        const id = extractId(linkInput);
+        const id = extractYoutubeId(linkInput);
         setPreviewId(id);
     }, [linkInput]);
 
@@ -102,13 +103,15 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch }) => {
                                 </button>
                             </form>
 
-                            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex gap-3 items-start">
-                                <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={18} />
-                                <div>
-                                    <p className="text-xs font-bold text-amber-200 mb-1">Experimental Feature</p>
-                                    <p className="text-[10px] text-amber-200/70 leading-relaxed">External search uses public proxy instances which can be unreliable. If search fails, please use the <strong>Direct Link</strong> tab instead.</p>
-                                </div>
-                            </div>
+                            <InlineNotice variant="warning" title="Experimental Feature">
+                                External search uses public proxy instances which can be unreliable. If search fails, please use the <strong>Direct Link</strong> tab instead.
+                            </InlineNotice>
+
+                            {searchError && (
+                                <InlineNotice variant="error" title="Search Failed">
+                                    {searchError}
+                                </InlineNotice>
+                            )}
 
                             {searching ? (
                                 <div className="grid grid-cols-2 gap-4 animate-pulse">
@@ -124,7 +127,10 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch }) => {
                                     {results.map((video) => (
                                         <button
                                             key={video.url}
-                                            onClick={() => onConfirm(video.url.split('v=')[1] || video.url.split('/').pop())}
+                                            onClick={() => {
+                                                const id = extractYoutubeId(video.url);
+                                                if (id) onConfirm(id);
+                                            }}
                                             className="group text-left space-y-2 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 p-2 rounded-xl transition-all"
                                         >
                                             <div className="relative aspect-video rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800">
@@ -172,7 +178,7 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch }) => {
                                 />
                             </div>
 
-                            {previewId && (
+                            {previewId ? (
                                 <div className="space-y-3">
                                     <label className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block">Live Preview</label>
                                     <div className="aspect-video rounded-xl overflow-hidden bg-black ring-1 ring-zinc-800 relative shadow-2xl">
@@ -185,6 +191,10 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch }) => {
                                     </div>
                                     <p className="text-[10px] text-emerald-500 font-mono text-center">Detected ID: {previewId}</p>
                                 </div>
+                            ) : linkInput.trim() && (
+                                <InlineNotice variant="warning">
+                                    No valid YouTube ID detected. Paste a full YouTube URL or an 11-character video ID.
+                                </InlineNotice>
                             )}
                         </div>
                     )}

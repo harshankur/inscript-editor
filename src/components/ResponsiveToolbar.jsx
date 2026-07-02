@@ -21,7 +21,7 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
     const [showMore, setShowMore] = useState(false);
 
     // Tools Configuration
-    const tools = useMemo(() => [
+    const tools = useMemo(() => (!editor ? [] : [
         { id: 'undo', icon: Undo, action: onHistoryUndo, disabled: !canUndo, title: t('undo') },
         { id: 'redo', icon: Redo, action: onHistoryRedo, disabled: !canRedo, title: t('redo') },
         { type: 'divider' },
@@ -96,18 +96,24 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                 </ToolbarButton>
             )
         },
-    ], [editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, t]);
+    ]), [editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, t]);
+
+    // Mirror `tools` into a ref so the resize handler (registered once, deps: [])
+    // always reads the latest tool list instead of closing over a stale one.
+    const toolsRef = useRef(tools);
+    useEffect(() => { toolsRef.current = tools; }, [tools]);
 
     // Precise resize logic using source of truth widths
     useEffect(() => {
         const handleResize = () => {
             if (containerRef.current) {
+                const currentTools = toolsRef.current;
                 const containerWidth = containerRef.current.clientWidth - 50; // Reserve space for "More" button
                 let currentTotal = 0;
                 let count = 0;
 
-                for (let i = 0; i < tools.length; i++) {
-                    const tool = tools[i];
+                for (let i = 0; i < currentTools.length; i++) {
+                    const tool = currentTools[i];
                     let toolWidth = 0;
                     if (tool.type === 'divider') toolWidth = TOOLBAR_SIZES.DIVIDER;
                     else if (tool.type === 'custom') {
@@ -137,6 +143,8 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
             observer.disconnect();
         }
     }, []);
+
+    if (!editor) return null;
 
     const visibleTools = tools.slice(0, visibleCount);
     // Be careful not to split dividers weirdly. but for now strict slicing is ok.
