@@ -1,21 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import { TextStyle } from '@tiptap/extension-text-style';
-import { Color } from '@tiptap/extension-color';
-import Highlight from '@tiptap/extension-highlight';
-import Subscript from '@tiptap/extension-subscript';
-import Superscript from '@tiptap/extension-superscript';
-import TextAlign from '@tiptap/extension-text-align';
-import Link from '@tiptap/extension-link';
-import { TableRow } from '@tiptap/extension-table-row';
-import { TableCell } from '@tiptap/extension-table-cell';
-import { TableHeader } from '@tiptap/extension-table-header';
-import { CustomImage } from '../extensions/CustomImage.js';
-import { CustomTable } from '../extensions/CustomTable.js';
-import { FontSize } from '../extensions/FontSize.js';
-import { Youtube } from '../extensions/Youtube.js';
+import { buildExtensions } from '../extensions/index.js';
 
 /**
  * Core editor hook for Inscript. Manages TipTap editor instance, client-side
@@ -78,34 +63,7 @@ export function useInscriptEditor({
 
     // --- TipTap editor ---
     const editor = useEditor({
-        extensions: [
-            StarterKit.configure({
-                history: false,
-                link: false,
-            }),
-            Underline,
-            CustomImage.configure({ allowBase64: true }),
-            TextStyle,
-            Color,
-            FontSize,
-            Highlight.configure({ multicolor: true }),
-            Subscript,
-            Superscript,
-            TextAlign.configure({ types: ['heading', 'paragraph'] }),
-            Youtube,
-            CustomTable.configure({ resizable: true }),
-            TableRow,
-            TableHeader,
-            TableCell,
-            Link.configure({
-                openOnClick: false,
-                linkOnPaste: true,
-                autolink: true,
-                HTMLAttributes: {
-                    class: 'text-emerald-500 underline underline-offset-4 cursor-pointer hover:text-emerald-400 transition-colors',
-                },
-            }),
-        ],
+        extensions: buildExtensions(),
         content: '',
         editable: !isReadonly,
         editorProps: {
