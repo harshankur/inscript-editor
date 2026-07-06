@@ -198,6 +198,14 @@ export const Youtube = Node.create({
                     applyAttrs(newNode.attrs);
                     return true;
                 },
+                // Once the node is selected (bubble menu open), let clicks fall through
+                // to the iframe so a second click plays the video instead of re-showing the menu.
+                selectNode() {
+                    overlay.style.pointerEvents = 'none';
+                },
+                deselectNode() {
+                    overlay.style.pointerEvents = '';
+                },
             };
         };
     },

@@ -14,7 +14,8 @@
   "files": [
     "dist",
     "src/types.d.ts",
-    "src/locales"
+    "src/locales",
+    "tailwind-content.js"
   ],
   "exports": {
     ".": {
@@ -23,6 +24,8 @@
       "types": "./src/types.d.ts"
     },
     "./styles": "./dist/styles/inscript-editor.css",
+    "./styles/content": "./dist/styles/content.css",
+    "./tailwind-content": "./tailwind-content.js",
     "./locales": {
       "import": "./src/locales/index.js",
       "types": "./src/locales/types.d.ts"
@@ -43,7 +46,7 @@
     "i18n"
   ],
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && node scripts/extract-content-styles.js",
     "dev": "vite build --watch",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -104,6 +107,7 @@
     "i18next": "^25.10.5",
     "jsdom": "^27.4.0",
     "lucide-react": "^0.577.0",
+    "postcss": "^8.5.16",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-i18next": "^16.6.2",

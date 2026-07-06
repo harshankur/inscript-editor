@@ -110,6 +110,27 @@ describe('Youtube extension', () => {
         el.remove();
     });
 
+    it('node view lets clicks pass through to the iframe once the node is selected', () => {
+        const el = document.createElement('div');
+        document.body.appendChild(el);
+        const liveEditor = createEditor({ element: el });
+        liveEditor.commands.setYoutubeVideo({ 'data-youtube-video': VALID_ID });
+
+        const overlay = el.querySelector('.youtube-embed > div:last-child');
+
+        liveEditor.commands.setTextSelection(0); // deselect the node
+        expect(overlay.style.pointerEvents).not.toBe('none');
+
+        liveEditor.commands.setNodeSelection(0); // selects the atom node as a NodeSelection
+        expect(overlay.style.pointerEvents).toBe('none');
+
+        liveEditor.commands.setTextSelection(0);
+        expect(overlay.style.pointerEvents).not.toBe('none');
+
+        liveEditor.destroy();
+        el.remove();
+    });
+
     it('node view renders the placeholder (no iframe) when mounted with a null id', () => {
         const el = document.createElement('div');
         document.body.appendChild(el);
