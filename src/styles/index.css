@@ -108,3 +108,68 @@
   content: "";
   @apply absolute inset-0 border-2 border-emerald-500 pointer-events-none z-10;
 }
+
+/* Task List Styles */
+.ProseMirror ul[data-type="taskList"] {
+  @apply list-none ml-0 p-0;
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  @apply flex items-start my-2;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+  @apply flex items-center justify-center pt-1.5 mr-3 select-none flex-shrink-0 cursor-pointer;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label input {
+  @apply w-4 h-4 accent-emerald-500 cursor-pointer rounded border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900;
+}
+
+.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div {
+  @apply line-through text-zinc-500 dark:text-zinc-400 transition-colors;
+}
+
+/* Syntax Highlighting Styles (lowlight / highlight.js) */
+.ProseMirror pre code .hljs-comment,
+.ProseMirror pre code .hljs-quote {
+  @apply text-zinc-500 dark:text-zinc-400 italic;
+}
+
+.ProseMirror pre code .hljs-variable,
+.ProseMirror pre code .hljs-template-variable,
+.ProseMirror pre code .hljs-attribute,
+.ProseMirror pre code .hljs-tag,
+.ProseMirror pre code .hljs-name,
+.ProseMirror pre code .hljs-regexp,
+.ProseMirror pre code .hljs-link,
+.ProseMirror pre code .hljs-selector-id,
+.ProseMirror pre code .hljs-selector-class {
+  @apply text-red-500 dark:text-red-400;
+}
+
+.ProseMirror pre code .hljs-number,
+.ProseMirror pre code .hljs-meta,
+.ProseMirror pre code .hljs-built_in,
+.ProseMirror pre code .hljs-builtin-name,
+.ProseMirror pre code .hljs-literal,
+.ProseMirror pre code .hljs-type,
+.ProseMirror pre code .hljs-params {
+  @apply text-amber-600 dark:text-amber-400;
+}
+
+.ProseMirror pre code .hljs-string,
+.ProseMirror pre code .hljs-symbol,
+.ProseMirror pre code .hljs-bullet {
+  @apply text-emerald-600 dark:text-emerald-400;
+}
+
+.ProseMirror pre code .hljs-title,
+.ProseMirror pre code .hljs-section {
+  @apply text-blue-600 dark:text-blue-400 font-medium;
+}
+
+.ProseMirror pre code .hljs-keyword,
+.ProseMirror pre code .hljs-selector-tag {
+  @apply text-purple-600 dark:text-purple-400 font-medium;
+}

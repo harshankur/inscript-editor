@@ -20,6 +20,15 @@ import { CustomImage } from './CustomImage.js';
 import { CustomTable } from './CustomTable.js';
 import { FontSize } from './FontSize.js';
 import { Youtube } from './Youtube.js';
+import { TaskList } from '@tiptap/extension-task-list';
+import { TaskItem } from '@tiptap/extension-task-item';
+import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
+import { createLowlight, common } from 'lowlight';
+import { SlashCommand } from './SlashCommand.js';
+import { getDefaultSlashItems } from './slashCommandItems.js';
+import i18next from 'i18next';
+
+const lowlight = createLowlight(common);
 
 export { Youtube } from './Youtube.js';
 export { FontSize } from './FontSize.js';
@@ -36,6 +45,10 @@ export function buildExtensions(options = {}) {
         StarterKit.configure({
             history: false,
             link: false,
+            codeBlock: false,
+        }),
+        CodeBlockLowlight.configure({
+            lowlight,
         }),
         Underline,
         CustomImage.configure({ allowBase64: true }),
@@ -60,6 +73,20 @@ export function buildExtensions(options = {}) {
             },
         }),
     ];
+
+    if (options.taskList !== false) {
+        extensions.push(
+            TaskList,
+            TaskItem.configure({ nested: true })
+        );
+    }
+
+    const t = (k, f) => i18next.t(k, { defaultValue: f, ns: 'inscript-editor' });
+    extensions.push(
+        SlashCommand.configure({
+            items: options.slashCommands ?? getDefaultSlashItems(t, options)
+        })
+    );
 
     return extensions;
 }
