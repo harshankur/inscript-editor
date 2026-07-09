@@ -6,9 +6,9 @@ import { buildExtensions } from '../../src/extensions/index.js';
  * exact extension set used by useInscriptEditor, for unit-testing extensions
  * and table helpers without going through React.
  */
-export function createEditor(options = {}) {
+export function createEditor(options = {}, editorOptions = {}) {
     return new Editor({
-        extensions: buildExtensions(),
+        extensions: buildExtensions(editorOptions),
         content: '',
         ...options,
     });

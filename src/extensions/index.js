@@ -31,8 +31,8 @@ export { CustomImage } from './CustomImage.js';
  * (tests/helpers/createEditor.js) so a headless editor built for testing has
  * exactly the same schema as the one rendered in the app.
  */
-export function buildExtensions() {
-    return [
+export function buildExtensions(options = {}) {
+    const extensions = [
         StarterKit.configure({
             history: false,
             link: false,
@@ -60,4 +60,6 @@ export function buildExtensions() {
             },
         }),
     ];
+
+    return extensions;
 }

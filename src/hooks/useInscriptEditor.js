@@ -21,6 +21,7 @@ export function useInscriptEditor({
     categories = [],
     isReadonly = false,
     onContentChange = null,
+    editorOptions = {},
 } = {}) {
     // --- Live-prop refs (prevent stale closures in onUpdate) ---
     const isReadonlyRef = useRef(isReadonly);
@@ -63,7 +64,7 @@ export function useInscriptEditor({
 
     // --- TipTap editor ---
     const editor = useEditor({
-        extensions: buildExtensions(),
+        extensions: buildExtensions(editorOptions),
         content: '',
         editable: !isReadonly,
         editorProps: {
