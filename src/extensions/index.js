@@ -26,6 +26,7 @@ import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
 import { createLowlight, common } from 'lowlight';
 import { SlashCommand } from './SlashCommand.js';
 import { FocusModeBlock } from './FocusMode.js';
+import { Admonition } from './Admonition.jsx';
 import { getDefaultSlashItems } from './slashCommandItems.js';
 import i18next from 'i18next';
 
@@ -81,6 +82,10 @@ export function buildExtensions(options = {}) {
             TaskList,
             TaskItem.configure({ nested: true })
         );
+    }
+
+    if (options.admonition !== false) {
+        extensions.push(Admonition);
     }
 
     const t = (k, f) => i18next.t(k, { defaultValue: f, ns: 'inscript-editor' });

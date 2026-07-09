@@ -26,7 +26,17 @@ const newKeys = {
   "expandOutline": "Expand outline",
   "collapseOutline": "Collapse outline",
   "documentOutline": "Outline",
-  "noHeadings": "No headings yet"
+  "noHeadings": "No headings yet",
+  "admonitionNote": "Admonition ▸ Note",
+  "admonitionNoteSubtitle": "Add a note admonition",
+  "admonitionTip": "Admonition ▸ Tip",
+  "admonitionTipSubtitle": "Add a tip admonition",
+  "admonitionImportant": "Admonition ▸ Important",
+  "admonitionImportantSubtitle": "Add an important admonition",
+  "admonitionWarning": "Admonition ▸ Warning",
+  "admonitionWarningSubtitle": "Add a warning admonition",
+  "admonitionCaution": "Admonition ▸ Caution",
+  "admonitionCautionSubtitle": "Add a caution admonition"
 };
 
 for (const file of fs.readdirSync(localesDir)) {

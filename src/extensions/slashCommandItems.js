@@ -59,6 +59,58 @@ export const getDefaultSlashItems = (t, options = {}) => [
             editor.chain().focus().deleteRange(range).toggleTaskList().run();
         }
     }] : []),
+    ...(options.admonition !== false ? [
+        {
+            id: 'admonitionNote',
+            title: t('admonitionNote', 'Admonition ▸ Note'),
+            subtitle: t('admonitionNoteSubtitle', 'Add a note admonition'),
+            keywords: ['admonition', 'note', 'info'],
+            group: 'text',
+            command: ({ editor, range }) => {
+                editor.chain().focus().deleteRange(range).setAdmonition('note').run();
+            }
+        },
+        {
+            id: 'admonitionTip',
+            title: t('admonitionTip', 'Admonition ▸ Tip'),
+            subtitle: t('admonitionTipSubtitle', 'Add a tip admonition'),
+            keywords: ['admonition', 'tip', 'idea'],
+            group: 'text',
+            command: ({ editor, range }) => {
+                editor.chain().focus().deleteRange(range).setAdmonition('tip').run();
+            }
+        },
+        {
+            id: 'admonitionImportant',
+            title: t('admonitionImportant', 'Admonition ▸ Important'),
+            subtitle: t('admonitionImportantSubtitle', 'Add an important admonition'),
+            keywords: ['admonition', 'important', 'warning'],
+            group: 'text',
+            command: ({ editor, range }) => {
+                editor.chain().focus().deleteRange(range).setAdmonition('important').run();
+            }
+        },
+        {
+            id: 'admonitionWarning',
+            title: t('admonitionWarning', 'Admonition ▸ Warning'),
+            subtitle: t('admonitionWarningSubtitle', 'Add a warning admonition'),
+            keywords: ['admonition', 'warning', 'alert'],
+            group: 'text',
+            command: ({ editor, range }) => {
+                editor.chain().focus().deleteRange(range).setAdmonition('warning').run();
+            }
+        },
+        {
+            id: 'admonitionCaution',
+            title: t('admonitionCaution', 'Admonition ▸ Caution'),
+            subtitle: t('admonitionCautionSubtitle', 'Add a caution admonition'),
+            keywords: ['admonition', 'caution', 'danger'],
+            group: 'text',
+            command: ({ editor, range }) => {
+                editor.chain().focus().deleteRange(range).setAdmonition('caution').run();
+            }
+        }
+    ] : []),
     {
         id: 'blockquote',
         title: t('quote', 'Quote'),
