@@ -27,6 +27,7 @@ import { createLowlight, common } from 'lowlight';
 import { SlashCommand } from './SlashCommand.js';
 import { FocusModeBlock } from './FocusMode.js';
 import { Admonition } from './Admonition.jsx';
+import { FootnoteReference, FootnoteDefinition, FootnotesSection } from './Footnote.jsx';
 import { getDefaultSlashItems } from './slashCommandItems.js';
 import i18next from 'i18next';
 
@@ -86,6 +87,10 @@ export function buildExtensions(options = {}) {
 
     if (options.admonition !== false) {
         extensions.push(Admonition);
+    }
+
+    if (options.footnote !== false) {
+        extensions.push(FootnoteReference, FootnoteDefinition, FootnotesSection);
     }
 
     const t = (k, f) => i18next.t(k, { defaultValue: f, ns: 'inscript-editor' });

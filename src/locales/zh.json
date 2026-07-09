@@ -43,6 +43,8 @@
   "experimentalFeature": "實驗性功能",
   "experimentalFeatureDescription": "外部搜尋使用可能不穩定的公開代理伺服器。如果搜尋失敗,請改用<1>直接連結</1>分頁。",
   "fontSize": "字體大小",
+  "footnote": "Footnote",
+  "footnoteSubtitle": "Insert a footnote reference",
   "h1Subtitle": "Big section heading",
   "h2Subtitle": "Medium section heading",
   "h3Subtitle": "Small section heading",

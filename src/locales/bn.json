@@ -43,6 +43,8 @@
   "experimentalFeature": "পরীক্ষামূলক বৈশিষ্ট্য",
   "experimentalFeatureDescription": "বাহ্যিক অনুসন্ধান পাবলিক প্রক্সি ইনস্ট্যান্স ব্যবহার করে যা অনির্ভরযোগ্য হতে পারে। অনুসন্ধান ব্যর্থ হলে, দয়া করে <1>সরাসরি লিঙ্ক</1> ট্যাব ব্যবহার করুন।",
   "fontSize": "ফন্টের আকার",
+  "footnote": "Footnote",
+  "footnoteSubtitle": "Insert a footnote reference",
   "h1Subtitle": "Big section heading",
   "h2Subtitle": "Medium section heading",
   "h3Subtitle": "Small section heading",

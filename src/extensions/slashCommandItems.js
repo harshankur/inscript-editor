@@ -111,6 +111,18 @@ export const getDefaultSlashItems = (t, options = {}) => [
             }
         }
     ] : []),
+    ...(options.footnote !== false ? [
+        {
+            id: 'footnote',
+            title: t('footnote', 'Footnote'),
+            subtitle: t('footnoteSubtitle', 'Insert a footnote reference'),
+            keywords: ['footnote', 'reference', 'citation'],
+            group: 'text',
+            command: ({ editor, range }) => {
+                editor.chain().focus().deleteRange(range).insertFootnote().run();
+            }
+        }
+    ] : []),
     {
         id: 'blockquote',
         title: t('quote', 'Quote'),

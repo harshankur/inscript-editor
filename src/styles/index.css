@@ -239,3 +239,12 @@
 .ProseMirror .admonition-caution .admonition-header {
   @apply text-red-600 dark:text-red-400;
 }
+
+/* Footnote Styles */
+.ProseMirror section[data-footnotes] {
+  @apply mt-12 pt-6 border-t border-zinc-200 dark:border-zinc-800;
+}
+.ProseMirror section[data-footnotes]::before {
+  content: "Footnotes";
+  @apply block mb-4 text-sm font-semibold text-zinc-500 uppercase tracking-wider;
+}

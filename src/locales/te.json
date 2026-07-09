@@ -43,6 +43,8 @@
   "experimentalFeature": "ప్రయోగాత్మక ఫీచర్",
   "experimentalFeatureDescription": "బాహ్య శోధన నమ్మదగనిదిగా ఉండే పబ్లిక్ ప్రాక్సీ ఇన్‌స్టాన్స్‌లను ఉపయోగిస్తుంది. శోధన విఫలమైతే, దయచేసి <1>ప్రత్యక్ష లింక్</1> ట్యాబ్‌ను ఉపయోగించండి.",
   "fontSize": "అక్షర పరిమాణం",
+  "footnote": "Footnote",
+  "footnoteSubtitle": "Insert a footnote reference",
   "h1Subtitle": "Big section heading",
   "h2Subtitle": "Medium section heading",
   "h3Subtitle": "Small section heading",

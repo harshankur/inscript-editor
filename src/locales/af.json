@@ -43,6 +43,8 @@
   "experimentalFeature": "Eksperimentele funksie",
   "experimentalFeatureDescription": "Eksterne soektogte gebruik openbare instaanbedieners wat onbetroubaar kan wees. As die soektog misluk, gebruik gerus die <1>Direkte skakel</1>-oortjie.",
   "fontSize": "Lettergrootte",
+  "footnote": "Footnote",
+  "footnoteSubtitle": "Insert a footnote reference",
   "h1Subtitle": "Big section heading",
   "h2Subtitle": "Medium section heading",
   "h3Subtitle": "Small section heading",

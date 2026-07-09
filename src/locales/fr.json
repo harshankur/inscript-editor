@@ -43,6 +43,8 @@
   "experimentalFeature": "Fonctionnalité expérimentale",
   "experimentalFeatureDescription": "La recherche externe utilise des instances proxy publiques qui peuvent être peu fiables. Si la recherche échoue, veuillez utiliser l'onglet <1>Lien direct</1>.",
   "fontSize": "Taille de police",
+  "footnote": "Footnote",
+  "footnoteSubtitle": "Insert a footnote reference",
   "h1Subtitle": "Big section heading",
   "h2Subtitle": "Medium section heading",
   "h3Subtitle": "Small section heading",

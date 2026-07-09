@@ -43,6 +43,8 @@
   "experimentalFeature": "പരീക്ഷണാത്മക ഫീച്ചർ",
   "experimentalFeatureDescription": "വിശ്വസനീയമല്ലാത്ത പൊതു പ്രോക്സി ഇൻസ്റ്റൻസുകൾ ബാഹ്യ തിരയൽ ഉപയോഗിക്കുന്നു. തിരയൽ പരാജയപ്പെട്ടാൽ, ദയവായി <1>നേരിട്ടുള്ള ലിങ്ക്</1> ടാബ് ഉപയോഗിക്കുക.",
   "fontSize": "അക്ഷര വലിപ്പം",
+  "footnote": "Footnote",
+  "footnoteSubtitle": "Insert a footnote reference",
   "h1Subtitle": "Big section heading",
   "h2Subtitle": "Medium section heading",
   "h3Subtitle": "Small section heading",

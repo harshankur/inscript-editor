@@ -43,6 +43,8 @@
   "experimentalFeature": "பரிசோதனை அம்சம்",
   "experimentalFeatureDescription": "வெளிப்புற தேடல் நம்பகத்தன்மையற்றதாக இருக்கக்கூடிய பொது ப்ராக்ஸி நிகழ்வுகளைப் பயன்படுத்துகிறது. தேடல் தோல்வியடைந்தால், தயவுசெய்து <1>நேரடி இணைப்பு</1> தாவலைப் பயன்படுத்தவும்.",
   "fontSize": "எழுத்து அளவு",
+  "footnote": "Footnote",
+  "footnoteSubtitle": "Insert a footnote reference",
   "h1Subtitle": "Big section heading",
   "h2Subtitle": "Medium section heading",
   "h3Subtitle": "Small section heading",

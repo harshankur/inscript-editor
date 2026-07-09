@@ -36,7 +36,9 @@ const newKeys = {
   "admonitionWarning": "Admonition ▸ Warning",
   "admonitionWarningSubtitle": "Add a warning admonition",
   "admonitionCaution": "Admonition ▸ Caution",
-  "admonitionCautionSubtitle": "Add a caution admonition"
+  "admonitionCautionSubtitle": "Add a caution admonition",
+  "footnote": "Footnote",
+  "footnoteSubtitle": "Insert a footnote reference"
 };
 
 for (const file of fs.readdirSync(localesDir)) {

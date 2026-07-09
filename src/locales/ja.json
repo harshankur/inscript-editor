@@ -43,6 +43,8 @@
   "experimentalFeature": "実験的機能",
   "experimentalFeatureDescription": "外部検索は不安定な場合がある公開プロキシインスタンスを使用します。検索に失敗した場合は、<1>直接リンク</1>タブをご利用ください。",
   "fontSize": "フォントサイズ",
+  "footnote": "Footnote",
+  "footnoteSubtitle": "Insert a footnote reference",
   "h1Subtitle": "Big section heading",
   "h2Subtitle": "Medium section heading",
   "h3Subtitle": "Small section heading",

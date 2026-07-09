@@ -43,6 +43,8 @@
   "experimentalFeature": "Experimental Feature",
   "experimentalFeatureDescription": "External search uses public proxy instances which can be unreliable. If search fails, please use the <1>Direct Link</1> tab instead.",
   "fontSize": "Font Size",
+  "footnote": "Footnote",
+  "footnoteSubtitle": "Insert a footnote reference",
   "h1Subtitle": "Big section heading",
   "h2Subtitle": "Medium section heading",
   "h3Subtitle": "Small section heading",

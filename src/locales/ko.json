@@ -43,6 +43,8 @@
   "experimentalFeature": "실험적 기능",
   "experimentalFeatureDescription": "외부 검색은 불안정할 수 있는 공용 프록시 인스턴스를 사용합니다. 검색에 실패하면 <1>직접 링크</1> 탭을 이용해 주세요.",
   "fontSize": "글자 크기",
+  "footnote": "Footnote",
+  "footnoteSubtitle": "Insert a footnote reference",
   "h1Subtitle": "Big section heading",
   "h2Subtitle": "Medium section heading",
   "h3Subtitle": "Small section heading",

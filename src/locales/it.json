@@ -43,6 +43,8 @@
   "experimentalFeature": "Funzionalità sperimentale",
   "experimentalFeatureDescription": "La ricerca esterna utilizza istanze proxy pubbliche che potrebbero non essere affidabili. Se la ricerca fallisce, usa la scheda <1>Link diretto</1>.",
   "fontSize": "Dimensione carattere",
+  "footnote": "Footnote",
+  "footnoteSubtitle": "Insert a footnote reference",
   "h1Subtitle": "Big section heading",
   "h2Subtitle": "Medium section heading",
   "h3Subtitle": "Small section heading",

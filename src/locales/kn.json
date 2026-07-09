@@ -43,6 +43,8 @@
   "experimentalFeature": "ಪ್ರಾಯೋಗಿಕ ವೈಶಿಷ್ಟ್ಯ",
   "experimentalFeatureDescription": "ಬಾಹ್ಯ ಹುಡುಕಾಟವು ವಿಶ್ವಾಸಾರ್ಹವಲ್ಲದ ಸಾರ್ವಜನಿಕ ಪ್ರಾಕ್ಸಿ ಇನ್‌ಸ್ಟನ್ಸ್‌ಗಳನ್ನು ಬಳಸುತ್ತದೆ. ಹುಡುಕಾಟ ವಿಫಲವಾದರೆ, ದಯವಿಟ್ಟು <1>ನೇರ ಲಿಂಕ್</1> ಟ್ಯಾಬ್ ಬಳಸಿ.",
   "fontSize": "ಅಕ್ಷರದ ಗಾತ್ರ",
+  "footnote": "Footnote",
+  "footnoteSubtitle": "Insert a footnote reference",
   "h1Subtitle": "Big section heading",
   "h2Subtitle": "Medium section heading",
   "h3Subtitle": "Small section heading",

@@ -43,6 +43,8 @@
   "experimentalFeature": "Recurso experimental",
   "experimentalFeatureDescription": "A pesquisa externa usa instâncias proxy públicas que podem não ser confiáveis. Se a pesquisa falhar, use a aba <1>Link direto</1>.",
   "fontSize": "Tamanho da fonte",
+  "footnote": "Footnote",
+  "footnoteSubtitle": "Insert a footnote reference",
   "h1Subtitle": "Big section heading",
   "h2Subtitle": "Medium section heading",
   "h3Subtitle": "Small section heading",

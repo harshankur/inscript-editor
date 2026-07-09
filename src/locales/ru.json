@@ -43,6 +43,8 @@
   "experimentalFeature": "Экспериментальная функция",
   "experimentalFeatureDescription": "Внешний поиск использует публичные прокси-серверы, которые могут работать нестабильно. Если поиск не удался, используйте вкладку <1>Прямая ссылка</1>.",
   "fontSize": "Размер шрифта",
+  "footnote": "Footnote",
+  "footnoteSubtitle": "Insert a footnote reference",
   "h1Subtitle": "Big section heading",
   "h2Subtitle": "Medium section heading",
   "h3Subtitle": "Small section heading",

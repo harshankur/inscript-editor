@@ -43,6 +43,8 @@
   "experimentalFeature": "实验性功能",
   "experimentalFeatureDescription": "外部搜索使用可能不稳定的公共代理服务器。如果搜索失败,请改用<1>直接链接</1>选项卡。",
   "fontSize": "字体大小",
+  "footnote": "Footnote",
+  "footnoteSubtitle": "Insert a footnote reference",
   "h1Subtitle": "Big section heading",
   "h2Subtitle": "Medium section heading",
   "h3Subtitle": "Small section heading",

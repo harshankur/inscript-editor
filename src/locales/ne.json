@@ -43,6 +43,8 @@
   "experimentalFeature": "प्रायोगिक सुविधा",
   "experimentalFeatureDescription": "बाह्य खोजले सार्वजनिक प्रोक्सी प्रयोग गर्छ जुन अविश्वसनीय हुन सक्छ। खोज असफल भएमा, कृपया <1>प्रत्यक्ष लिङ्क</1> ट्याब प्रयोग गर्नुहोस्।",
   "fontSize": "फन्ट आकार",
+  "footnote": "Footnote",
+  "footnoteSubtitle": "Insert a footnote reference",
   "h1Subtitle": "Big section heading",
   "h2Subtitle": "Medium section heading",
   "h3Subtitle": "Small section heading",
