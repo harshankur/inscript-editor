@@ -28,6 +28,8 @@ import { SlashCommand } from './SlashCommand.js';
 import { FocusModeBlock } from './FocusMode.js';
 import { Admonition } from './Admonition.jsx';
 import { FootnoteReference, FootnoteDefinition, FootnotesSection } from './Footnote.jsx';
+import { Abbreviation } from './Abbreviation.js';
+import { DefinitionList, DefinitionTerm, DefinitionDescription } from './DefinitionList.js';
 import { getDefaultSlashItems } from './slashCommandItems.js';
 import i18next from 'i18next';
 
@@ -91,6 +93,14 @@ export function buildExtensions(options = {}) {
 
     if (options.footnote !== false) {
         extensions.push(FootnoteReference, FootnoteDefinition, FootnotesSection);
+    }
+
+    if (options.definitionList !== false) {
+        extensions.push(DefinitionList, DefinitionTerm, DefinitionDescription);
+    }
+
+    if (options.abbreviation !== false) {
+        extensions.push(Abbreviation);
     }
 
     const t = (k, f) => i18next.t(k, { defaultValue: f, ns: 'inscript-editor' });

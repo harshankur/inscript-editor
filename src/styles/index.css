@@ -248,3 +248,24 @@
   content: "Footnotes";
   @apply block mb-4 text-sm font-semibold text-zinc-500 uppercase tracking-wider;
 }
+
+/* Abbreviation Styles */
+.ProseMirror abbr[title] {
+  @apply underline decoration-dotted cursor-help decoration-zinc-400 dark:decoration-zinc-500;
+}
+
+/* Definition List Styles */
+.ProseMirror dl {
+  @apply my-4 p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800;
+}
+
+.ProseMirror dt {
+  @apply font-bold text-zinc-900 dark:text-zinc-100 mt-2 mb-1;
+}
+.ProseMirror dl > dt:first-child {
+  @apply mt-0;
+}
+
+.ProseMirror dd {
+  @apply ml-4 mb-2 text-zinc-700 dark:text-zinc-300;
+}
