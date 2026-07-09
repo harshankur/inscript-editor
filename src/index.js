@@ -5,6 +5,7 @@ export { InscriptEditor } from './InscriptEditor.jsx';
 
 export { Youtube, FontSize, CustomTable, CustomImage } from './extensions/index.js';
 export { getTableNode, isHeaderRowActive, isHeaderColumnActive, setTableLayout } from './utils/tableHelpers.js';
+export { extractHeadings } from './utils/headingExtraction.js';
 export { getTextContent } from './utils/getTextContent.js';
 export { extractYoutubeId } from './utils/youtubeUrl.js';
 
@@ -15,6 +16,7 @@ export { LinkSelector } from './components/LinkSelector.jsx';
 export { ResponsiveToolbar } from './components/ResponsiveToolbar.jsx';
 export { ImageSelectorModal } from './components/ImageSelectorModal.jsx';
 export { YoutubeEmbedModal } from './components/YoutubeEmbedModal.jsx';
+export { DocumentOutline } from './components/DocumentOutline.jsx';
 export { HistoryView } from './components/HistoryView.jsx';
 export { TextBubbleMenu } from './components/bubble-menus/TextBubbleMenu.jsx';
 export { TableBubbleMenu } from './components/bubble-menus/TableBubbleMenu.jsx';

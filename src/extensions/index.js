@@ -25,6 +25,7 @@ import { TaskItem } from '@tiptap/extension-task-item';
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
 import { createLowlight, common } from 'lowlight';
 import { SlashCommand } from './SlashCommand.js';
+import { FocusModeBlock } from './FocusMode.js';
 import { getDefaultSlashItems } from './slashCommandItems.js';
 import i18next from 'i18next';
 
@@ -42,6 +43,7 @@ export { CustomImage } from './CustomImage.js';
  */
 export function buildExtensions(options = {}) {
     const extensions = [
+        FocusModeBlock,
         StarterKit.configure({
             history: false,
             link: false,

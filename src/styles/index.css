@@ -173,3 +173,13 @@
 .ProseMirror pre code .hljs-selector-tag {
   @apply text-purple-600 dark:text-purple-400 font-medium;
 }
+
+/* Focus Mode Styles */
+.focus-mode .ProseMirror > * {
+  @apply opacity-30 transition-opacity duration-300 ease-in-out;
+}
+
+.focus-mode .ProseMirror > *:hover,
+.focus-mode .ProseMirror > *.has-focus {
+  @apply opacity-100;
+}

@@ -19,6 +19,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     editor,
     isReadonly = false,
     showDiff = false,
+    focusMode = false,
     history = [],
     historyIndex = -1,
     originalContent = { html: '', title: '', tags: [], categories: [] },
@@ -43,6 +44,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
         setContent: (html) => editor?.commands.setContent(html),
         restoreVersion: (index) => restoreVersion?.(index),
         markSaved: () => markSaved?.(),
+        toggleFocusMode: () => { /* host app manages this prop usually, but we could provide a local override if we tracked it locally */ },
     }), [editor, restoreVersion, markSaved]);
 
     if (!editor) return null;
@@ -50,7 +52,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     return (
         <>
             {/* Toolbar */}
-            {!isReadonly && !showDiff && (
+            {!isReadonly && !showDiff && !focusMode && (
                 <ResponsiveToolbar
                     editor={editor}
                     onHistoryUndo={onHistoryUndo}
@@ -79,7 +81,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                         onSelect={onHistorySelect}
                     />
                 ) : (
-                    <div className="max-w-6xl mx-auto px-2 pt-3 pb-[57px] md:px-8 md:pt-12 md:pb-[57px] flex flex-col min-h-full">
+                    <div className={`mx-auto px-2 pt-3 pb-[57px] md:px-8 md:pt-12 md:pb-[57px] flex flex-col min-h-full ${focusMode ? 'max-w-3xl focus-mode' : 'max-w-6xl'}`}>
                         <TextBubbleMenu editor={editor} isReadonly={isReadonly} />
                         <TableBubbleMenu editor={editor} isReadonly={isReadonly} />
                         <ImageBubbleMenu editor={editor} isReadonly={isReadonly} />

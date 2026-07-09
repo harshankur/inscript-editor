@@ -22,7 +22,11 @@ const newKeys = {
   "imageSubtitle": "Upload or select an image",
   "youtubeSubtitle": "Embed a YouTube video",
   "horizontalRule": "Divider",
-  "hrSubtitle": "Insert a horizontal line"
+  "hrSubtitle": "Insert a horizontal line",
+  "expandOutline": "Expand outline",
+  "collapseOutline": "Collapse outline",
+  "documentOutline": "Outline",
+  "noHeadings": "No headings yet"
 };
 
 for (const file of fs.readdirSync(localesDir)) {
