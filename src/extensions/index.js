@@ -30,6 +30,7 @@ import { Admonition } from './Admonition.jsx';
 import { FootnoteReference, FootnoteDefinition, FootnotesSection } from './Footnote.jsx';
 import { Abbreviation } from './Abbreviation.js';
 import { DefinitionList, DefinitionTerm, DefinitionDescription } from './DefinitionList.js';
+import { Wikilink } from './Wikilink.jsx';
 import { getDefaultSlashItems } from './slashCommandItems.js';
 import i18next from 'i18next';
 
@@ -101,6 +102,12 @@ export function buildExtensions(options = {}) {
 
     if (options.abbreviation !== false) {
         extensions.push(Abbreviation);
+    }
+
+    if (options.wikilink?.enabled) {
+        extensions.push(Wikilink.configure({
+            resolver: options.wikilink.resolver || null
+        }));
     }
 
     const t = (k, f) => i18next.t(k, { defaultValue: f, ns: 'inscript-editor' });
