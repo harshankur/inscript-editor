@@ -1,0 +1,87 @@
+/**
+ * Built-in toolbar presets for common writer archetypes.
+ *
+ * Each preset is a plain serializable array of tool IDs and '|' dividers.
+ * Consumers can store this array (localStorage, backend, etc.) and pass it
+ * back to ResponsiveToolbar as the `toolbarConfig` prop.
+ *
+ * These presets are opinionated defaults — consumers can derive from them
+ * or build entirely custom configs using ALL_TOOL_IDS from toolRegistry.js.
+ */
+import { DIVIDER } from './toolRegistry.js';
+
+const D = DIVIDER; // Shorthand
+
+export const TOOLBAR_PRESETS = {
+    /**
+     * Full — every available tool. Good as a starting point for customization.
+     */
+    full: [
+        'undo', 'redo', D,
+        'h1', 'h2', 'h3', D,
+        'bold', 'italic', 'underline', 'strike', 'sub', 'sup', 'abbreviation', D,
+        'fontSize', 'highlight', 'color', D,
+        'link', 'wikilink', 'footnote', D,
+        'bullet', 'ordered', 'task', 'definition', D,
+        'align', D,
+        'code', 'quote', 'admonitions', D,
+        'math', 'mermaid', D,
+        'image', 'youtube', 'table', 'tags',
+    ],
+
+    /**
+     * Blogger — focused on readable, visually rich content.
+     * Emphasizes formatting, media, and simple structure.
+     */
+    blogger: [
+        'undo', 'redo', D,
+        'h1', 'h2', D,
+        'bold', 'italic', 'underline', 'strike', D,
+        'highlight', 'color', D,
+        'link', D,
+        'bullet', 'ordered', D,
+        'align', D,
+        'quote', D,
+        'image', 'youtube', 'table', 'tags',
+    ],
+
+    /**
+     * Technical Writer — documentation, APIs, dev guides.
+     * Heavy on structure, code, wikilinks, admonitions, diagrams.
+     */
+    technical: [
+        'undo', 'redo', D,
+        'h1', 'h2', 'h3', D,
+        'bold', 'italic', 'underline', 'strike', 'abbreviation', D,
+        'link', 'wikilink', 'footnote', D,
+        'bullet', 'ordered', 'task', 'definition', D,
+        'align', D,
+        'code', 'quote', 'admonitions', D,
+        'mermaid', D,
+        'image', 'table', 'tags',
+    ],
+
+    /**
+     * Science / Academic — research papers, lab notes, formulas.
+     * Emphasizes precision: math, footnotes, sub/superscript, citations.
+     */
+    science: [
+        'undo', 'redo', D,
+        'h1', 'h2', 'h3', D,
+        'bold', 'italic', 'underline', 'strike', 'sub', 'sup', 'abbreviation', D,
+        'link', 'footnote', D,
+        'bullet', 'ordered', 'task', D,
+        'align', D,
+        'code', 'quote', D,
+        'math', 'mermaid', D,
+        'image', 'table',
+    ],
+};
+
+/** Human-readable label for each preset key (for display in the customizer UI). */
+export const PRESET_LABELS = {
+    full:      'Full',
+    blogger:   'Blogger',
+    technical: 'Technical Writer',
+    science:   'Science / Academic',
+};

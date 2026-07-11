@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     AlignCenter, AlignJustify, AlignLeft, AlignRight,
-    Bold, ChevronsRight, Code, Heading1, Heading2, Heading3, Pilcrow,
+    Bold, ChevronsRight, Code, Heading1, Heading2, Heading3,
     Highlighter, Image as ImageIcon, Italic, List, ListOrdered,
     Palette, Quote, Redo, Strikethrough,
     Subscript as SubscriptIcon, Superscript as SuperscriptIcon,
@@ -17,63 +17,45 @@ import { ColorSelector } from './ColorSelector.jsx';
 import { FontSizeSelector } from './FontSizeSelector.jsx';
 import { LinkSelector } from './LinkSelector.jsx';
 import { useInscriptEditorTranslations } from '../hooks/useInscriptEditorTranslations.js';
+import { DIVIDER } from '../toolbar/toolRegistry.js';
+import { TOOLBAR_PRESETS } from '../toolbar/presets.js';
 
 // Width of a ToolbarDropdown (primary btn + divider + chevron)
 const DROPDOWN_WIDTH = TOOLBAR_SIZES.BUTTON + 14 + 1;
 
-export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube }) => {
-    useInscriptEditorTranslations();
-    const { t } = useTranslation('inscript-editor');
-    const containerRef = useRef(null);
-    const [visibleCount, setVisibleCount] = useState(100);
-    const [showMore, setShowMore] = useState(false);
+/**
+ * Builds the full map of tool ID → tool slot descriptor.
+ * This needs the editor instance + callbacks, so it's a function not a constant.
+ */
+function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, t }) {
+    return {
+        undo: { id: 'undo', icon: Undo, action: onHistoryUndo, disabled: !canUndo, title: t('undo', 'Undo') },
+        redo: { id: 'redo', icon: Redo, action: onHistoryRedo, disabled: !canRedo, title: t('redo', 'Redo') },
 
-    // Tools Configuration
-    const tools = useMemo(() => (!editor ? [] : [
-        // ── History ───────────────────────────────────────────────────────────
-        { id: 'undo', icon: Undo, action: onHistoryUndo, disabled: !canUndo, title: t('undo', 'Undo') },
-        { id: 'redo', icon: Redo, action: onHistoryRedo, disabled: !canRedo, title: t('redo', 'Redo') },
+        // Structure
+        h1: { id: 'h1', icon: Heading1, action: () => editor.chain().focus().toggleHeading({ level: 1 }).run(), active: editor.isActive('heading', { level: 1 }), title: t('heading1', 'Heading 1') },
+        h2: { id: 'h2', icon: Heading2, action: () => editor.chain().focus().toggleHeading({ level: 2 }).run(), active: editor.isActive('heading', { level: 2 }), title: t('heading2', 'Heading 2') },
+        h3: { id: 'h3', icon: Heading3, action: () => editor.chain().focus().toggleHeading({ level: 3 }).run(), active: editor.isActive('heading', { level: 3 }), title: t('heading3', 'Heading 3') },
 
-        { type: 'divider' },
+        // Inline formatting
+        bold:        { id: 'bold',        icon: Bold,             action: () => editor.chain().focus().toggleBold().run(),         active: editor.isActive('bold'),         title: t('bold', 'Bold') },
+        italic:      { id: 'italic',      icon: Italic,           action: () => editor.chain().focus().toggleItalic().run(),       active: editor.isActive('italic'),       title: t('italic', 'Italic') },
+        underline:   { id: 'underline',   icon: UnderlineIcon,    action: () => editor.chain().focus().toggleUnderline().run(),    active: editor.isActive('underline'),    title: t('underline', 'Underline') },
+        strike:      { id: 'strike',      icon: Strikethrough,    action: () => editor.chain().focus().toggleStrike().run(),       active: editor.isActive('strike'),       title: t('strike', 'Strikethrough') },
+        sub:         { id: 'sub',         icon: SubscriptIcon,    action: () => editor.chain().focus().toggleSubscript().run(),    active: editor.isActive('subscript'),    title: t('subscript', 'Subscript') },
+        sup:         { id: 'sup',         icon: SuperscriptIcon,  action: () => editor.chain().focus().toggleSuperscript().run(),  active: editor.isActive('superscript'),  title: t('superscript', 'Superscript') },
+        abbreviation:{ id: 'abbreviation',icon: TextSelect,       action: () => editor.chain().focus().setAbbreviation().run(),    active: editor.isActive('abbreviation'), title: t('abbreviation', 'Abbreviation') },
 
-        // ── Headings (split dropdown: paragraph, H1, H2, H3) ─────────────────
-        {
-            id: 'headings', type: 'dropdown',
-            width: DROPDOWN_WIDTH,
-            activeId: editor.isActive('heading', { level: 1 }) ? 'h1'
-                : editor.isActive('heading', { level: 2 }) ? 'h2'
-                    : editor.isActive('heading', { level: 3 }) ? 'h3'
-                        : 'paragraph',
-            title: t('headings', 'Heading'),
-            items: [
-                { id: 'paragraph', icon: Pilcrow, label: t('paragraph', 'Paragraph'), action: () => editor.chain().focus().setParagraph().run(), active: !editor.isActive('heading') },
-                { id: 'h1', icon: Heading1, label: t('heading1', 'Heading 1'), action: () => editor.chain().focus().toggleHeading({ level: 1 }).run(), active: editor.isActive('heading', { level: 1 }) },
-                { id: 'h2', icon: Heading2, label: t('heading2', 'Heading 2'), action: () => editor.chain().focus().toggleHeading({ level: 2 }).run(), active: editor.isActive('heading', { level: 2 }) },
-                { id: 'h3', icon: Heading3, label: t('heading3', 'Heading 3'), action: () => editor.chain().focus().toggleHeading({ level: 3 }).run(), active: editor.isActive('heading', { level: 3 }) },
-            ]
+        // Styling — these are custom-rendered, so we mark them
+        fontSize: {
+            id: 'fontSize', type: 'custom',
+            width: TOOLBAR_SIZES.CUSTOM,
+            render: () => <FontSizeSelector editor={editor} />
         },
-
-        { type: 'divider' },
-
-        // ── Inline formatting ─────────────────────────────────────────────────
-        { id: 'bold', icon: Bold, action: () => editor.chain().focus().toggleBold().run(), active: editor?.isActive('bold'), title: t('bold', 'Bold') },
-        { id: 'italic', icon: Italic, action: () => editor.chain().focus().toggleItalic().run(), active: editor?.isActive('italic'), title: t('italic', 'Italic') },
-        { id: 'underline', icon: UnderlineIcon, action: () => editor.chain().focus().toggleUnderline().run(), active: editor?.isActive('underline'), title: t('underline', 'Underline') },
-        { id: 'strike', icon: Strikethrough, action: () => editor.chain().focus().toggleStrike().run(), active: editor?.isActive('strike'), title: t('strike', 'Strikethrough') },
-        { id: 'sub', icon: SubscriptIcon, action: () => editor.chain().focus().toggleSubscript().run(), active: editor?.isActive('subscript'), title: t('subscript', 'Subscript') },
-        { id: 'sup', icon: SuperscriptIcon, action: () => editor.chain().focus().toggleSuperscript().run(), active: editor?.isActive('superscript'), title: t('superscript', 'Superscript') },
-        { id: 'abbreviation', icon: TextSelect, action: () => editor.chain().focus().setAbbreviation().run(), active: editor?.isActive('abbreviation'), title: t('abbreviation', 'Abbreviation') },
-
-        { type: 'divider' },
-
-        // ── Styling ───────────────────────────────────────────────────────────
-        {
-            id: 'fontSize', type: 'custom', render: () => (
-                <FontSizeSelector editor={editor} />
-            )
-        },
-        {
-            id: 'highlight', type: 'custom', render: () => (
+        highlight: {
+            id: 'highlight', type: 'custom',
+            width: TOOLBAR_SIZES.CUSTOM,
+            render: () => (
                 <ColorSelector
                     icon={Highlighter}
                     title={t('highlightColor', 'Highlight Color')}
@@ -85,8 +67,10 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                 />
             )
         },
-        {
-            id: 'color', type: 'custom', render: () => (
+        color: {
+            id: 'color', type: 'custom',
+            width: TOOLBAR_SIZES.CUSTOM,
+            render: () => (
                 <ColorSelector
                     icon={Palette}
                     title={t('textColor', 'Text Color')}
@@ -99,15 +83,13 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
             )
         },
 
-        { type: 'divider' },
-
-        // ── Links & references ────────────────────────────────────────────────
-        {
-            id: 'link', type: 'custom', render: () => (
-                <LinkSelector editor={editor} />
-            )
+        // Links & references
+        link: {
+            id: 'link', type: 'custom',
+            width: TOOLBAR_SIZES.CUSTOM,
+            render: () => <LinkSelector editor={editor} />
         },
-        {
+        wikilink: {
             id: 'wikilink', icon: Link2,
             action: () => {
                 const target = window.prompt(t('wikilinkPrompt', 'Enter wiki page name:'));
@@ -115,20 +97,16 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
             },
             title: t('insertWikilink', 'Wikilink')
         },
-        { id: 'footnote', icon: MessageSquareQuote, action: () => editor.chain().focus().insertFootnote().run(), title: t('footnote', 'Footnote') },
+        footnote: { id: 'footnote', icon: MessageSquareQuote, action: () => editor.chain().focus().insertFootnote().run(), title: t('footnote', 'Footnote') },
 
-        { type: 'divider' },
+        // Lists
+        bullet:     { id: 'bullet',     icon: List,          action: () => editor.chain().focus().toggleBulletList().run(),      active: editor.isActive('bulletList'),    title: t('bulletList', 'Bullet List') },
+        ordered:    { id: 'ordered',    icon: ListOrdered,   action: () => editor.chain().focus().toggleOrderedList().run(),     active: editor.isActive('orderedList'),   title: t('orderedList', 'Numbered List') },
+        task:       { id: 'task',       icon: SquareCheck,   action: () => editor.chain().focus().toggleTaskList().run(),        active: editor.isActive('taskList'),      title: t('taskList', 'Task List') },
+        definition: { id: 'definition', icon: BookType,      action: () => editor.chain().focus().toggleDefinitionList().run(),  active: editor.isActive('definitionList'),title: t('definitionList', 'Definition List') },
 
-        // ── Lists ─────────────────────────────────────────────────────────────
-        { id: 'bullet', icon: List, action: () => editor.chain().focus().toggleBulletList().run(), active: editor?.isActive('bulletList'), title: t('bulletList', 'Bullet List') },
-        { id: 'ordered', icon: ListOrdered, action: () => editor.chain().focus().toggleOrderedList().run(), active: editor?.isActive('orderedList'), title: t('orderedList', 'Numbered List') },
-        { id: 'task', icon: SquareCheck, action: () => editor.chain().focus().toggleTaskList().run(), active: editor?.isActive('taskList'), title: t('taskList', 'Task List') },
-        { id: 'definition', icon: BookType, action: () => editor.chain().focus().toggleDefinitionList().run(), active: editor?.isActive('definitionList'), title: t('definitionList', 'Definition List') },
-
-        { type: 'divider' },
-
-        // ── Alignment (split dropdown) ────────────────────────────────────────
-        {
+        // Alignment dropdown
+        align: {
             id: 'align', type: 'dropdown',
             width: DROPDOWN_WIDTH,
             activeId: editor.isActive({ textAlign: 'center' }) ? 'center'
@@ -137,23 +115,19 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                         : 'left',
             title: t('textAlign', 'Text Alignment'),
             items: [
-                { id: 'left', icon: AlignLeft, label: t('alignLeft', 'Align Left'), action: () => editor.chain().focus().setTextAlign('left').run(), active: editor.isActive({ textAlign: 'left' }) },
-                { id: 'center', icon: AlignCenter, label: t('alignCenter', 'Align Center'), action: () => editor.chain().focus().setTextAlign('center').run(), active: editor.isActive({ textAlign: 'center' }) },
-                { id: 'right', icon: AlignRight, label: t('alignRight', 'Align Right'), action: () => editor.chain().focus().setTextAlign('right').run(), active: editor.isActive({ textAlign: 'right' }) },
-                { id: 'justify', icon: AlignJustify, label: t('alignJustify', 'Justify'), action: () => editor.chain().focus().setTextAlign('justify').run(), active: editor.isActive({ textAlign: 'justify' }) },
+                { id: 'left',    icon: AlignLeft,    label: t('alignLeft', 'Align Left'),     action: () => editor.chain().focus().setTextAlign('left').run(),    active: editor.isActive({ textAlign: 'left' }) },
+                { id: 'center',  icon: AlignCenter,  label: t('alignCenter', 'Align Center'), action: () => editor.chain().focus().setTextAlign('center').run(),  active: editor.isActive({ textAlign: 'center' }) },
+                { id: 'right',   icon: AlignRight,   label: t('alignRight', 'Align Right'),   action: () => editor.chain().focus().setTextAlign('right').run(),   active: editor.isActive({ textAlign: 'right' }) },
+                { id: 'justify', icon: AlignJustify, label: t('alignJustify', 'Justify'),     action: () => editor.chain().focus().setTextAlign('justify').run(), active: editor.isActive({ textAlign: 'justify' }) },
             ]
         },
 
-        { type: 'divider' },
+        // Blocks
+        code:  { id: 'code',  icon: Code,  action: () => editor.chain().focus().toggleCodeBlock().run(),     active: editor.isActive('codeBlock'),  title: t('codeBlock', 'Code Block') },
+        quote: { id: 'quote', icon: Quote, action: () => editor.chain().focus().toggleBlockquote().run(),    active: editor.isActive('blockquote'), title: t('quote', 'Quote') },
 
-        // ── Blocks ────────────────────────────────────────────────────────────
-        { id: 'code', icon: Code, action: () => editor.chain().focus().toggleCodeBlock().run(), active: editor?.isActive('codeBlock'), title: t('codeBlock', 'Code Block') },
-        { id: 'quote', icon: Quote, action: () => editor.chain().focus().toggleBlockquote().run(), active: editor?.isActive('blockquote'), title: t('quote', 'Quote') },
-
-        { type: 'divider' },
-
-        // ── Admonitions (split dropdown) ──────────────────────────────────────
-        {
+        // Admonitions dropdown
+        admonitions: {
             id: 'admonitions', type: 'dropdown',
             width: DROPDOWN_WIDTH,
             activeId: editor.isActive('admonition', { type: 'tip' }) ? 'admonitionTip'
@@ -164,28 +138,26 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                                 : null,
             title: t('admonitions', 'Admonitions'),
             items: [
-                { id: 'admonitionNote', icon: Info, label: t('admonitionNote', 'Note'), action: () => editor.chain().focus().setAdmonition('note').run(), active: editor.isActive('admonition', { type: 'note' }) },
-                { id: 'admonitionTip', icon: Lightbulb, label: t('admonitionTip', 'Tip'), action: () => editor.chain().focus().setAdmonition('tip').run(), active: editor.isActive('admonition', { type: 'tip' }) },
-                { id: 'admonitionImportant', icon: CircleAlert, label: t('admonitionImportant', 'Important'), action: () => editor.chain().focus().setAdmonition('important').run(), active: editor.isActive('admonition', { type: 'important' }) },
-                { id: 'admonitionWarning', icon: TriangleAlert, label: t('admonitionWarning', 'Warning'), action: () => editor.chain().focus().setAdmonition('warning').run(), active: editor.isActive('admonition', { type: 'warning' }) },
-                { id: 'admonitionCaution', icon: OctagonAlert, label: t('admonitionCaution', 'Caution'), action: () => editor.chain().focus().setAdmonition('caution').run(), active: editor.isActive('admonition', { type: 'caution' }) },
+                { id: 'admonitionNote',      icon: Info,          label: t('admonitionNote', 'Note'),           action: () => editor.chain().focus().setAdmonition('note').run(),      active: editor.isActive('admonition', { type: 'note' }) },
+                { id: 'admonitionTip',       icon: Lightbulb,     label: t('admonitionTip', 'Tip'),             action: () => editor.chain().focus().setAdmonition('tip').run(),       active: editor.isActive('admonition', { type: 'tip' }) },
+                { id: 'admonitionImportant', icon: CircleAlert,   label: t('admonitionImportant', 'Important'), action: () => editor.chain().focus().setAdmonition('important').run(), active: editor.isActive('admonition', { type: 'important' }) },
+                { id: 'admonitionWarning',   icon: TriangleAlert, label: t('admonitionWarning', 'Warning'),     action: () => editor.chain().focus().setAdmonition('warning').run(),   active: editor.isActive('admonition', { type: 'warning' }) },
+                { id: 'admonitionCaution',   icon: OctagonAlert,  label: t('admonitionCaution', 'Caution'),     action: () => editor.chain().focus().setAdmonition('caution').run(),   active: editor.isActive('admonition', { type: 'caution' }) },
             ]
         },
 
-        { type: 'divider' },
+        // Advanced blocks
+        math:    { id: 'math',    icon: Sigma,    action: () => editor.chain().focus().insertContent({ type: 'mathBlock' }).run(), active: editor.isActive('mathBlock'), title: t('slash.math', 'Math Block') },
+        mermaid: { id: 'mermaid', icon: Workflow, action: () => editor.chain().focus().insertContent({ type: 'mermaid' }).run(),   active: editor.isActive('mermaid'),   title: t('slash.mermaid', 'Mermaid Diagram') },
 
-        // ── Advanced blocks ───────────────────────────────────────────────────
-        { id: 'math', icon: Sigma, action: () => editor.chain().focus().insertContent({ type: 'mathBlock' }).run(), active: editor?.isActive('mathBlock'), title: t('slash.math', 'Math Block') },
-        { id: 'mermaid', icon: Workflow, action: () => editor.chain().focus().insertContent({ type: 'mermaid' }).run(), active: editor?.isActive('mermaid'), title: t('slash.mermaid', 'Mermaid Diagram') },
-
-        { type: 'divider' },
-
-        // ── Media & metadata ──────────────────────────────────────────────────
-        { id: 'image', icon: ImageIcon, action: onShowMediaLibrary, title: t('insertImage', 'Insert Image') },
-        { id: 'youtube', icon: YoutubeIcon, action: onAddYoutube, title: t('embedYoutube', 'Embed YouTube Video') },
-        { id: 'table', icon: TableIcon, action: () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), title: t('insertTable', 'Insert Table') },
-        {
-            id: 'tags', type: 'custom', render: () => (
+        // Media & metadata
+        image: { id: 'image', icon: ImageIcon,  action: onShowMediaLibrary, title: t('insertImage', 'Insert Image') },
+        youtube: { id: 'youtube', icon: YoutubeIcon, action: onAddYoutube, title: t('embedYoutube', 'Embed YouTube Video') },
+        table: { id: 'table', icon: TableIcon, action: () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), title: t('insertTable', 'Insert Table') },
+        tags: {
+            id: 'tags', type: 'custom',
+            width: TOOLBAR_SIZES.CUSTOM,
+            render: () => (
                 <ToolbarButton onClick={onShowMetadataModal} active={showMetadataActive} title={t('manageMetadata', 'Manage Tags & Categories')} width={TOOLBAR_SIZES.CUSTOM}>
                     <div className="relative flex items-center justify-center">
                         <Tag size={18} />
@@ -194,49 +166,79 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                 </ToolbarButton>
             )
         },
-    ]), [editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, t]);
+    };
+}
 
-    // Mirror `tools` into a ref so the resize handler (registered once, deps: [])
-    // always reads the latest tool list instead of closing over a stale one.
+/**
+ * Converts a serializable config array (IDs + '|' dividers) into renderable tool slots.
+ * Unknown IDs are silently skipped.
+ */
+function configToSlots(config, toolMap) {
+    return config.flatMap((entry, idx) => {
+        if (entry === DIVIDER) return [{ type: 'divider', _key: `div-${idx}` }];
+        const tool = toolMap[entry];
+        if (!tool) return [];
+        return [tool];
+    });
+}
+
+/**
+ * ResponsiveToolbar — renders the editor toolbar.
+ *
+ * Props:
+ *   toolbarConfig  – Optional serializable config (from ToolbarCustomizer / TOOLBAR_PRESETS).
+ *                    If omitted, defaults to TOOLBAR_PRESETS.full.
+ *   ...rest        – Standard editor + callback props.
+ */
+export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, toolbarConfig }) => {
+    useInscriptEditorTranslations();
+    const { t } = useTranslation('inscript-editor');
+    const containerRef = useRef(null);
+    const [visibleCount, setVisibleCount] = useState(100);
+    const [showMore, setShowMore] = useState(false);
+
+    const activeConfig = toolbarConfig ?? TOOLBAR_PRESETS.full;
+
+    const tools = useMemo(() => {
+        if (!editor) return [];
+        const toolMap = buildToolMap(editor, {
+            onHistoryUndo, onHistoryRedo, canUndo, canRedo,
+            onShowMetadataModal, hasMetadata, showMetadataActive,
+            onShowMediaLibrary, onAddYoutube, t
+        });
+        return configToSlots(activeConfig, toolMap);
+    }, [editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, t, activeConfig]);
+
+    // Mirror `tools` into a ref so the resize handler always reads latest list.
     const toolsRef = useRef(tools);
     useEffect(() => { toolsRef.current = tools; }, [tools]);
 
-    // Precise resize logic using source of truth widths
+    // Precise resize logic using source-of-truth widths
     useEffect(() => {
         const handleResize = () => {
-            if (containerRef.current) {
-                const currentTools = toolsRef.current;
-                const containerWidth = containerRef.current.clientWidth - 50; // Reserve space for "More" button
-                let currentTotal = 0;
-                let count = 0;
+            if (!containerRef.current) return;
+            const currentTools = toolsRef.current;
+            const containerWidth = containerRef.current.clientWidth - 50;
+            let currentTotal = 0;
+            let count = 0;
 
-                for (let i = 0; i < currentTools.length; i++) {
-                    const tool = currentTools[i];
-                    let toolWidth = 0;
-                    if (tool.type === 'divider') toolWidth = TOOLBAR_SIZES.DIVIDER;
-                    else if (tool.type === 'dropdown') toolWidth = tool.width ?? DROPDOWN_WIDTH;
-                    else if (tool.type === 'custom') toolWidth = TOOLBAR_SIZES.CUSTOM;
-                    else toolWidth = TOOLBAR_SIZES.BUTTON;
+            for (const tool of currentTools) {
+                let toolWidth;
+                if (tool.type === 'divider') toolWidth = TOOLBAR_SIZES.DIVIDER;
+                else if (tool.width) toolWidth = tool.width;
+                else toolWidth = TOOLBAR_SIZES.BUTTON;
 
-                    if (currentTotal + toolWidth + TOOLBAR_SIZES.GAP > containerWidth) {
-                        break;
-                    }
-                    currentTotal += toolWidth + TOOLBAR_SIZES.GAP;
-                    count++;
-                }
-
-                setVisibleCount(Math.max(2, count));
+                if (currentTotal + toolWidth + TOOLBAR_SIZES.GAP > containerWidth) break;
+                currentTotal += toolWidth + TOOLBAR_SIZES.GAP;
+                count++;
             }
+            setVisibleCount(Math.max(2, count));
         };
         handleResize();
         window.addEventListener('resize', handleResize);
         const observer = new ResizeObserver(handleResize);
         if (containerRef.current) observer.observe(containerRef.current);
-
-        return () => {
-            window.removeEventListener('resize', handleResize);
-            observer.disconnect();
-        }
+        return () => { window.removeEventListener('resize', handleResize); observer.disconnect(); };
     }, []);
 
     if (!editor) return null;
@@ -245,28 +247,20 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
     const overflowTools = tools.slice(visibleCount);
 
     const renderTool = (tool, idx) => {
-        if (tool.type === 'divider') return <div key={idx} style={{ width: `${TOOLBAR_SIZES.DIVIDER}px` }} className="h-6 flex items-center justify-center shrink-0"><div className="w-px h-full bg-zinc-100 dark:bg-zinc-800" /></div>;
+        if (tool.type === 'divider') {
+            return (
+                <div key={tool._key ?? idx} style={{ width: `${TOOLBAR_SIZES.DIVIDER}px` }} className="h-6 flex items-center justify-center shrink-0">
+                    <div className="w-px h-full bg-zinc-100 dark:bg-zinc-800" />
+                </div>
+            );
+        }
         if (tool.type === 'custom') return <Fragment key={tool.id}>{tool.render()}</Fragment>;
-        if (tool.type === 'dropdown') return (
-            <ToolbarDropdown
-                key={tool.id}
-                items={tool.items}
-                title={tool.title}
-                activeId={tool.activeId}
-            />
-        );
+        if (tool.type === 'dropdown') return <ToolbarDropdown key={tool.id} items={tool.items} title={tool.title} activeId={tool.activeId} />;
 
         const Icon = tool.icon;
         if (!Icon) return null;
-
         return (
-            <ToolbarButton
-                key={tool.id}
-                onClick={tool.action}
-                active={tool.active}
-                disabled={tool.disabled}
-                title={tool.title}
-            >
+            <ToolbarButton key={tool.id} onClick={tool.action} active={tool.active} disabled={tool.disabled} title={tool.title}>
                 <Icon size={18} />
             </ToolbarButton>
         );
@@ -274,7 +268,7 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
 
     return (
         <div ref={containerRef} className="px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-1 bg-zinc-50 dark:bg-zinc-900/20 w-full relative">
-            {visibleTools.map((t, i) => renderTool(t, i))}
+            {visibleTools.map((tool, i) => renderTool(tool, i))}
 
             {overflowTools.length > 0 && (
                 <div className="relative ml-auto">
@@ -289,9 +283,9 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                     {showMore && (
                         <>
                             <div className="fixed inset-0 z-40" onClick={() => setShowMore(false)} />
-                            <div className="absolute right-0 top-full mt-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg shadow-xl p-2 z-[60] flex flex-col gap-1 min-w-[150px] animate-in slide-in-from-top-2 fade-in">
+                            <div className="absolute right-0 top-full mt-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg shadow-xl p-2 z-[60] flex flex-col gap-1 min-w-[150px]">
                                 <div className="flex flex-wrap gap-1 max-w-[200px]">
-                                    {overflowTools.map((t, i) => renderTool(t, i))}
+                                    {overflowTools.map((tool, i) => renderTool(tool, i))}
                                 </div>
                             </div>
                         </>

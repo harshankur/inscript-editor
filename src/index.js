@@ -11,6 +11,9 @@ export { extractYoutubeId } from './utils/youtubeUrl.js';
 
 export { ToolbarButton, TOOLBAR_SIZES } from './components/ToolbarButton.jsx';
 export { ToolbarDropdown } from './components/ToolbarDropdown.jsx';
+export { ToolbarCustomizer } from './components/ToolbarCustomizer.jsx';
+export { TOOL_REGISTRY, DIVIDER, ALL_TOOL_IDS } from './toolbar/toolRegistry.js';
+export { TOOLBAR_PRESETS, PRESET_LABELS } from './toolbar/presets.js';
 export { ColorSelector } from './components/ColorSelector.jsx';
 export { FontSizeSelector } from './components/FontSizeSelector.jsx';
 export { LinkSelector } from './components/LinkSelector.jsx';
