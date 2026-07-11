@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it } from 'vitest';
 import { createEditor } from '../../tests/helpers/createEditor.js';
 
 describe('FontSize extension', () => {
@@ -8,6 +8,12 @@ describe('FontSize extension', () => {
         editor = createEditor();
         editor.commands.setContent('<p>hello world</p>');
         editor.commands.selectAll();
+    });
+
+    afterEach(() => {
+        if (editor) {
+            editor.destroy();
+        }
     });
 
     it('setFontSize applies a fontSize attr on the textStyle mark', () => {

@@ -119,5 +119,9 @@
     "tailwindcss": "^4.2.2",
     "vite": "^8.0.1",
     "vitest": "^4.1.9"
+  },
+  "dependencies": {
+    "katex": "^0.17.0",
+    "mermaid": "^11.16.0"
   }
 }

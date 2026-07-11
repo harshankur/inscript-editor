@@ -36,6 +36,7 @@ const FootnoteReferenceComponent = ({ node, editor, getPos }) => {
 
 export const FootnoteReference = Node.create({
     name: 'footnoteReference',
+    priority: 100,
     group: 'inline',
     inline: true,
     selectable: true,
@@ -54,7 +55,16 @@ export const FootnoteReference = Node.create({
     },
 
     parseHTML() {
-        return [{ tag: 'sup[data-footnote-ref]' }];
+        return [
+            {
+                tag: 'sup',
+                priority: 500,
+                getAttrs: node => node.hasAttribute('data-footnote-ref') ? null : false,
+            },
+            {
+                tag: 'footnote-reference', // backup custom element
+            }
+        ];
     },
 
     renderHTML({ HTMLAttributes }) {

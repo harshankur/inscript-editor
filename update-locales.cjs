@@ -38,7 +38,26 @@ const newKeys = {
   "admonitionCaution": "Admonition ▸ Caution",
   "admonitionCautionSubtitle": "Add a caution admonition",
   "footnote": "Footnote",
-  "footnoteSubtitle": "Insert a footnote reference"
+  "footnoteSubtitle": "Insert a footnote reference",
+  "slash.math": "Math Block",
+  "slash.mathDesc": "Insert a LaTeX math block",
+  "slash.math": "Math Block",
+  "slash.mathDesc": "Insert a LaTeX math block",
+  "slash.mermaid": "Mermaid Diagram",
+  "slash.mermaidDesc": "Insert a mermaid diagram",
+  "insertWikilink": "Insert Wikilink",
+  "wikilinkPrompt": "Enter wiki page name:",
+  "abbreviation": "Abbreviation",
+  "definitionList": "Definition List",
+  "headings": "Heading",
+  "paragraph": "Paragraph",
+  "admonitions": "Admonitions",
+  "textAlign": "Text Alignment",
+  "alignJustify": "Justify",
+  "strike": "Strikethrough",
+  "subscript": "Subscript",
+  "superscript": "Superscript",
+  "underline": "Underline"
 };
 
 for (const file of fs.readdirSync(localesDir)) {

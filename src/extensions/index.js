@@ -31,6 +31,8 @@ import { FootnoteReference, FootnoteDefinition, FootnotesSection } from './Footn
 import { Abbreviation } from './Abbreviation.js';
 import { DefinitionList, DefinitionTerm, DefinitionDescription } from './DefinitionList.js';
 import { Wikilink } from './Wikilink.jsx';
+import { Mermaid } from './Mermaid.jsx';
+import { MathInline, MathBlock } from './Math.jsx';
 import { getDefaultSlashItems } from './slashCommandItems.js';
 import i18next from 'i18next';
 
@@ -108,6 +110,14 @@ export function buildExtensions(options = {}) {
         extensions.push(Wikilink.configure({
             resolver: options.wikilink.resolver || null
         }));
+    }
+
+    if (options.mermaid !== false) {
+        extensions.push(Mermaid);
+    }
+
+    if (options.math !== false) {
+        extensions.push(MathInline, MathBlock);
     }
 
     const t = (k, f) => i18next.t(k, { defaultValue: f, ns: 'inscript-editor' });

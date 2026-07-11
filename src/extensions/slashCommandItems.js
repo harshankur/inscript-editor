@@ -121,6 +121,26 @@ export const getDefaultSlashItems = (t, options = {}) => [
             command: ({ editor, range }) => {
                 editor.chain().focus().deleteRange(range).insertFootnote().run();
             }
+        },
+        {
+            id: 'mermaid',
+            title: t('slash.mermaid', 'Mermaid Diagram'),
+            subtitle: t('slash.mermaidDesc', 'Insert a mermaid diagram'),
+            keywords: ['mermaid', 'diagram', 'chart'],
+            group: 'media',
+            command: ({ editor, range }) => {
+                editor.chain().focus().deleteRange(range).insertContent({ type: 'mermaid' }).run();
+            }
+        },
+        {
+            id: 'math',
+            title: t('slash.math', 'Math Block'),
+            subtitle: t('slash.mathDesc', 'Insert a LaTeX math block'),
+            keywords: ['math', 'latex', 'formula'],
+            group: 'text',
+            command: ({ editor, range }) => {
+                editor.chain().focus().deleteRange(range).insertContent({ type: 'mathBlock' }).run();
+            }
         }
     ] : []),
     {

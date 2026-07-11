@@ -25,6 +25,7 @@ const PUBLIC_SYMBOLS = [
     'extractYoutubeId',
     'ToolbarButton',
     'TOOLBAR_SIZES',
+    'ToolbarDropdown',
     'ColorSelector',
     'FontSizeSelector',
     'LinkSelector',

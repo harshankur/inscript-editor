@@ -4,25 +4,46 @@ import { ResponsiveToolbar } from './ResponsiveToolbar.jsx';
 import { TOOLBAR_SIZES } from './ToolbarButton.jsx';
 import { createEditor } from '../../tests/helpers/createEditor.js';
 
-// Mirrors the tool list built inside ResponsiveToolbar (26 buttons/customs + 7 dividers = 33
-// slots), used to compute expected visible counts from TOOLBAR_SIZES without hardcoding numbers.
+// DROPDOWN_WIDTH matches the constant in ResponsiveToolbar.jsx
+const DROPDOWN_W = TOOLBAR_SIZES.BUTTON + 14 + 1;
+
+// Mirrors the tool list built inside ResponsiveToolbar.
+// 'dropdown' entries have their real pixel width stored.
 const TOOL_SLOT_TYPES = [
-    'button', 'button', 'divider',
-    'button', 'button', 'button', 'button', 'custom', 'divider',
-    'custom', 'custom', 'custom', 'divider',
-    'button', 'button', 'button', 'button', 'divider',
-    'button', 'button', 'divider',
-    'button', 'button', 'button', 'button', 'divider',
-    'button', 'button', 'divider',
-    'button', 'button', 'button', 'custom',
+    // undo, redo
+    { type: 'button' }, { type: 'button' }, { type: 'divider' },
+    // headings dropdown
+    { type: 'dropdown', w: DROPDOWN_W }, { type: 'divider' },
+    // bold, italic, underline, strike, sub, sup, abbreviation
+    { type: 'button' }, { type: 'button' }, { type: 'button' }, { type: 'button' },
+    { type: 'button' }, { type: 'button' }, { type: 'button' }, { type: 'divider' },
+    // fontSize, highlight, color
+    { type: 'custom' }, { type: 'custom' }, { type: 'custom' }, { type: 'divider' },
+    // link, wikilink, footnote
+    { type: 'custom' }, { type: 'button' }, { type: 'button' }, { type: 'divider' },
+    // bullet, ordered, task, definition
+    { type: 'button' }, { type: 'button' }, { type: 'button' }, { type: 'button' }, { type: 'divider' },
+    // align dropdown
+    { type: 'dropdown', w: DROPDOWN_W }, { type: 'divider' },
+    // code, quote
+    { type: 'button' }, { type: 'button' }, { type: 'divider' },
+    // admonitions dropdown
+    { type: 'dropdown', w: DROPDOWN_W }, { type: 'divider' },
+    // math, mermaid
+    { type: 'button' }, { type: 'button' }, { type: 'divider' },
+    // image, youtube, table, tags
+    { type: 'button' }, { type: 'button' }, { type: 'button' }, { type: 'custom' },
 ];
 
 function expectedVisibleCount(containerWidth) {
     const usable = containerWidth - 50;
     let total = 0;
     let count = 0;
-    for (const type of TOOL_SLOT_TYPES) {
-        const w = type === 'divider' ? TOOLBAR_SIZES.DIVIDER : type === 'custom' ? TOOLBAR_SIZES.CUSTOM : TOOLBAR_SIZES.BUTTON;
+    for (const slot of TOOL_SLOT_TYPES) {
+        const w = slot.type === 'divider' ? TOOLBAR_SIZES.DIVIDER
+            : slot.type === 'dropdown' ? slot.w
+                : slot.type === 'custom' ? TOOLBAR_SIZES.CUSTOM
+                    : TOOLBAR_SIZES.BUTTON;
         if (total + w + TOOLBAR_SIZES.GAP > usable) break;
         total += w + TOOLBAR_SIZES.GAP;
         count++;
@@ -97,8 +118,8 @@ describe('ResponsiveToolbar overflow', () => {
         stubClientWidth(2000);
         render(<ResponsiveToolbar editor={editor} />);
         editor.commands.selectAll();
-        // Button DOM order at full width: [Undo, Redo, Bold, Italic, ...] (dividers aren't buttons).
-        const boldButton = screen.getAllByRole('button')[2];
+        // Use title instead of fragile positional index — layout can shift.
+        const boldButton = screen.getByTitle('Bold');
         fireEvent.click(boldButton);
         expect(editor.isActive('bold')).toBe(true);
     });
