@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { GripVertical, X, Plus, Check, Settings2 } from 'lucide-react';
 import { TOOL_REGISTRY, DIVIDER, ALL_TOOL_IDS } from '../toolbar/toolRegistry.js';
 import { TOOLBAR_PRESETS, PRESET_LABELS } from '../toolbar/presets.js';
@@ -26,9 +26,45 @@ export const ToolbarCustomizer = ({ currentConfig, onSave, onClose }) => {
         ) ?? null
     );
 
+    // Animation states
+    const [isEntered, setIsEntered] = useState(false);
+    const [isClosing, setIsClosing] = useState(false);
+
     // Drag state
     const dragIndexRef = useRef(null);
     const [dragOverIndex, setDragOverIndex] = useState(null);
+
+    // ── Entrance & Exit Animation Helpers ─────────────────────────────────────
+    useEffect(() => {
+        // Trigger entrance transition on next paint
+        const raf = requestAnimationFrame(() => {
+            setIsEntered(true);
+        });
+        return () => cancelAnimationFrame(raf);
+    }, []);
+
+    const handleClose = useCallback(() => {
+        setIsClosing(true);
+        setTimeout(() => {
+            onClose();
+        }, 300); // matches the duration-300 transition time
+    }, [onClose]);
+
+    const handleSave = () => {
+        onSave(config);
+        handleClose();
+    };
+
+    // Close on Escape key
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                handleClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [handleClose]);
 
     // ── Preset selection ──────────────────────────────────────────────────────
     const applyPreset = useCallback((key) => {
@@ -87,14 +123,20 @@ export const ToolbarCustomizer = ({ currentConfig, onSave, onClose }) => {
     const availableTools = ALL_TOOL_IDS.filter(id => !usedToolIds.has(id));
 
     return (
-        // Backdrop
-        <div className="fixed inset-0 z-[80] flex justify-end" onClick={onClose}>
-            {/* Overlay */}
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-
-            {/* Drawer panel */}
+        // Backdrop container
+        <div className="fixed inset-0 z-[80] flex justify-end" onClick={handleClose}>
+            {/* Overlay background with fade-in and backdrop-blur */}
             <div
-                className="relative w-full max-w-sm h-full bg-white dark:bg-zinc-900 shadow-2xl flex flex-col"
+                className={`absolute inset-0 transition-all duration-300 ease-in-out ${
+                    isEntered && !isClosing ? 'bg-black/40 backdrop-blur-sm' : 'bg-black/0 backdrop-blur-none'
+                }`}
+            />
+
+            {/* Drawer panel with slide-in transform */}
+            <div
+                className={`relative w-full max-w-sm h-full bg-white dark:bg-zinc-900 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${
+                    isEntered && !isClosing ? 'translate-x-0' : 'translate-x-full'
+                }`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
@@ -104,7 +146,7 @@ export const ToolbarCustomizer = ({ currentConfig, onSave, onClose }) => {
                         <span className="font-semibold text-zinc-900 dark:text-white text-sm">Customize Toolbar</span>
                     </div>
                     <button
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors rounded p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                     >
                         <X size={16} />
@@ -223,13 +265,13 @@ export const ToolbarCustomizer = ({ currentConfig, onSave, onClose }) => {
                 {/* Footer actions */}
                 <div className="px-5 py-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-2">
                     <button
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
                     >
                         Cancel
                     </button>
                     <button
-                        onClick={() => { onSave(config); onClose(); }}
+                        onClick={handleSave}
                         className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-100 transition-colors"
                     >
                         <Check size={14} />
