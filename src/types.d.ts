@@ -83,6 +83,13 @@ export interface InscriptEditorProps {
     onHistorySelect?: (index: number) => void;
     restoreVersion?: (index: number) => void;
     markSaved?: () => void;
+    toolbarConfig?: string[];
+    onToolbarConfigChange?: (newConfig: string[]) => void;
+    bubbleMenuConfig?: string[];
+    onBubbleMenuConfigChange?: (newConfig: string[]) => void;
+    fontFamily?: string;
+    maxWidth?: string;
+    lineHeight?: string;
     ref?: Ref<InscriptEditorRefHandle>;
 }
 
@@ -187,7 +194,9 @@ export const HistoryView: (props: {
     onSelect: (index: number) => void;
 }) => ReactNode;
 
-export const TextBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean }) => ReactNode;
+export const DocumentOutline: (props: { editor: Editor | null }) => ReactNode;
+export const MiniMap: (props: { editor: Editor | null }) => ReactNode;
+export const TextBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean; bubbleMenuConfig?: string[] }) => ReactNode;
 export const TableBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean }) => ReactNode;
 export const ImageBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean }) => ReactNode;
 export const YoutubeBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean }) => ReactNode;

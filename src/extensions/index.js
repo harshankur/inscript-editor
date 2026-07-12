@@ -33,6 +33,7 @@ import { DefinitionList, DefinitionTerm, DefinitionDescription } from './Definit
 import { Wikilink } from './Wikilink.jsx';
 import { Mermaid } from './Mermaid.jsx';
 import { MathInline, MathBlock } from './Math.jsx';
+import { Citation } from './Citation.js';
 import { getDefaultSlashItems } from './slashCommandItems.js';
 import i18next from 'i18next';
 
@@ -42,6 +43,7 @@ export { Youtube } from './Youtube.js';
 export { FontSize } from './FontSize.js';
 export { CustomTable } from './CustomTable.js';
 export { CustomImage } from './CustomImage.js';
+export { Citation } from './Citation.js';
 
 /**
  * The full TipTap extension set used by useInscriptEditor. Shared with tests
@@ -118,6 +120,10 @@ export function buildExtensions(options = {}) {
 
     if (options.math !== false) {
         extensions.push(MathInline, MathBlock);
+    }
+
+    if (options.citation !== false) {
+        extensions.push(Citation);
     }
 
     const t = (k, f) => i18next.t(k, { defaultValue: f, ns: 'inscript-editor' });

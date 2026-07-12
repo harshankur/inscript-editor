@@ -39,6 +39,9 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     onToolbarConfigChange,
     bubbleMenuConfig,
     onBubbleMenuConfigChange,
+    fontFamily = '',
+    maxWidth = '',
+    lineHeight = '',
 }, ref) {
     useInscriptEditorTranslations();
 
@@ -89,7 +92,14 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                         onSelect={onHistorySelect}
                     />
                 ) : (
-                    <div className={`mx-auto px-2 pt-3 pb-[57px] md:px-8 md:pt-12 md:pb-[57px] flex flex-col min-h-full ${focusMode ? 'max-w-3xl focus-mode' : 'max-w-6xl'}`}>
+                    <div 
+                        className={`mx-auto px-2 pt-3 pb-[57px] md:px-8 md:pt-12 md:pb-[57px] flex flex-col min-h-full inscript-editor-container w-full ${focusMode ? 'focus-mode' : ''}`}
+                        style={{
+                            '--inscript-max-width': focusMode ? '48rem' : (maxWidth || undefined),
+                            '--inscript-font-family': fontFamily || undefined,
+                            '--inscript-line-height': lineHeight || undefined,
+                        }}
+                    >
                         <TextBubbleMenu editor={editor} isReadonly={isReadonly} bubbleMenuConfig={bubbleMenuConfig} />
                         <TableBubbleMenu editor={editor} isReadonly={isReadonly} />
                         <ImageBubbleMenu editor={editor} isReadonly={isReadonly} />

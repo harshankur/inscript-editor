@@ -14,7 +14,7 @@ import {
     Subscript as SubscriptIcon, Superscript as SuperscriptIcon, TextSelect,
     Highlighter, Palette,
     Link, Link2, MessageSquareQuote,
-    List, ListOrdered, SquareCheck, BookType,
+    List, ListOrdered, SquareCheck, BookType, BookOpen,
     AlignLeft,
     Code, Quote,
     Info,
@@ -57,6 +57,7 @@ export const TOOL_REGISTRY = {
     link:        { id: 'link',        label: 'Link',              icon: Link,             group: 'links'      },
     wikilink:    { id: 'wikilink',    label: 'Wikilink',          icon: Link2,            group: 'links'      },
     footnote:    { id: 'footnote',    label: 'Footnote',          icon: MessageSquareQuote, group: 'links'    },
+    citation:    { id: 'citation',    label: 'Citation',          icon: BookOpen,         group: 'links'      },
 
     // Lists
     bullet:      { id: 'bullet',      label: 'Bullet List',       icon: List,             group: 'lists'      },

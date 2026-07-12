@@ -3,7 +3,13 @@
 @variant dark (&:where(.dark, .dark *));
 
 .ProseMirror {
-  @apply outline-none min-h-[500px] p-8 text-lg leading-relaxed text-zinc-900 dark:text-zinc-100;
+  @apply outline-none min-h-[500px] p-8 text-lg text-zinc-900 dark:text-zinc-100;
+  font-family: var(--inscript-font-family, inherit);
+  line-height: var(--inscript-line-height, 1.625);
+}
+
+.inscript-editor-container {
+  max-width: var(--inscript-max-width, 72rem);
 }
 
 .ProseMirror h1,

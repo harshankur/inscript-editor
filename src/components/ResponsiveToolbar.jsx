@@ -8,7 +8,7 @@ import {
     Subscript as SubscriptIcon, Superscript as SuperscriptIcon,
     Tag, Underline as UnderlineIcon, Undo,
     Youtube as YoutubeIcon, Table as TableIcon,
-    SquareCheck, BookType, MessageSquareQuote, Link2, Workflow, Sigma,
+    SquareCheck, BookType, MessageSquareQuote, Link2, Workflow, Sigma, BookOpen,
     Info, Lightbulb, CircleAlert, TriangleAlert, OctagonAlert, TextSelect,
     SlidersHorizontal,
 } from 'lucide-react';
@@ -100,6 +100,19 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
             title: t('insertWikilink', 'Wikilink')
         },
         footnote: { id: 'footnote', icon: MessageSquareQuote, action: () => editor.chain().focus().insertFootnote().run(), title: t('footnote', 'Footnote') },
+        citation: {
+            id: 'citation',
+            icon: BookOpen,
+            action: () => {
+                const key = window.prompt(t('citationKeyPrompt', 'Enter citation key (e.g. author2026):'));
+                if (key) {
+                    const label = window.prompt(t('citationLabelPrompt', 'Enter inline label (e.g. Author, 2026):'), key);
+                    const title = window.prompt(t('citationTitlePrompt', 'Enter bibliography entry details:'), '');
+                    editor.chain().focus().insertCitation({ key, label: label || key, title: title || '' }).run();
+                }
+            },
+            title: t('citation', 'Citation')
+        },
 
         // Lists
         bullet:     { id: 'bullet',     icon: List,          action: () => editor.chain().focus().toggleBulletList().run(),      active: editor.isActive('bulletList'),    title: t('bulletList', 'Bullet List') },

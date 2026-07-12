@@ -121,7 +121,28 @@ export const getDefaultSlashItems = (t, options = {}) => [
             command: ({ editor, range }) => {
                 editor.chain().focus().deleteRange(range).insertFootnote().run();
             }
-        },
+        }
+    ] : []),
+    ...(options.citation !== false ? [
+        {
+            id: 'citation',
+            title: t('citation', 'Citation'),
+            subtitle: t('citationSubtitle', 'Insert a citation reference'),
+            keywords: ['citation', 'reference', 'bibliography', 'key'],
+            group: 'text',
+            command: ({ editor, range }) => {
+                const key = prompt('Enter Citation Key (e.g. author2026):', '');
+                if (key) {
+                    const label = prompt('Enter Inline Label (e.g. Author, 2026):', key);
+                    const title = prompt('Enter Bibliography Entry detail (e.g. Full publication citation):', '');
+                    editor.chain().focus().deleteRange(range).insertCitation({ key, label: label || key, title: title || '' }).run();
+                } else {
+                    editor.chain().focus().deleteRange(range).run();
+                }
+            }
+        }
+    ] : []),
+    ...(options.mermaid !== false ? [
         {
             id: 'mermaid',
             title: t('slash.mermaid', 'Mermaid Diagram'),
@@ -131,7 +152,9 @@ export const getDefaultSlashItems = (t, options = {}) => [
             command: ({ editor, range }) => {
                 editor.chain().focus().deleteRange(range).insertContent({ type: 'mermaid' }).run();
             }
-        },
+        }
+    ] : []),
+    ...(options.math !== false ? [
         {
             id: 'math',
             title: t('slash.math', 'Math Block'),
