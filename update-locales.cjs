@@ -57,7 +57,8 @@ const newKeys = {
   "strike": "Strikethrough",
   "subscript": "Subscript",
   "superscript": "Superscript",
-  "underline": "Underline"
+  "underline": "Underline",
+  "customizeToolbar": "Customize toolbar"
 };
 
 for (const file of fs.readdirSync(localesDir)) {

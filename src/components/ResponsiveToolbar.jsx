@@ -10,9 +10,11 @@ import {
     Youtube as YoutubeIcon, Table as TableIcon,
     SquareCheck, BookType, MessageSquareQuote, Link2, Workflow, Sigma,
     Info, Lightbulb, CircleAlert, TriangleAlert, OctagonAlert, TextSelect,
+    Settings2,
 } from 'lucide-react';
 import { ToolbarButton, TOOLBAR_SIZES } from './ToolbarButton.jsx';
 import { ToolbarDropdown } from './ToolbarDropdown.jsx';
+import { ToolbarCustomizer } from './ToolbarCustomizer.jsx';
 import { ColorSelector } from './ColorSelector.jsx';
 import { FontSizeSelector } from './FontSizeSelector.jsx';
 import { LinkSelector } from './LinkSelector.jsx';
@@ -186,16 +188,20 @@ function configToSlots(config, toolMap) {
  * ResponsiveToolbar — renders the editor toolbar.
  *
  * Props:
- *   toolbarConfig  – Optional serializable config (from ToolbarCustomizer / TOOLBAR_PRESETS).
- *                    If omitted, defaults to TOOLBAR_PRESETS.full.
- *   ...rest        – Standard editor + callback props.
+ *   toolbarConfig          – Optional serializable config (array of tool IDs + '|' dividers).
+ *                            If omitted, defaults to TOOLBAR_PRESETS.full.
+ *   onToolbarConfigChange  – Optional. When provided, a settings ⚙ button appears at the far
+ *                            right of the toolbar. Clicking it opens the ToolbarCustomizer drawer.
+ *                            Called with the new config array when the user saves.
+ *                            The CONSUMER is responsible for persisting and passing back the config.
  */
-export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, toolbarConfig }) => {
+export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, toolbarConfig, onToolbarConfigChange }) => {
     useInscriptEditorTranslations();
     const { t } = useTranslation('inscript-editor');
     const containerRef = useRef(null);
     const [visibleCount, setVisibleCount] = useState(100);
     const [showMore, setShowMore] = useState(false);
+    const [customizerOpen, setCustomizerOpen] = useState(false);
 
     const activeConfig = toolbarConfig ?? TOOLBAR_PRESETS.full;
 
@@ -213,12 +219,14 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
     const toolsRef = useRef(tools);
     useEffect(() => { toolsRef.current = tools; }, [tools]);
 
-    // Precise resize logic using source-of-truth widths
+    // Precise resize logic using source-of-truth widths.
+    // Reserve extra space for the settings gear when onToolbarConfigChange is provided.
+    const rightReserve = 50 + (onToolbarConfigChange ? TOOLBAR_SIZES.BUTTON + TOOLBAR_SIZES.GAP : 0);
     useEffect(() => {
         const handleResize = () => {
             if (!containerRef.current) return;
             const currentTools = toolsRef.current;
-            const containerWidth = containerRef.current.clientWidth - 50;
+            const containerWidth = containerRef.current.clientWidth - rightReserve;
             let currentTotal = 0;
             let count = 0;
 
@@ -267,31 +275,61 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
     };
 
     return (
-        <div ref={containerRef} className="px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-1 bg-zinc-50 dark:bg-zinc-900/20 w-full relative">
-            {visibleTools.map((tool, i) => renderTool(tool, i))}
+        <>
+            <div ref={containerRef} className="px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-1 bg-zinc-50 dark:bg-zinc-900/20 w-full relative">
+                {visibleTools.map((tool, i) => renderTool(tool, i))}
 
-            {overflowTools.length > 0 && (
-                <div className="relative ml-auto">
-                    <button
-                        onClick={() => setShowMore(!showMore)}
-                        style={{ width: `${TOOLBAR_SIZES.BUTTON}px`, height: `${TOOLBAR_SIZES.BUTTON}px` }}
-                        className={`flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors shrink-0 ${showMore ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white' : ''}`}
-                        title={t('moreTools', 'More tools')}
-                    >
-                        <ChevronsRight size={18} />
-                    </button>
-                    {showMore && (
-                        <>
-                            <div className="fixed inset-0 z-40" onClick={() => setShowMore(false)} />
-                            <div className="absolute right-0 top-full mt-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg shadow-xl p-2 z-[60] flex flex-col gap-1 min-w-[150px]">
-                                <div className="flex flex-wrap gap-1 max-w-[200px]">
-                                    {overflowTools.map((tool, i) => renderTool(tool, i))}
-                                </div>
-                            </div>
-                        </>
+                {/* Right-side cluster: overflow >> and optional settings gear */}
+                <div className="ml-auto flex items-center gap-1 shrink-0">
+                    {overflowTools.length > 0 && (
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowMore(!showMore)}
+                                style={{ width: `${TOOLBAR_SIZES.BUTTON}px`, height: `${TOOLBAR_SIZES.BUTTON}px` }}
+                                className={`flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors shrink-0 ${showMore ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white' : ''}`}
+                                title={t('moreTools', 'More tools')}
+                            >
+                                <ChevronsRight size={18} />
+                            </button>
+                            {showMore && (
+                                <>
+                                    <div className="fixed inset-0 z-40" onClick={() => setShowMore(false)} />
+                                    <div className="absolute right-0 top-full mt-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg shadow-xl p-2 z-[60] flex flex-col gap-1 min-w-[150px]">
+                                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                            {overflowTools.map((tool, i) => renderTool(tool, i))}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Settings gear — only rendered when consumer opts in via onToolbarConfigChange */}
+                    {onToolbarConfigChange && (
+                        <button
+                            onClick={() => setCustomizerOpen(true)}
+                            style={{ width: `${TOOLBAR_SIZES.BUTTON}px`, height: `${TOOLBAR_SIZES.BUTTON}px` }}
+                            className={`flex items-center justify-center rounded transition-colors shrink-0 ${
+                                customizerOpen
+                                    ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white'
+                                    : 'text-zinc-400 dark:text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-200'
+                            }`}
+                            title={t('customizeToolbar', 'Customize toolbar')}
+                        >
+                            <Settings2 size={16} />
+                        </button>
                     )}
                 </div>
+            </div>
+
+            {/* Toolbar customizer drawer — portal-like, rendered outside the toolbar div */}
+            {customizerOpen && onToolbarConfigChange && (
+                <ToolbarCustomizer
+                    currentConfig={toolbarConfig ?? TOOLBAR_PRESETS.full}
+                    onSave={(newConfig) => onToolbarConfigChange(newConfig)}
+                    onClose={() => setCustomizerOpen(false)}
+                />
             )}
-        </div>
+        </>
     );
 };
