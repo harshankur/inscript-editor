@@ -33,5 +33,10 @@ describe('DefinitionList extension', () => {
         expect(editor.getHTML()).toContain('<dl><dt>Apple</dt><dd><p>A fruit</p></dd></dl>');
     });
 
-
+    it('toggles definition list correctly', () => {
+        editor.commands.setContent('<p>Apple</p>');
+        editor.commands.selectAll();
+        editor.commands.toggleDefinitionList();
+        expect(editor.getHTML()).toContain('<dl><dt>Apple</dt>');
+    });
 });

@@ -10,7 +10,7 @@ import {
     Youtube as YoutubeIcon, Table as TableIcon,
     SquareCheck, BookType, MessageSquareQuote, Link2, Workflow, Sigma,
     Info, Lightbulb, CircleAlert, TriangleAlert, OctagonAlert, TextSelect,
-    Settings2,
+    SlidersHorizontal,
 } from 'lucide-react';
 import { ToolbarButton, TOOLBAR_SIZES } from './ToolbarButton.jsx';
 import { ToolbarDropdown } from './ToolbarDropdown.jsx';
@@ -195,7 +195,7 @@ function configToSlots(config, toolMap) {
  *                            Called with the new config array when the user saves.
  *                            The CONSUMER is responsible for persisting and passing back the config.
  */
-export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, toolbarConfig, onToolbarConfigChange }) => {
+export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, toolbarConfig, onToolbarConfigChange, bubbleMenuConfig, onBubbleMenuConfigChange }) => {
     useInscriptEditorTranslations();
     const { t } = useTranslation('inscript-editor');
     const containerRef = useRef(null);
@@ -316,7 +316,7 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                             }`}
                             title={t('customizeToolbar', 'Customize toolbar')}
                         >
-                            <Settings2 size={16} />
+                            <SlidersHorizontal size={16} />
                         </button>
                     )}
                 </div>
@@ -327,6 +327,8 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                 <ToolbarCustomizer
                     currentConfig={toolbarConfig ?? TOOLBAR_PRESETS.full}
                     onSave={(newConfig) => onToolbarConfigChange(newConfig)}
+                    currentBubbleConfig={bubbleMenuConfig}
+                    onSaveBubble={onBubbleMenuConfigChange}
                     onClose={() => setCustomizerOpen(false)}
                 />
             )}

@@ -37,6 +37,8 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     markSaved,
     toolbarConfig,
     onToolbarConfigChange,
+    bubbleMenuConfig,
+    onBubbleMenuConfigChange,
 }, ref) {
     useInscriptEditorTranslations();
 
@@ -68,6 +70,8 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                     onAddYoutube={onAddYoutube}
                     toolbarConfig={toolbarConfig}
                     onToolbarConfigChange={onToolbarConfigChange}
+                    bubbleMenuConfig={bubbleMenuConfig}
+                    onBubbleMenuConfigChange={onBubbleMenuConfigChange}
                 />
             )}
 
@@ -86,7 +90,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                     />
                 ) : (
                     <div className={`mx-auto px-2 pt-3 pb-[57px] md:px-8 md:pt-12 md:pb-[57px] flex flex-col min-h-full ${focusMode ? 'max-w-3xl focus-mode' : 'max-w-6xl'}`}>
-                        <TextBubbleMenu editor={editor} isReadonly={isReadonly} />
+                        <TextBubbleMenu editor={editor} isReadonly={isReadonly} bubbleMenuConfig={bubbleMenuConfig} />
                         <TableBubbleMenu editor={editor} isReadonly={isReadonly} />
                         <ImageBubbleMenu editor={editor} isReadonly={isReadonly} />
                         <YoutubeBubbleMenu editor={editor} isReadonly={isReadonly} />

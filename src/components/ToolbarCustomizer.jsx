@@ -1,28 +1,44 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { GripVertical, X, Plus, Check, Settings2 } from 'lucide-react';
-import { TOOL_REGISTRY, DIVIDER, ALL_TOOL_IDS } from '../toolbar/toolRegistry.js';
-import { TOOLBAR_PRESETS, PRESET_LABELS } from '../toolbar/presets.js';
+import { GripVertical, X, Plus, Check, SlidersHorizontal } from 'lucide-react';
+import { TOOL_REGISTRY, DIVIDER } from '../toolbar/toolRegistry.js';
+import { TOOLBAR_PRESETS, BUBBLE_PRESETS, PRESET_LABELS } from '../toolbar/presets.js';
+
+// The subset of tools that are valid in the text selection bubble menu
+const BUBBLE_TOOL_IDS = [
+    'bold', 'italic', 'underline', 'strike', 'sub', 'sup', 'abbreviation',
+    'fontSize', 'highlight', 'color', 'link', 'code', 'quote'
+];
 
 /**
- * ToolbarCustomizer — a slide-in drawer for reordering and customizing the toolbar.
- *
- * Architecture note: This component renders the UI to edit a toolbar config,
- * but it does NOT own or persist the config. It calls `onSave(config)` with
- * the new array of tool IDs + '|' dividers, and the CONSUMER is responsible
- * for persisting and passing it back to <ResponsiveToolbar toolbarConfig={...}/>.
- *
- * Props:
- *   currentConfig  – The active config array (IDs + '|' dividers).
- *                    If omitted, defaults to TOOLBAR_PRESETS.full.
- *   onSave(config) – Called when the user clicks Save. Receives the new config.
- *   onClose()      – Called when the drawer should close (Cancel or ✕).
+ * ToolbarCustomizer — a slide-in drawer for reordering and customizing
+ * both the main toolbar and the text selection bubble menu.
  */
-export const ToolbarCustomizer = ({ currentConfig, onSave, onClose }) => {
-    const initialConfig = currentConfig ?? TOOLBAR_PRESETS.full;
-    const [config, setConfig] = useState(initialConfig);
-    const [activePreset, setActivePreset] = useState(
+export const ToolbarCustomizer = ({
+    currentConfig,
+    onSave,
+    onClose,
+    currentBubbleConfig,
+    onSaveBubble,
+}) => {
+    const [activeTab, setActiveTab] = useState('toolbar'); // 'toolbar' | 'bubble'
+
+    // Local state for main toolbar
+    const initialToolbarConfig = currentConfig ?? TOOLBAR_PRESETS.full;
+    const [toolbarConfig, setToolbarConfig] = useState(initialToolbarConfig);
+
+    // Local state for selection bubble menu
+    const initialBubbleConfig = currentBubbleConfig ?? BUBBLE_PRESETS.full;
+    const [bubbleConfig, setBubbleConfig] = useState(initialBubbleConfig);
+
+    // Track active presets per tab
+    const [activeToolbarPreset, setActiveToolbarPreset] = useState(
         Object.keys(TOOLBAR_PRESETS).find(k =>
-            JSON.stringify(TOOLBAR_PRESETS[k]) === JSON.stringify(initialConfig)
+            JSON.stringify(TOOLBAR_PRESETS[k]) === JSON.stringify(initialToolbarConfig)
+        ) ?? null
+    );
+    const [activeBubblePreset, setActiveBubblePreset] = useState(
+        Object.keys(BUBBLE_PRESETS).find(k =>
+            JSON.stringify(BUBBLE_PRESETS[k]) === JSON.stringify(initialBubbleConfig)
         ) ?? null
     );
 
@@ -36,7 +52,6 @@ export const ToolbarCustomizer = ({ currentConfig, onSave, onClose }) => {
 
     // ── Entrance & Exit Animation Helpers ─────────────────────────────────────
     useEffect(() => {
-        // Trigger entrance transition on next paint
         const raf = requestAnimationFrame(() => {
             setIsEntered(true);
         });
@@ -47,11 +62,14 @@ export const ToolbarCustomizer = ({ currentConfig, onSave, onClose }) => {
         setIsClosing(true);
         setTimeout(() => {
             onClose();
-        }, 300); // matches the duration-300 transition time
+        }, 300);
     }, [onClose]);
 
     const handleSave = () => {
-        onSave(config);
+        onSave(toolbarConfig);
+        if (onSaveBubble) {
+            onSaveBubble(bubbleConfig);
+        }
         handleClose();
     };
 
@@ -66,28 +84,43 @@ export const ToolbarCustomizer = ({ currentConfig, onSave, onClose }) => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleClose]);
 
+    // ── Getters/Setters based on Active Tab ───────────────────────────────────
+    const getConfig = () => (activeTab === 'toolbar' ? toolbarConfig : bubbleConfig);
+    const setConfig = (updater) => {
+        if (activeTab === 'toolbar') {
+            setToolbarConfig(updater);
+            setActiveToolbarPreset(null);
+        } else {
+            setBubbleConfig(updater);
+            setActiveBubblePreset(null);
+        }
+    };
+
+    const getActivePreset = () => (activeTab === 'toolbar' ? activeToolbarPreset : activeBubblePreset);
+
     // ── Preset selection ──────────────────────────────────────────────────────
     const applyPreset = useCallback((key) => {
-        setConfig([...TOOLBAR_PRESETS[key]]);
-        setActivePreset(key);
-    }, []);
+        if (activeTab === 'toolbar') {
+            setToolbarConfig([...TOOLBAR_PRESETS[key]]);
+            setActiveToolbarPreset(key);
+        } else {
+            setBubbleConfig([...BUBBLE_PRESETS[key]]);
+            setActiveBubblePreset(key);
+        }
+    }, [activeTab]);
 
     // ── Config mutations ──────────────────────────────────────────────────────
     const removeItem = useCallback((idx) => {
-        setConfig(c => {
-            const next = c.filter((_, i) => i !== idx);
-            setActivePreset(null);
-            return next;
-        });
-    }, []);
+        setConfig(c => c.filter((_, i) => i !== idx));
+    }, [activeTab]);
 
     const addDivider = useCallback(() => {
-        setConfig(c => { setActivePreset(null); return [...c, DIVIDER]; });
-    }, []);
+        setConfig(c => [...c, DIVIDER]);
+    }, [activeTab]);
 
     const addTool = useCallback((id) => {
-        setConfig(c => { setActivePreset(null); return [...c, id]; });
-    }, []);
+        setConfig(c => [...c, id]);
+    }, [activeTab]);
 
     // ── Drag & drop reorder ───────────────────────────────────────────────────
     const handleDragStart = (e, idx) => {
@@ -107,7 +140,6 @@ export const ToolbarCustomizer = ({ currentConfig, onSave, onClose }) => {
             const next = [...c];
             const [removed] = next.splice(from, 1);
             next.splice(idx, 0, removed);
-            setActivePreset(null);
             return next;
         });
         setDragOverIndex(null);
@@ -118,9 +150,15 @@ export const ToolbarCustomizer = ({ currentConfig, onSave, onClose }) => {
         dragIndexRef.current = null;
     };
 
-    // ── Derived ───────────────────────────────────────────────────────────────
-    const usedToolIds = new Set(config.filter(x => x !== DIVIDER));
-    const availableTools = ALL_TOOL_IDS.filter(id => !usedToolIds.has(id));
+    // ── Derived List of Tools ────────────────────────────────────────────────
+    const activeConfig = getConfig();
+    const usedToolIds = new Set(activeConfig.filter(x => x !== DIVIDER));
+
+    const totalAllowedTools = activeTab === 'toolbar'
+        ? Object.keys(TOOL_REGISTRY)
+        : BUBBLE_TOOL_IDS;
+
+    const availableTools = totalAllowedTools.filter(id => !usedToolIds.has(id));
 
     return (
         // Backdrop container
@@ -142,8 +180,8 @@ export const ToolbarCustomizer = ({ currentConfig, onSave, onClose }) => {
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
                     <div className="flex items-center gap-2">
-                        <Settings2 size={18} className="text-zinc-400" />
-                        <span className="font-semibold text-zinc-900 dark:text-white text-sm">Customize Toolbar</span>
+                        <SlidersHorizontal size={18} className="text-zinc-400" />
+                        <span className="font-semibold text-zinc-900 dark:text-white text-sm">Customize Layout</span>
                     </div>
                     <button
                         onClick={handleClose}
@@ -153,17 +191,43 @@ export const ToolbarCustomizer = ({ currentConfig, onSave, onClose }) => {
                     </button>
                 </div>
 
+                {/* Tab Switcher */}
+                {currentBubbleConfig && onSaveBubble && (
+                    <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20 shrink-0">
+                        <button
+                            onClick={() => { setActiveTab('toolbar'); setDragOverIndex(null); }}
+                            className={`flex-1 py-3 text-xs font-semibold text-center border-b-2 transition-all
+                                ${activeTab === 'toolbar'
+                                    ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white bg-white dark:bg-zinc-900'
+                                    : 'border-transparent text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
+                                }`}
+                        >
+                            Main Toolbar
+                        </button>
+                        <button
+                            onClick={() => { setActiveTab('bubble'); setDragOverIndex(null); }}
+                            className={`flex-1 py-3 text-xs font-semibold text-center border-b-2 transition-all
+                                ${activeTab === 'bubble'
+                                    ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white bg-white dark:bg-zinc-900'
+                                    : 'border-transparent text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
+                                }`}
+                        >
+                            Selection Menu
+                        </button>
+                    </div>
+                )}
+
                 <div className="flex-1 overflow-y-auto">
                     {/* Presets */}
                     <div className="px-5 pt-5 pb-4">
                         <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-3">Presets</p>
                         <div className="grid grid-cols-2 gap-2">
-                            {Object.keys(TOOLBAR_PRESETS).map(key => (
+                            {Object.keys(activeTab === 'toolbar' ? TOOLBAR_PRESETS : BUBBLE_PRESETS).map(key => (
                                 <button
                                     key={key}
                                     onClick={() => applyPreset(key)}
                                     className={`px-3 py-2 rounded-lg text-sm font-medium text-left transition-all border
-                                        ${activePreset === key
+                                        ${getActivePreset() === key
                                             ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-transparent'
                                             : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'
                                         }`}
@@ -178,9 +242,11 @@ export const ToolbarCustomizer = ({ currentConfig, onSave, onClose }) => {
 
                     {/* Current config (drag to reorder) */}
                     <div className="px-5 pt-4 pb-2">
-                        <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-3">Current toolbar</p>
+                        <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-3">
+                            Current {activeTab === 'toolbar' ? 'toolbar' : 'selection menu'}
+                        </p>
                         <div className="flex flex-col gap-1">
-                            {config.map((item, idx) => {
+                            {activeConfig.map((item, idx) => {
                                 const isDivider = item === DIVIDER;
                                 const meta = isDivider ? null : TOOL_REGISTRY[item];
                                 const Icon = meta?.icon ?? null;
@@ -263,7 +329,7 @@ export const ToolbarCustomizer = ({ currentConfig, onSave, onClose }) => {
                 </div>
 
                 {/* Footer actions */}
-                <div className="px-5 py-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-2">
+                <div className="px-5 py-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-2 shrink-0">
                     <button
                         onClick={handleClose}
                         className="flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"

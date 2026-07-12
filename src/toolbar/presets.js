@@ -85,3 +85,24 @@ export const PRESET_LABELS = {
     technical: 'Technical Writer',
     science:   'Science / Academic',
 };
+
+export const BUBBLE_PRESETS = {
+    full: [
+        'bold', 'italic', 'underline', 'strike', 'sub', 'sup', D,
+        'fontSize', 'highlight', 'color', D,
+        'link', 'code', 'quote'
+    ],
+    blogger: [
+        'bold', 'italic', 'underline', D,
+        'highlight', 'color', D,
+        'link', 'quote'
+    ],
+    technical: [
+        'bold', 'italic', 'underline', D,
+        'link', 'code', 'quote'
+    ],
+    science: [
+        'bold', 'italic', 'underline', 'sub', 'sup', D,
+        'link', 'code', 'quote'
+    ],
+};

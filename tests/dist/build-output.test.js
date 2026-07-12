@@ -31,6 +31,7 @@ const PUBLIC_SYMBOLS = [
     'DIVIDER',
     'TOOLBAR_PRESETS',
     'PRESET_LABELS',
+    'BUBBLE_PRESETS',
     'ColorSelector',
     'FontSizeSelector',
     'LinkSelector',
