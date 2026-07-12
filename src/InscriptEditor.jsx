@@ -35,6 +35,8 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     onHistorySelect,
     restoreVersion,
     markSaved,
+    toolbarConfig,
+    onToolbarConfigChange,
 }, ref) {
     useInscriptEditorTranslations();
 
@@ -64,6 +66,8 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                     showMetadataActive={showMetadataActive}
                     onShowMediaLibrary={onShowMediaLibrary}
                     onAddYoutube={onAddYoutube}
+                    toolbarConfig={toolbarConfig}
+                    onToolbarConfigChange={onToolbarConfigChange}
                 />
             )}
 
