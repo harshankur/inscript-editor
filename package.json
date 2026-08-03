@@ -35,6 +35,14 @@
     "type": "git",
     "url": "git+https://github.com/harshankur/inscript-editor.git"
   },
+  "homepage": "https://github.com/harshankur/inscript-editor#readme",
+  "bugs": {
+    "url": "https://github.com/harshankur/inscript-editor/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "keywords": [
     "tiptap",
     "rich-text-editor",
@@ -51,10 +59,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
-    "test:dist": "npm run build && vitest run tests/dist"
+    "test:dist": "npm run build && vitest run tests/dist",
+    "prepublishOnly": "npm run build && npm test"
   },
   "peerDependencies": {
     "@tiptap/core": "^3.20.4",
+    "@tiptap/extension-code-block-lowlight": "^3.27.3",
     "@tiptap/extension-color": "^3.20.4",
     "@tiptap/extension-highlight": "^3.20.4",
     "@tiptap/extension-image": "^3.20.4",
@@ -65,18 +75,28 @@
     "@tiptap/extension-table-cell": "^3.23.6",
     "@tiptap/extension-table-header": "^3.23.6",
     "@tiptap/extension-table-row": "^3.23.6",
+    "@tiptap/extension-task-item": "^3.27.3",
+    "@tiptap/extension-task-list": "^3.27.3",
     "@tiptap/extension-text-align": "^3.20.4",
     "@tiptap/extension-text-style": "^3.20.4",
     "@tiptap/extension-underline": "^3.20.4",
     "@tiptap/pm": "^3.20.4",
     "@tiptap/react": "^3.20.4",
     "@tiptap/starter-kit": "^3.20.4",
+    "@tiptap/suggestion": "^3.27.3",
     "diff": "^8.0.3",
     "i18next": "^25.0.0",
+    "katex": "^0.16.0 || ^0.17.0",
+    "lowlight": "^3.3.0",
     "lucide-react": "^0.577.0",
+    "mermaid": "^11.16.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-i18next": "^16.0.0"
+  },
+  "peerDependenciesMeta": {
+    "katex": { "optional": true },
+    "mermaid": { "optional": true }
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.2",
@@ -110,8 +130,10 @@
     "diff": "^8.0.3",
     "i18next": "^25.10.5",
     "jsdom": "^27.4.0",
+    "katex": "^0.17.0",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.577.0",
+    "mermaid": "^11.16.0",
     "postcss": "^8.5.16",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -119,9 +141,5 @@
     "tailwindcss": "^4.2.2",
     "vite": "^8.0.1",
     "vitest": "^4.1.9"
-  },
-  "dependencies": {
-    "katex": "^0.17.0",
-    "mermaid": "^11.16.0"
   }
 }

@@ -1,9 +1,13 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
 import React, { useState, useEffect, useRef } from 'react';
-import mermaid from 'mermaid';
 
-mermaid.initialize({ startOnLoad: false, theme: 'default' });
+// `mermaid` is an OPTIONAL peer dependency, imported dynamically so its (large)
+// bundle never lands in the library and the editor loads fine when a consumer
+// hasn't installed it. When mermaid is absent (or a render throws) we degrade to
+// the `error`/source path below rather than crashing. `initialize` runs once, the
+// first time a diagram actually renders.
+let mermaidInitialized = false;
 
 const MermaidComponent = (props) => {
     const { node, updateAttributes, selected } = props;
@@ -15,11 +19,22 @@ const MermaidComponent = (props) => {
     useEffect(() => {
         let isMounted = true;
         const renderMermaid = async () => {
+            if (!code.trim()) {
+                setSvg('');
+                setError(null);
+                return;
+            }
+            let mermaid;
             try {
-                if (!code.trim()) {
-                    setSvg('');
-                    setError(null);
-                    return;
+                mermaid = (await import('mermaid')).default;
+            } catch {
+                if (isMounted) setError('Mermaid diagrams require the optional "mermaid" package to be installed.');
+                return;
+            }
+            try {
+                if (!mermaidInitialized) {
+                    mermaid.initialize({ startOnLoad: false, theme: 'default' });
+                    mermaidInitialized = true;
                 }
                 const { svg: renderedSvg } = await mermaid.render(idRef.current, code);
                 if (isMounted) {

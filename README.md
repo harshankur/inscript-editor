@@ -25,13 +25,39 @@ Peer dependencies (install alongside, matching the ranges in `package.json`):
 
 ```bash
 npm install react react-dom \
-  @tiptap/core @tiptap/pm @tiptap/react @tiptap/starter-kit \
-  @tiptap/extension-color @tiptap/extension-highlight @tiptap/extension-image \
-  @tiptap/extension-link @tiptap/extension-subscript @tiptap/extension-superscript \
-  @tiptap/extension-table @tiptap/extension-table-cell @tiptap/extension-table-header \
-  @tiptap/extension-table-row @tiptap/extension-text-align @tiptap/extension-text-style \
-  @tiptap/extension-underline lucide-react diff react-i18next i18next
+  @tiptap/core @tiptap/pm @tiptap/react @tiptap/starter-kit @tiptap/suggestion \
+  @tiptap/extension-code-block-lowlight @tiptap/extension-color @tiptap/extension-highlight \
+  @tiptap/extension-image @tiptap/extension-link @tiptap/extension-subscript \
+  @tiptap/extension-superscript @tiptap/extension-table @tiptap/extension-table-cell \
+  @tiptap/extension-table-header @tiptap/extension-table-row @tiptap/extension-task-item \
+  @tiptap/extension-task-list @tiptap/extension-text-align @tiptap/extension-text-style \
+  @tiptap/extension-underline lowlight lucide-react diff react-i18next i18next
 ```
+
+### Optional peer dependencies
+
+Two features load heavy libraries only when a diagram or math node actually renders,
+so they are **optional** peers — install them only if you use those features. When
+absent, the editor still loads and those nodes degrade to showing their raw source
+instead of crashing.
+
+```bash
+# Math (KaTeX). Also import its stylesheet once in your app (see below).
+npm install katex
+
+# Mermaid diagrams.
+npm install mermaid
+```
+
+If you use math, import the KaTeX stylesheet yourself — it is intentionally **not**
+bundled into `inscript-editor/styles`:
+
+```js
+import 'katex/dist/katex.min.css';
+```
+
+You can also disable either feature entirely via `useInscriptEditor` options
+(`math: false`, `mermaid: false`) so the extension is never registered.
 
 ## Quick start
 

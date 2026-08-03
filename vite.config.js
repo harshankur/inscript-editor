@@ -25,6 +25,15 @@ export default defineConfig({
                 'diff',
                 'react-i18next',
                 'i18next',
+                // Code highlighting engine — required peer, needed synchronously at
+                // schema-build time, so kept external rather than bundled.
+                'lowlight',
+                // Heavy OPTIONAL peers, dynamically imported inside their node views
+                // (Math.jsx / Mermaid.jsx). External so the runtime import() resolves
+                // against the consumer's install and they never bloat this bundle.
+                'katex',
+                /^katex\/.*/,
+                'mermaid',
             ],
             output: {
                 assetFileNames: 'styles/inscript-editor[extname]',

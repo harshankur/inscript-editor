@@ -1,8 +1,13 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
 import React, { useState, useEffect } from 'react';
-import katex from 'katex';
-import 'katex/dist/katex.min.css';
+
+// `katex` is an OPTIONAL peer dependency, imported dynamically so it never lands
+// in the library bundle and the editor loads fine when a consumer hasn't installed
+// it. Consumers that use math must also import the KaTeX stylesheet themselves:
+//   import 'katex/dist/katex.min.css';
+// When katex is absent (or a render throws), we degrade to showing the raw LaTeX
+// source via the `error` path below rather than crashing.
 
 const MathComponent = ({ node, updateAttributes, selected, isInline }) => {
     const { code } = node.attrs;
@@ -10,21 +15,34 @@ const MathComponent = ({ node, updateAttributes, selected, isInline }) => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        try {
-            if (!code.trim()) {
-                setHtml('');
-                setError(null);
+        let cancelled = false;
+        if (!code.trim()) {
+            setHtml('');
+            setError(null);
+            return;
+        }
+        (async () => {
+            let katex;
+            try {
+                katex = (await import('katex')).default;
+            } catch {
+                if (!cancelled) setError('Math rendering requires the optional "katex" package to be installed.');
                 return;
             }
-            const rendered = katex.renderToString(code, {
-                displayMode: !isInline,
-                throwOnError: false, // Prevents crashing on syntax errors, renders error in red
-            });
-            setHtml(rendered);
-            setError(null);
-        } catch (err) {
-            setError(err.message);
-        }
+            try {
+                const rendered = katex.renderToString(code, {
+                    displayMode: !isInline,
+                    throwOnError: false, // Prevents crashing on syntax errors, renders error in red
+                });
+                if (!cancelled) {
+                    setHtml(rendered);
+                    setError(null);
+                }
+            } catch (err) {
+                if (!cancelled) setError(err.message);
+            }
+        })();
+        return () => { cancelled = true; };
     }, [code, isInline]);
 
     const WrapperTag = isInline ? 'span' : 'div';
