@@ -57,6 +57,9 @@ export function buildExtensions(options = {}) {
             history: false,
             link: false,
             codeBlock: false,
+            // StarterKit v3 bundles Underline; we register our own below, so
+            // disable StarterKit's to avoid a duplicate-extension warning.
+            underline: false,
         }),
         CodeBlockLowlight.configure({
             lowlight,
