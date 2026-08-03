@@ -1,0 +1,111 @@
+name: Release
+
+# Cut a release by tagging a commit vX.Y.Z (matching package.json's version)
+# and pushing the tag:
+#   npm version patch|minor|major   # bumps package.json, commits, and tags
+#   git push --follow-tags          # pushes the commit AND the tag
+#
+# Pushing the v* tag triggers this workflow: it verifies the tag matches
+# package.json, builds and tests, publishes to npm with provenance, then
+# creates the GitHub Release. `workflow_dispatch` is also allowed for a manual
+# run against the current package.json version (it creates the matching tag if
+# one does not exist yet).
+#
+# Publish happens BEFORE the tag/release are created on a manual run, so a
+# failed publish never leaves a dangling tag or GitHub Release behind. A version
+# already on npm is refused up front, so re-runs never attempt a republish (npm
+# version numbers can never be reused).
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+  workflow_dispatch:
+
+permissions:
+  contents: write   # create the GitHub Release (and push the tag on manual runs)
+  id-token: write   # npm provenance — signed attestation via GitHub's OIDC token
+
+concurrency:
+  # A published npm version can never be taken back — never let two releases race.
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Publish & Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so --generate-notes has something to diff
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Resolve and validate version
+        id: v
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+          # On a tag push, the pushed tag must match package.json's version,
+          # otherwise we'd publish a version whose tag says something else.
+          if [ "${{ github.ref_type }}" = "tag" ] && [ "${{ github.ref_name }}" != "$TAG" ]; then
+            echo "::error::Pushed tag ${{ github.ref_name }} does not match package.json version ($TAG). Bump package.json or retag."
+            exit 1
+          fi
+
+          # Refuse to re-release a version already on npm — the publish would
+          # fail anyway, but failing here keeps the run clean and explicit.
+          if npm view "inscript-editor@$VERSION" version >/dev/null 2>&1; then
+            echo "::error::inscript-editor@$VERSION is already published to npm."
+            exit 1
+          fi
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
+      - name: Test built output
+        run: npm run test:dist
+
+      # Auth is the NPM_TOKEN secret for now. To switch to npm Trusted Publishing
+      # (OIDC, no secret): configure the trusted publisher for this package at
+      # npmjs.com (repo harshankur/inscript-editor, workflow release.yml), then
+      # remove the `env:`/NODE_AUTH_TOKEN below and add a step that strips the
+      # empty `_authToken` line setup-node writes into .npmrc (actions/setup-node#1551)
+      # so the OIDC exchange can engage. `id-token: write` above already covers it.
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Manual (workflow_dispatch) runs have no tag yet — create and push it only
+      # after a successful publish. Tag-push runs already have the tag.
+      - name: Create tag (manual runs only)
+        if: github.ref_type != 'tag'
+        env:
+          TAG: ${{ steps.v.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "$TAG"
+          git push origin "$TAG"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.v.outputs.tag }}
+        run: gh release create "$TAG" --title "$TAG" --generate-notes --verify-tag
