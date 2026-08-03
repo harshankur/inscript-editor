@@ -6,6 +6,9 @@ name: Publish to npm
 on:
   release:
     types: [published]
+  # Allow manual runs from the Actions tab — handy to re-run a publish that
+  # failed midway without cutting a new release.
+  workflow_dispatch:
 
 permissions:
   contents: read
