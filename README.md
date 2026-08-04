@@ -36,10 +36,9 @@ npm install react react-dom \
 
 ### Optional peer dependencies
 
-Two features load heavy libraries only when a diagram or math node actually renders,
-so they are **optional** peers — install them only if you use those features. When
-absent, the editor still loads and those nodes degrade to showing their raw source
-instead of crashing.
+Math (KaTeX) and Mermaid load their heavy libraries via a dynamic `import()` only
+when a math/diagram node actually renders, so they are declared as **optional**
+peers and kept out of this package's bundle.
 
 ```bash
 # Math (KaTeX). Also import its stylesheet once in your app (see below).
@@ -56,8 +55,17 @@ bundled into `inscript-editor/styles`:
 import 'katex/dist/katex.min.css';
 ```
 
-You can also disable either feature entirely via `useInscriptEditor` options
-(`math: false`, `mermaid: false`) so the extension is never registered.
+**If you use a bundler (Vite, webpack, etc.) you must install `katex`/`mermaid`
+whenever those features are enabled** — even though the `import()` is dynamic, the
+bundler still resolves the specifier at build time, so a missing package is a
+build error, not a graceful runtime fallback. The at-render fallback (the node
+degrades to showing its raw source) only applies in non-bundled contexts such as
+Node/SSR. To ship without them, either disable the features so they aren't part of
+your build's intent (see below) **and** alias/externalize the specifiers in your
+bundler, or simply install the packages.
+
+Disable either feature entirely via `useInscriptEditor` options (`math: false`,
+`mermaid: false`) so the extension is never registered.
 
 ## Quick start
 

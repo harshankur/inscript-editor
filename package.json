@@ -1,6 +1,6 @@
 {
   "name": "inscript-editor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Standalone TipTap-based rich text editor extracted from Inscript.",
   "author": "Harsh Ankur <harshankur@outlook.com>",
   "license": "MIT",
@@ -19,16 +19,16 @@
   ],
   "exports": {
     ".": {
+      "types": "./src/types.d.ts",
       "import": "./dist/inscript-editor.es.js",
-      "require": "./dist/inscript-editor.cjs",
-      "types": "./src/types.d.ts"
+      "require": "./dist/inscript-editor.cjs"
     },
     "./styles": "./dist/styles/inscript-editor.css",
     "./styles/content": "./dist/styles/content.css",
     "./tailwind-content": "./tailwind-content.js",
     "./locales": {
-      "import": "./src/locales/index.js",
-      "types": "./src/locales/types.d.ts"
+      "types": "./src/locales/types.d.ts",
+      "import": "./src/locales/index.js"
     }
   },
   "repository": {
@@ -95,8 +95,12 @@
     "react-i18next": "^16.0.0"
   },
   "peerDependenciesMeta": {
-    "katex": { "optional": true },
-    "mermaid": { "optional": true }
+    "katex": {
+      "optional": true
+    },
+    "mermaid": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.2",
