@@ -197,6 +197,30 @@ import 'inscript-editor/styles';
 
 Dark mode follows Tailwind's `dark:` class strategy — add/remove a `dark` class on an ancestor element (e.g. `<html>`) to toggle it.
 
+### MiniMap theming & sizing
+
+`<MiniMap>` reads CSS custom properties (with fallbacks equal to its default zinc/emerald
+look), so a themed host restyles it by setting variables on any ancestor — no CSS overrides:
+
+```css
+.my-right-rail {
+    --im-minimap-bg: var(--surface);        /* panel background */
+    --im-minimap-border: var(--line);       /* panel + header border */
+    --im-minimap-label: var(--ink);         /* header label text */
+    --im-minimap-line: var(--ink-dim);      /* neutral text-line rects / list markers */
+    --im-minimap-viewport: var(--brand);    /* draggable viewport marker */
+}
+```
+
+Content-semantic glyph colors (YouTube red, image blue, code block, …) are intentionally
+not themed — they identify content types. Sizing: pass `width` (inline style, beats the
+default `9rem`) and/or `className` (appended to the root, e.g. `border-l-0` to drop the
+built-in border when the minimap lives inside your own bordered panel).
+
+```jsx
+<MiniMap editor={editor} width="6rem" className="border-l-0" />
+```
+
 ## Development
 
 ```bash

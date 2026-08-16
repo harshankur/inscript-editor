@@ -14,6 +14,26 @@ const PAD_TOP = 6;
 const LINE_PITCH = 2.3;      // minimap px per real text line (density); also the vertical scale seed
 const GAP_FALLBACK = 3;      // gap when we can't measure the DOM (jsdom / not laid out yet)
 
+// ── Theming ───────────────────────────────────────────────────────────────────
+// The minimap chrome and neutral document marks read CSS custom properties with
+// fallbacks equal to the current zinc/emerald defaults, so a themed host can
+// restyle it by setting the vars — no CSS-override hacks:
+//   --im-minimap-bg        panel background
+//   --im-minimap-border    panel + header border
+//   --im-minimap-label     header label text
+//   --im-minimap-line      neutral text-line rects / list markers
+//   --im-minimap-viewport  draggable viewport marker (stroke + translucent fill)
+// Content-semantic glyph colors (YouTube red, image sky, code emerald, …) are
+// intentionally NOT themed — they identify content types, not the host theme.
+const LINE_CLS = 'fill-[var(--im-minimap-line,#d4d4d8)] dark:fill-[var(--im-minimap-line,#52525b)]';
+const MARK_CLS = 'fill-[var(--im-minimap-line,#a1a1aa)] dark:fill-[var(--im-minimap-line,#71717a)]';
+const MARK_STROKE_CLS = 'fill-none stroke-[var(--im-minimap-line,#a1a1aa)] dark:stroke-[var(--im-minimap-line,#71717a)]';
+const TERM_CLS = 'fill-[var(--im-minimap-line,#71717a)] dark:fill-[var(--im-minimap-line,#a1a1aa)]';
+const BG_CLS = 'bg-[var(--im-minimap-bg,#fafafa)] dark:bg-[var(--im-minimap-bg,#18181b)]';
+const BORDER_CLS = 'border-[var(--im-minimap-border,#e4e4e7)] dark:border-[var(--im-minimap-border,#27272a)]';
+const LABEL_CLS = 'text-[var(--im-minimap-label,#18181b)] dark:text-[var(--im-minimap-label,#f4f4f5)]';
+const VIEWPORT_COLOR = 'var(--im-minimap-viewport, #10b981)';
+
 const HUMAN_LABEL = {
     heading: 'Heading', paragraph: 'Paragraph',
     bulletList: 'Bullet list', orderedList: 'Numbered list', taskList: 'Task list',
@@ -98,7 +118,7 @@ function buildGlyph(b, w, h) {
                 ...fillLines(w, h, b.lines || 1, 'fill-emerald-500', 'h', 0.9, clamp(h, 2, 4) + 2),
             ];
         case 'paragraph':
-            return fillLines(w, h, b.lines || 2, 'fill-zinc-300 dark:fill-zinc-600', 'p');
+            return fillLines(w, h, b.lines || 2, LINE_CLS, 'p');
         case 'bulletList':
         case 'orderedList':
         case 'taskList': {
@@ -107,10 +127,10 @@ function buildGlyph(b, w, h) {
             const els = [];
             for (let i = 0; i < n; i++) {
                 const y = i * pitch;
-                if (b.type === 'taskList') els.push(<rect key={`c${i}`} x={0} y={y} width={2} height={2} rx={0.4} className="fill-none stroke-zinc-400 dark:stroke-zinc-500" strokeWidth={0.5} />);
-                else if (b.type === 'orderedList') els.push(<rect key={`c${i}`} x={0} y={y} width={2} height={1.6} rx={0.4} className="fill-zinc-400 dark:fill-zinc-500" />);
-                else els.push(<circle key={`c${i}`} cx={1} cy={y + 0.9} r={1} className="fill-zinc-400 dark:fill-zinc-500" />);
-                els.push(<rect key={`l${i}`} x={4.5} y={y + 0.2} width={(w - 4.5) * (1 - (i % 2) * 0.22)} height={clamp(pitch * 0.5, 0.8, 1.5)} rx={0.6} className="fill-zinc-300 dark:fill-zinc-600" />);
+                if (b.type === 'taskList') els.push(<rect key={`c${i}`} x={0} y={y} width={2} height={2} rx={0.4} className={MARK_STROKE_CLS} strokeWidth={0.5} />);
+                else if (b.type === 'orderedList') els.push(<rect key={`c${i}`} x={0} y={y} width={2} height={1.6} rx={0.4} className={MARK_CLS} />);
+                else els.push(<circle key={`c${i}`} cx={1} cy={y + 0.9} r={1} className={MARK_CLS} />);
+                els.push(<rect key={`l${i}`} x={4.5} y={y + 0.2} width={(w - 4.5) * (1 - (i % 2) * 0.22)} height={clamp(pitch * 0.5, 0.8, 1.5)} rx={0.6} className={LINE_CLS} />);
             }
             return els;
         }
@@ -154,7 +174,7 @@ function buildGlyph(b, w, h) {
         case 'blockquote':
             return [
                 <rect key="bar" x={0} y={0} width={1.6} height={h} rx={0.8} className="fill-emerald-400 dark:fill-emerald-600" />,
-                ...fillLines(w, h, b.lines || 2, 'fill-zinc-300 dark:fill-zinc-600', 'q', 0.7, 4.5),
+                ...fillLines(w, h, b.lines || 2, LINE_CLS, 'q', 0.7, 4.5),
             ];
         case 'admonition':
             return [
@@ -184,19 +204,19 @@ function buildGlyph(b, w, h) {
             ];
         }
         case 'horizontalRule':
-            return [<rect key="hr" x={0} y={h / 2 - 0.5} width={w} height={1} rx={0.5} className="fill-zinc-300 dark:fill-zinc-600" />];
+            return [<rect key="hr" x={0} y={h / 2 - 0.5} width={w} height={1} rx={0.5} className={LINE_CLS} />];
         case 'definitionList': {
             const n = clamp(b.itemCount || 2, 1, 20);
             const pitch = h / n;
             const els = [];
             for (let i = 0; i < n; i++) {
-                els.push(<rect key={`t${i}`} x={0} y={pitch * i + pitch * 0.1} width={w * 0.4} height={clamp(pitch * 0.25, 0.9, 1.6)} rx={0.7} className="fill-zinc-500 dark:fill-zinc-400" />);
-                els.push(<rect key={`d${i}`} x={5} y={pitch * i + pitch * 0.5} width={w * 0.7} height={clamp(pitch * 0.2, 0.8, 1.3)} rx={0.6} className="fill-zinc-300 dark:fill-zinc-600" />);
+                els.push(<rect key={`t${i}`} x={0} y={pitch * i + pitch * 0.1} width={w * 0.4} height={clamp(pitch * 0.25, 0.9, 1.6)} rx={0.7} className={TERM_CLS} />);
+                els.push(<rect key={`d${i}`} x={5} y={pitch * i + pitch * 0.5} width={w * 0.7} height={clamp(pitch * 0.2, 0.8, 1.3)} rx={0.6} className={LINE_CLS} />);
             }
             return els;
         }
         default:
-            return fillLines(w, h, b.lines || 1, 'fill-zinc-300 dark:fill-zinc-600', 'd', 0.9);
+            return fillLines(w, h, b.lines || 1, LINE_CLS, 'd', 0.9);
     }
 }
 
@@ -220,11 +240,24 @@ function fallbackHeight(b) {
     }
 }
 
-export const MiniMap = ({ editor }) => {
+/**
+ * MiniMap — proportional thumbnail of the document with a draggable viewport.
+ *
+ * @param {object} props
+ * @param {import('@tiptap/core').Editor|null} props.editor
+ * @param {string} [props.width]     - CSS width for the expanded panel (defaults to 9rem).
+ *                                     Applied as an inline style, so it wins over the default class.
+ * @param {string} [props.className] - Extra classes appended to the root (both states),
+ *                                     e.g. to drop the built-in border with `border-l-0`.
+ */
+export const MiniMap = ({ editor, width, className = '' }) => {
     const { t } = useTranslation('inscript-editor');
     const [meta, setMeta] = useState({ blocks: [], docHeight: 0, colWidth: 0, measured: false, lineHeightPx: 28 });
     const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem('inscript-minimap-collapsed') === 'true');
 
+    // When the whole document fits in the scroll container there is nothing to
+    // navigate — the viewport marker is hidden instead of covering everything.
+    const [docFits, setDocFits] = useState(false);
     const [viewport, setViewport] = useState({ y: 0, height: 40 });
     const scrollContainerRef = useRef(null);
     const svgRef = useRef(null);
@@ -272,8 +305,10 @@ export const MiniMap = ({ editor }) => {
         }
         return { key: `${idx}-${b.type}`, y, x, glyph: buildGlyph(b, w, h), label: HUMAN_LABEL[b.type] || b.type };
     });
+    // No artificial minimum: a short document yields a short thumbnail instead of
+    // a small band floating above a large empty area.
     const contentBottom = measured && docHeight > 0 ? PAD_TOP + docHeight * Sy : stackY;
-    const totalSvgHeight = Math.max(200, contentBottom + 8);
+    const totalSvgHeight = Math.max(48, contentBottom + 8);
 
     // 3. Track editor scroll → viewport indicator.
     useEffect(() => {
@@ -285,6 +320,7 @@ export const MiniMap = ({ editor }) => {
             if (isDragging.current || !scrollContainer) return;
             const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
             const total = scrollHeight || 1;
+            setDocFits(scrollHeight <= clientHeight + 2);
             const svgEl = svgRef.current;
             if (svgEl) {
                 const svgHeight = svgEl.getBoundingClientRect().height || 200;
@@ -338,7 +374,7 @@ export const MiniMap = ({ editor }) => {
 
     if (isCollapsed) {
         return (
-            <div className="flex flex-col border-l border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 w-12 shrink-0 transition-all select-none">
+            <div className={`flex flex-col border-l ${BORDER_CLS} ${BG_CLS} w-12 shrink-0 transition-all select-none ${className}`}>
                 <button onClick={handleToggleCollapse} className="p-3 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 flex justify-center" title={t('expandMinimap', 'Expand minimap')}>
                     <MapIcon size={18} />
                 </button>
@@ -347,9 +383,12 @@ export const MiniMap = ({ editor }) => {
     }
 
     return (
-        <div className="flex flex-col border-l border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 w-36 shrink-0 transition-all max-h-full overflow-hidden select-none">
-            <div className="flex items-center justify-between p-3 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
-                <span className="font-semibold text-xs text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">{t('minimap', 'Minimap')}</span>
+        <div
+            className={`flex flex-col border-l ${BORDER_CLS} ${BG_CLS} w-36 shrink-0 transition-all max-h-full overflow-hidden select-none ${className}`}
+            style={width ? { width } : undefined}
+        >
+            <div className={`flex items-center justify-between p-3 border-b ${BORDER_CLS} shrink-0`}>
+                <span className={`font-semibold text-xs ${LABEL_CLS} uppercase tracking-wider`}>{t('minimap', 'Minimap')}</span>
                 <button onClick={handleToggleCollapse} className="p-1 rounded text-zinc-500 hover:bg-zinc-200 dark:text-zinc-400 dark:hover:bg-zinc-800" title={t('collapseMinimap', 'Collapse minimap')}>
                     <ChevronRight size={16} />
                 </button>
@@ -372,18 +411,21 @@ export const MiniMap = ({ editor }) => {
                         </g>
                     ))}
 
-                    <rect
-                        y={viewport.y}
-                        height={viewport.height}
-                        width={VW - 4}
-                        x={2}
-                        fill="rgba(16, 185, 129, 0.08)"
-                        stroke="#10b981"
-                        strokeWidth="1.5"
-                        rx="2"
-                        className="cursor-grab active:cursor-grabbing"
-                        onMouseDown={handleDragStart}
-                    />
+                    {!docFits && (
+                        <rect
+                            y={viewport.y}
+                            height={viewport.height}
+                            width={VW - 4}
+                            x={2}
+                            fill={VIEWPORT_COLOR}
+                            fillOpacity="0.08"
+                            stroke={VIEWPORT_COLOR}
+                            strokeWidth="1.5"
+                            rx="2"
+                            className="cursor-grab active:cursor-grabbing"
+                            onMouseDown={handleDragStart}
+                        />
+                    )}
                 </svg>
             </div>
         </div>

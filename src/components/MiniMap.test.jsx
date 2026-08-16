@@ -37,8 +37,8 @@ describe('MiniMap component', () => {
         expect(titles).toContain('Paragraph');
         expect(titles).toContain('Code block');
         expect(titles.length).toBeGreaterThanOrEqual(3);
-        // The draggable viewport indicator is present.
-        expect(container.querySelector('rect[stroke="#10b981"]')).toBeInTheDocument();
+        // The draggable viewport indicator is present, themable via CSS var.
+        expect(container.querySelector('rect[stroke^="var(--im-minimap-viewport"]')).toBeInTheDocument();
     });
 
     it('toggles collapse state and persists to localStorage', () => {

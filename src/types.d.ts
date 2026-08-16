@@ -292,7 +292,13 @@ export const HistoryView: (props: {
 }) => ReactNode;
 
 export const DocumentOutline: (props: { editor: Editor | null }) => ReactNode;
-export const MiniMap: (props: { editor: Editor | null }) => ReactNode;
+export const MiniMap: (props: {
+    editor: Editor | null;
+    /** CSS width for the expanded panel (default 9rem); applied as an inline style. */
+    width?: string;
+    /** Extra classes appended to the root, e.g. `border-l-0` to drop the built-in border. */
+    className?: string;
+}) => ReactNode;
 export const BibliographyPanel: (props: { editor: Editor | null }) => ReactNode;
 export const TextBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean; bubbleMenuConfig?: string[] }) => ReactNode;
 export const TableBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean }) => ReactNode;
