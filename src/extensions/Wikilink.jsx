@@ -51,25 +51,31 @@ export const Wikilink = Node.create({
             target: {
                 default: null,
                 parseHTML: element => element.getAttribute('data-target'),
-                renderHTML: attributes => {
-                    return { 'data-target': attributes.target };
-                },
+                renderHTML: attributes => (attributes.target ? { 'data-target': attributes.target } : {}),
             },
             alias: {
                 default: null,
-                parseHTML: element => element.getAttribute('data-alias'),
-                renderHTML: attributes => {
-                    if (!attributes.alias) return {};
-                    return { 'data-alias': attributes.alias };
+                // The node is an atom, so ProseMirror discards its text content on
+                // parse — fall back to the anchor's visible text for the alias when
+                // `data-alias` is absent (officeParser emits the alias as link text),
+                // unless that text is just the target repeated.
+                parseHTML: element => {
+                    const explicit = element.getAttribute('data-alias');
+                    if (explicit) return explicit;
+                    const text = element.textContent?.trim();
+                    const target = element.getAttribute('data-target');
+                    return text && text !== target ? text : null;
                 },
+                renderHTML: attributes => (attributes.alias ? { 'data-alias': attributes.alias } : {}),
             },
         };
     },
 
     parseHTML() {
         return [
+            // Accept any `data-wikilink` value, not only the exact "true".
             {
-                tag: 'a[data-wikilink="true"]',
+                tag: 'a[data-wikilink]',
             },
         ];
     },

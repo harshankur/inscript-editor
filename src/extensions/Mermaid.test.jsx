@@ -39,4 +39,20 @@ describe('Mermaid extension', () => {
         expect(json.content[0].type).toBe('mermaid');
         expect(json.content[0].attrs.code).toBe('A-->B');
     });
+
+    // --- officeParser 7.6.0 contract alignment ---
+
+    it('parses officeParser default pre > code.language-mermaid as a mermaid node', () => {
+        editor.commands.setContent('<pre><code class="language-mermaid">graph TD; A-->B;</code></pre>');
+        const node = editor.getJSON().content[0];
+        expect(node.type).toBe('mermaid');
+        expect(node.attrs.code).toContain('graph TD');
+    });
+
+    it('does not emit a stray raw code attribute', () => {
+        editor.commands.setContent('<div class="mermaid" data-mermaid="graph TD; A-->B;"></div>');
+        const html = editor.getHTML();
+        expect(html).not.toMatch(/\scode=/);
+        expect(html).toContain('data-mermaid=');
+    });
 });

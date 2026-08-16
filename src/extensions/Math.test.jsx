@@ -67,4 +67,27 @@ describe('Math extension', () => {
         expect(json.content[0].type).toBe('mathBlock');
         expect(json.content[0].attrs.code).toBe('\\sum i');
     });
+
+    // --- officeParser 7.6.0 contract alignment ---
+
+    it('strips $…$ delimiters on parse (officeParser default emission)', () => {
+        editor.commands.setContent('<p><span data-math>$E=mc^2$</span></p>');
+        const node = editor.getJSON().content[0].content[0];
+        expect(node.type).toBe('mathInline');
+        expect(node.attrs.code).toBe('E=mc^2');
+    });
+
+    it('strips $$…$$ delimiters on a block', () => {
+        editor.commands.setContent('<div data-math>$$\\int x dx$$</div>');
+        const node = editor.getJSON().content[0];
+        expect(node.type).toBe('mathBlock');
+        expect(node.attrs.code).toBe('\\int x dx');
+    });
+
+    it('does not emit a stray raw code attribute', () => {
+        editor.commands.setContent('<p><span class="math-inline" data-math="E=mc^2"></span></p>');
+        const html = editor.getHTML();
+        expect(html).not.toMatch(/\scode=/);
+        expect(html).toContain('data-math="E=mc^2"');
+    });
 });

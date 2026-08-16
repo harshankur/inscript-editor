@@ -9,6 +9,16 @@ import React, { useState, useEffect } from 'react';
 // When katex is absent (or a render throws), we degrade to showing the raw LaTeX
 // source via the `error` path below rather than crashing.
 
+// officeParser's default (flag-off) math emission is delimiter-carrying text
+// ($…$ / $$…$$). Strip the delimiters on parse so the stored `code` is the bare
+// LaTeX, not the delimited source.
+function stripMathDelimiters(raw) {
+    const s = (raw || '').trim();
+    if (s.length >= 4 && s.startsWith('$$') && s.endsWith('$$')) return s.slice(2, -2).trim();
+    if (s.length >= 2 && s.startsWith('$') && s.endsWith('$')) return s.slice(1, -1).trim();
+    return s;
+}
+
 const MathComponent = ({ node, updateAttributes, selected, isInline }) => {
     const { code } = node.attrs;
     const [html, setHtml] = useState('');
@@ -92,7 +102,10 @@ export const MathInline = Node.create({
         return {
             code: {
                 default: 'E=mc^2',
-                parseHTML: element => element.textContent || element.getAttribute('data-math') || '',
+                parseHTML: element => stripMathDelimiters(element.textContent || element.getAttribute('data-math') || ''),
+                // Carried by `data-math` + the text content; don't also serialize a
+                // stray raw `code` attribute.
+                renderHTML: () => ({}),
             },
         };
     },
@@ -104,8 +117,9 @@ export const MathInline = Node.create({
         ];
     },
 
-    renderHTML({ HTMLAttributes }) {
-        return ['span', mergeAttributes(HTMLAttributes, { 'data-math': HTMLAttributes.code, class: 'math-inline' }), HTMLAttributes.code];
+    renderHTML({ node, HTMLAttributes }) {
+        const code = node.attrs.code || '';
+        return ['span', mergeAttributes(HTMLAttributes, { 'data-math': code, class: 'math-inline' }), code];
     },
 
     addNodeView() {
@@ -132,7 +146,8 @@ export const MathBlock = Node.create({
         return {
             code: {
                 default: '\\int_0^\\infty x^2 dx',
-                parseHTML: element => element.textContent || element.getAttribute('data-math') || '',
+                parseHTML: element => stripMathDelimiters(element.textContent || element.getAttribute('data-math') || ''),
+                renderHTML: () => ({}),
             },
         };
     },
@@ -144,8 +159,9 @@ export const MathBlock = Node.create({
         ];
     },
 
-    renderHTML({ HTMLAttributes }) {
-        return ['div', mergeAttributes(HTMLAttributes, { 'data-math': HTMLAttributes.code, class: 'math-block' }), HTMLAttributes.code];
+    renderHTML({ node, HTMLAttributes }) {
+        const code = node.attrs.code || '';
+        return ['div', mergeAttributes(HTMLAttributes, { 'data-math': code, class: 'math-block' }), code];
     },
 
     addNodeView() {

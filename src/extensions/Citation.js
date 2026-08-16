@@ -10,24 +10,36 @@ export const Citation = Node.create({
         return {
             key: {
                 default: '',
-                parseHTML: dom => dom.getAttribute('data-key'),
-                renderHTML: attrs => ({ 'data-key': attrs.key }),
+                // officeParser's default (flag-off) emission uses `data-citation-key`;
+                // its opt-in emission and our own render use `data-key`.
+                parseHTML: dom => dom.getAttribute('data-key') || dom.getAttribute('data-citation-key') || '',
+                // Omit the attribute entirely when empty for a cleaner round-trip.
+                renderHTML: attrs => (attrs.key ? { 'data-key': attrs.key } : {}),
             },
             label: {
                 default: '',
-                parseHTML: dom => dom.getAttribute('data-label'),
-                renderHTML: attrs => ({ 'data-label': attrs.label }),
+                // Default the label to the key when absent — officeParser's opt-in
+                // emission carries only `data-key`/`data-citation-key`.
+                parseHTML: dom => dom.getAttribute('data-label')
+                    || dom.getAttribute('data-key')
+                    || dom.getAttribute('data-citation-key')
+                    || '',
+                renderHTML: attrs => (attrs.label ? { 'data-label': attrs.label } : {}),
             },
             title: {
                 default: '',
-                parseHTML: dom => dom.getAttribute('title'),
-                renderHTML: attrs => ({ 'title': attrs.title }),
+                parseHTML: dom => dom.getAttribute('title') || '',
+                renderHTML: attrs => (attrs.title ? { 'title': attrs.title } : {}),
             }
         };
     },
 
     parseHTML() {
-        return [{ tag: 'span.citation' }];
+        return [
+            { tag: 'span.citation' },
+            // officeParser's default (flag-off) citation shape.
+            { tag: 'cite[data-citation-key]' },
+        ];
     },
 
     renderHTML({ HTMLAttributes }) {

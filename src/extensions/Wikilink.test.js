@@ -59,4 +59,27 @@ describe('Wikilink extension', () => {
         expect(insertedNode.attrs.target).toBe('Settings');
         expect(insertedNode.attrs.alias).toBe('Config');
     });
+
+    // --- officeParser 7.6.0 contract alignment ---
+
+    it('accepts a bare data-wikilink (not only "true") and falls back to anchor text for the alias', () => {
+        editor.commands.setContent('<p><a data-wikilink="" data-target="HomePage">Welcome Home</a></p>');
+        const node = editor.getJSON().content[0].content[0];
+        expect(node.type).toBe('wikilink');
+        expect(node.attrs.target).toBe('HomePage');
+        expect(node.attrs.alias).toBe('Welcome Home');
+    });
+
+    it('does not set an alias when anchor text equals the target', () => {
+        editor.commands.setContent('<p><a data-wikilink="1" data-target="HomePage">HomePage</a></p>');
+        const node = editor.getJSON().content[0].content[0];
+        expect(node.attrs.alias).toBe(null);
+    });
+
+    it('omits data-alias when there is no alias', () => {
+        editor.commands.setContent('<p>x</p>');
+        editor.commands.focus('end');
+        editor.commands.insertWikilink({ target: 'Page' });
+        expect(editor.getHTML()).not.toContain('data-alias=""');
+    });
 });

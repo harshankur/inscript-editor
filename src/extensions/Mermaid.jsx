@@ -93,6 +93,9 @@ export const Mermaid = Node.create({
             code: {
                 default: 'graph TD;\n    A-->B;',
                 parseHTML: element => element.textContent || element.getAttribute('data-mermaid') || '',
+                // Carried by `data-mermaid` + the text content; don't also serialize
+                // a stray raw `code` attribute.
+                renderHTML: () => ({}),
             },
         };
     },
@@ -107,12 +110,22 @@ export const Mermaid = Node.create({
             },
             {
                 tag: 'div[data-mermaid]',
-            }
+            },
+            {
+                // officeParser's default (flag-off) mermaid shape:
+                // <pre><code class="language-mermaid">…</code></pre>. Claim the <pre>
+                // (with higher priority than the code-block extension) only when its
+                // code is language-mermaid; otherwise fall through to a normal code block.
+                tag: 'pre',
+                priority: 60,
+                getAttrs: node => (node.querySelector('code.language-mermaid') ? {} : false),
+            },
         ];
     },
 
-    renderHTML({ HTMLAttributes }) {
-        return ['div', mergeAttributes(HTMLAttributes, { 'data-mermaid': HTMLAttributes.code, class: 'mermaid' }), HTMLAttributes.code];
+    renderHTML({ node, HTMLAttributes }) {
+        const code = node.attrs.code || '';
+        return ['div', mergeAttributes(HTMLAttributes, { 'data-mermaid': code, class: 'mermaid' }), code];
     },
 
     addNodeView() {
