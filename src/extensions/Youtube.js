@@ -1,5 +1,6 @@
 import { Node } from '@tiptap/core';
 import i18next from 'i18next';
+import { extractYoutubeId } from '../utils/youtubeUrl.js';
 
 const VALID_ID_PATTERN = /^[a-zA-Z0-9_-]{11}$/;
 
@@ -86,12 +87,14 @@ export const Youtube = Node.create({
                 tag: 'div[data-youtube-video]',
             },
             {
-                tag: 'iframe[src*="youtube.com"]',
+                // Any standard YouTube embed (youtube.com, youtube-nocookie.com,
+                // youtu.be — embed/, watch?v=, shorts/, …). extractYoutubeId knows
+                // every URL shape and validates the 11-char id, so non-YouTube
+                // iframes fall through (getAttrs false) and stay unparsed.
+                tag: 'iframe[src]',
                 getAttrs: node => {
-                    const src = node.getAttribute('src');
-                    if (!src) return false;
-                    const match = src.match(/(?:embed\/|v=)([^&?/\s]+)/);
-                    return match ? { 'data-youtube-video': match[1] } : false;
+                    const id = extractYoutubeId(node.getAttribute('src'));
+                    return id ? { 'data-youtube-video': id } : false;
                 },
             },
         ];

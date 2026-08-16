@@ -37,6 +37,31 @@ describe('Youtube extension', () => {
         expect(editor.state.doc.firstChild.attrs['data-youtube-video']).toBe(VALID_ID);
     });
 
+    it('parses a standard youtube.com embed iframe', () => {
+        editor.commands.setContent(`<iframe src="https://www.youtube.com/embed/${VALID_ID}"></iframe>`);
+        expect(editor.state.doc.firstChild.type.name).toBe('youtube');
+        expect(editor.state.doc.firstChild.attrs['data-youtube-video']).toBe(VALID_ID);
+    });
+
+    it('parses a youtube-nocookie.com embed iframe', () => {
+        editor.commands.setContent(`<iframe src="https://www.youtube-nocookie.com/embed/${VALID_ID}"></iframe>`);
+        expect(editor.state.doc.firstChild.type.name).toBe('youtube');
+        expect(editor.state.doc.firstChild.attrs['data-youtube-video']).toBe(VALID_ID);
+    });
+
+    it('parses a youtu.be short-link iframe', () => {
+        editor.commands.setContent(`<iframe src="https://youtu.be/${VALID_ID}"></iframe>`);
+        expect(editor.state.doc.firstChild.type.name).toBe('youtube');
+        expect(editor.state.doc.firstChild.attrs['data-youtube-video']).toBe(VALID_ID);
+    });
+
+    it('does not parse a non-YouTube iframe as a youtube node', () => {
+        editor.commands.setContent('<p>before</p><iframe src="https://example.com/embed/abcdefghijk"></iframe>');
+        editor.state.doc.descendants(node => {
+            expect(node.type.name).not.toBe('youtube');
+        });
+    });
+
     it('parses a watch?v= iframe src back into the node attrs', () => {
         editor.commands.setYoutubeVideo({ 'data-youtube-video': VALID_ID });
         const html = editor.getHTML();
