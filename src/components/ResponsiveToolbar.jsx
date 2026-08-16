@@ -208,7 +208,7 @@ function configToSlots(config, toolMap) {
  *                            Called with the new config array when the user saves.
  *                            The CONSUMER is responsible for persisting and passing back the config.
  */
-export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, toolbarConfig, onToolbarConfigChange, bubbleMenuConfig, onBubbleMenuConfigChange }) => {
+export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, toolbarConfig, onToolbarConfigChange, bubbleMenuConfig, onBubbleMenuConfigChange, toolbarPresets, bubbleMenuPresets, toolbarPresetLabels, presetsMode }) => {
     useInscriptEditorTranslations();
     const { t } = useTranslation('inscript-editor');
     const containerRef = useRef(null);
@@ -342,6 +342,10 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                     onSave={(newConfig) => onToolbarConfigChange(newConfig)}
                     currentBubbleConfig={bubbleMenuConfig}
                     onSaveBubble={onBubbleMenuConfigChange}
+                    toolbarPresets={toolbarPresets}
+                    bubbleMenuPresets={bubbleMenuPresets}
+                    toolbarPresetLabels={toolbarPresetLabels}
+                    presetsMode={presetsMode}
                     onClose={() => setCustomizerOpen(false)}
                 />
             )}

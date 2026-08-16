@@ -106,3 +106,19 @@ export const BUBBLE_PRESETS = {
         'link', 'code', 'quote'
     ],
 };
+
+// --- Canonical (doc-facing) aliases + defaults ---------------------------------
+// The editor renders the `full` preset on each surface when its config prop is
+// left undefined, so these are the source of truth for "is this the default?".
+
+/** Alias of BUBBLE_PRESETS under the doc's canonical name. */
+export const BUBBLE_MENU_PRESETS = BUBBLE_PRESETS;
+
+/** Alias of PRESET_LABELS under the doc's canonical name. */
+export const TOOLBAR_PRESET_LABELS = PRESET_LABELS;
+
+/** What the main toolbar renders when `toolbarConfig` is undefined. */
+export const DEFAULT_TOOLBAR_CONFIG = TOOLBAR_PRESETS.full;
+
+/** What the bubble menu renders when `bubbleMenuConfig` is undefined. */
+export const DEFAULT_BUBBLE_CONFIG = BUBBLE_PRESETS.full;

@@ -86,3 +86,81 @@ export const TOOL_REGISTRY = {
 
 /** Ordered list of all tool IDs (excludes dividers) */
 export const ALL_TOOL_IDS = Object.keys(TOOL_REGISTRY);
+
+/** Canonical alias for the divider sentinel (doc-facing name). */
+export const TOOLBAR_DIVIDER = DIVIDER;
+
+/**
+ * The subset of tools valid in the text-selection bubble menu. The bubble menu
+ * holds only inline/selection-relevant tools — block/structural/media tools
+ * (headings, lists, tables, image, …) have no meaning mid-selection.
+ */
+const BUBBLE_ALLOWED = new Set([
+    'bold', 'italic', 'underline', 'strike', 'sub', 'sup', 'abbreviation',
+    'fontSize', 'highlight', 'color', 'link', 'code', 'quote',
+]);
+
+/** Every tool that may appear in the main toolbar (all of them). */
+export const TOOLBAR_TOOL_IDS = ALL_TOOL_IDS;
+
+/** The tools permitted in the bubble menu (a subset of the main toolbar). */
+export const BUBBLE_ALLOWED_TOOL_IDS = ALL_TOOL_IDS.filter(id => BUBBLE_ALLOWED.has(id));
+
+/**
+ * The ordered master registry as an array, each entry annotated with the
+ * surfaces it is permitted on ('toolbar' always; 'bubble' for the subset).
+ * Lets a consumer build custom presets while knowing "what can go where".
+ */
+export const TOOLBAR_TOOLS = ALL_TOOL_IDS.map(id => ({
+    ...TOOL_REGISTRY[id],
+    surfaces: BUBBLE_ALLOWED.has(id) ? ['toolbar', 'bubble'] : ['toolbar'],
+}));
+
+/** Ordered tool groups with display labels, so a custom UI can group the same way. */
+export const TOOL_GROUPS = [
+    { id: 'history',    label: 'History'            },
+    { id: 'structure',  label: 'Structure'          },
+    { id: 'formatting', label: 'Formatting'         },
+    { id: 'styling',    label: 'Styling'            },
+    { id: 'links',      label: 'Links & References' },
+    { id: 'lists',      label: 'Lists'              },
+    { id: 'alignment',  label: 'Alignment'          },
+    { id: 'blocks',     label: 'Blocks'             },
+    { id: 'advanced',   label: 'Advanced'           },
+    { id: 'media',      label: 'Media'              },
+    { id: 'meta',       label: 'Meta'               },
+];
+
+// Dev-only warning. Read NODE_ENV dynamically off globalThis so a library
+// bundler doesn't statically strip it at build time, and so it stays quiet in a
+// production consumer build (and harmlessly warns where NODE_ENV is unset).
+function devWarn(msg) {
+    let env;
+    try { env = globalThis.process && globalThis.process.env && globalThis.process.env.NODE_ENV; } catch { env = undefined; }
+    if (env !== 'production') console.warn(`[inscript-editor] ${msg}`);
+}
+
+/**
+ * Validate a serialized tool config for a surface ('toolbar' | 'bubble').
+ * Unknown ids, duplicates, and tools not permitted on the surface are dropped
+ * with a dev-only warning — never thrown. A bad consumer list degrades to fewer
+ * tools, never a broken editor. The DIVIDER sentinel is always kept (may repeat).
+ */
+export function sanitizeToolConfig(config, surface = 'toolbar') {
+    if (!Array.isArray(config)) {
+        devWarn(`toolbar config must be an array; got ${typeof config}`);
+        return [];
+    }
+    const allowed = surface === 'bubble' ? new Set(BUBBLE_ALLOWED_TOOL_IDS) : new Set(TOOLBAR_TOOL_IDS);
+    const seen = new Set();
+    const out = [];
+    for (const id of config) {
+        if (id === DIVIDER) { out.push(id); continue; }
+        if (!TOOL_REGISTRY[id]) { devWarn(`unknown tool id "${id}" dropped`); continue; }
+        if (!allowed.has(id)) { devWarn(`tool "${id}" is not allowed on the ${surface} surface; dropped`); continue; }
+        if (seen.has(id)) { devWarn(`duplicate tool id "${id}" dropped`); continue; }
+        seen.add(id);
+        out.push(id);
+    }
+    return out;
+}

@@ -12,8 +12,16 @@ export { extractYoutubeId } from './utils/youtubeUrl.js';
 export { ToolbarButton, TOOLBAR_SIZES } from './components/ToolbarButton.jsx';
 export { ToolbarDropdown } from './components/ToolbarDropdown.jsx';
 export { ToolbarCustomizer } from './components/ToolbarCustomizer.jsx';
-export { TOOL_REGISTRY, DIVIDER, ALL_TOOL_IDS } from './toolbar/toolRegistry.js';
-export { TOOLBAR_PRESETS, PRESET_LABELS, BUBBLE_PRESETS } from './toolbar/presets.js';
+export {
+    TOOL_REGISTRY, DIVIDER, TOOLBAR_DIVIDER, ALL_TOOL_IDS,
+    TOOLBAR_TOOL_IDS, BUBBLE_ALLOWED_TOOL_IDS, TOOLBAR_TOOLS, TOOL_GROUPS,
+    sanitizeToolConfig,
+} from './toolbar/toolRegistry.js';
+export {
+    TOOLBAR_PRESETS, PRESET_LABELS, TOOLBAR_PRESET_LABELS,
+    BUBBLE_PRESETS, BUBBLE_MENU_PRESETS,
+    DEFAULT_TOOLBAR_CONFIG, DEFAULT_BUBBLE_CONFIG,
+} from './toolbar/presets.js';
 export { ColorSelector } from './components/ColorSelector.jsx';
 export { FontSizeSelector } from './components/FontSizeSelector.jsx';
 export { LinkSelector } from './components/LinkSelector.jsx';

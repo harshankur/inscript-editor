@@ -1,17 +1,16 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { GripVertical, X, Plus, Check, SlidersHorizontal } from 'lucide-react';
-import { TOOL_REGISTRY, DIVIDER } from '../toolbar/toolRegistry.js';
-import { TOOLBAR_PRESETS, BUBBLE_PRESETS, PRESET_LABELS } from '../toolbar/presets.js';
-
-// The subset of tools that are valid in the text selection bubble menu
-const BUBBLE_TOOL_IDS = [
-    'bold', 'italic', 'underline', 'strike', 'sub', 'sup', 'abbreviation',
-    'fontSize', 'highlight', 'color', 'link', 'code', 'quote'
-];
+import { TOOL_REGISTRY, DIVIDER, TOOLBAR_TOOL_IDS, BUBBLE_ALLOWED_TOOL_IDS, sanitizeToolConfig } from '../toolbar/toolRegistry.js';
+import { TOOLBAR_PRESETS, BUBBLE_PRESETS, PRESET_LABELS, DEFAULT_TOOLBAR_CONFIG, DEFAULT_BUBBLE_CONFIG } from '../toolbar/presets.js';
 
 /**
  * ToolbarCustomizer — a slide-in drawer for reordering and customizing
  * both the main toolbar and the text selection bubble menu.
+ *
+ * Consumers may supply their own named presets via `toolbarPresets` /
+ * `bubbleMenuPresets` (+ `toolbarPresetLabels`). `presetsMode` decides whether
+ * those replace the built-ins ('replace') or extend them ('merge', default).
+ * Each supplied preset is validated per surface; invalid ids are dropped.
  */
 export const ToolbarCustomizer = ({
     currentConfig,
@@ -19,26 +18,46 @@ export const ToolbarCustomizer = ({
     onClose,
     currentBubbleConfig,
     onSaveBubble,
+    toolbarPresets,
+    bubbleMenuPresets,
+    toolbarPresetLabels,
+    presetsMode = 'merge',
 }) => {
     const [activeTab, setActiveTab] = useState('toolbar'); // 'toolbar' | 'bubble'
 
+    // Effective presets: built-ins, optionally replaced/merged with the
+    // consumer-supplied ones (each validated for its surface).
+    const effToolbarPresets = useMemo(() => {
+        if (!toolbarPresets) return TOOLBAR_PRESETS;
+        const clean = Object.fromEntries(Object.entries(toolbarPresets).map(([k, v]) => [k, sanitizeToolConfig(v, 'toolbar')]));
+        return presetsMode === 'replace' ? clean : { ...TOOLBAR_PRESETS, ...clean };
+    }, [toolbarPresets, presetsMode]);
+
+    const effBubblePresets = useMemo(() => {
+        if (!bubbleMenuPresets) return BUBBLE_PRESETS;
+        const clean = Object.fromEntries(Object.entries(bubbleMenuPresets).map(([k, v]) => [k, sanitizeToolConfig(v, 'bubble')]));
+        return presetsMode === 'replace' ? clean : { ...BUBBLE_PRESETS, ...clean };
+    }, [bubbleMenuPresets, presetsMode]);
+
+    const effPresetLabels = useMemo(() => ({ ...PRESET_LABELS, ...(toolbarPresetLabels || {}) }), [toolbarPresetLabels]);
+
     // Local state for main toolbar
-    const initialToolbarConfig = currentConfig ?? TOOLBAR_PRESETS.full;
+    const initialToolbarConfig = currentConfig ?? DEFAULT_TOOLBAR_CONFIG;
     const [toolbarConfig, setToolbarConfig] = useState(initialToolbarConfig);
 
     // Local state for selection bubble menu
-    const initialBubbleConfig = currentBubbleConfig ?? BUBBLE_PRESETS.full;
+    const initialBubbleConfig = currentBubbleConfig ?? DEFAULT_BUBBLE_CONFIG;
     const [bubbleConfig, setBubbleConfig] = useState(initialBubbleConfig);
 
-    // Track active presets per tab
+    // Track active presets per tab (matched against the effective set)
     const [activeToolbarPreset, setActiveToolbarPreset] = useState(
-        Object.keys(TOOLBAR_PRESETS).find(k =>
-            JSON.stringify(TOOLBAR_PRESETS[k]) === JSON.stringify(initialToolbarConfig)
+        Object.keys(effToolbarPresets).find(k =>
+            JSON.stringify(effToolbarPresets[k]) === JSON.stringify(initialToolbarConfig)
         ) ?? null
     );
     const [activeBubblePreset, setActiveBubblePreset] = useState(
-        Object.keys(BUBBLE_PRESETS).find(k =>
-            JSON.stringify(BUBBLE_PRESETS[k]) === JSON.stringify(initialBubbleConfig)
+        Object.keys(effBubblePresets).find(k =>
+            JSON.stringify(effBubblePresets[k]) === JSON.stringify(initialBubbleConfig)
         ) ?? null
     );
 
@@ -101,13 +120,13 @@ export const ToolbarCustomizer = ({
     // ── Preset selection ──────────────────────────────────────────────────────
     const applyPreset = useCallback((key) => {
         if (activeTab === 'toolbar') {
-            setToolbarConfig([...TOOLBAR_PRESETS[key]]);
+            setToolbarConfig([...effToolbarPresets[key]]);
             setActiveToolbarPreset(key);
         } else {
-            setBubbleConfig([...BUBBLE_PRESETS[key]]);
+            setBubbleConfig([...effBubblePresets[key]]);
             setActiveBubblePreset(key);
         }
-    }, [activeTab]);
+    }, [activeTab, effToolbarPresets, effBubblePresets]);
 
     // ── Config mutations ──────────────────────────────────────────────────────
     const removeItem = useCallback((idx) => {
@@ -155,8 +174,8 @@ export const ToolbarCustomizer = ({
     const usedToolIds = new Set(activeConfig.filter(x => x !== DIVIDER));
 
     const totalAllowedTools = activeTab === 'toolbar'
-        ? Object.keys(TOOL_REGISTRY)
-        : BUBBLE_TOOL_IDS;
+        ? TOOLBAR_TOOL_IDS
+        : BUBBLE_ALLOWED_TOOL_IDS;
 
     const availableTools = totalAllowedTools.filter(id => !usedToolIds.has(id));
 
@@ -222,7 +241,7 @@ export const ToolbarCustomizer = ({
                     <div className="px-5 pt-5 pb-4">
                         <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-3">Presets</p>
                         <div className="grid grid-cols-2 gap-2">
-                            {Object.keys(activeTab === 'toolbar' ? TOOLBAR_PRESETS : BUBBLE_PRESETS).map(key => (
+                            {Object.keys(activeTab === 'toolbar' ? effToolbarPresets : effBubblePresets).map(key => (
                                 <button
                                     key={key}
                                     onClick={() => applyPreset(key)}
@@ -232,7 +251,7 @@ export const ToolbarCustomizer = ({
                                             : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'
                                         }`}
                                 >
-                                    {PRESET_LABELS[key]}
+                                    {effPresetLabels[key] ?? key}
                                 </button>
                             ))}
                         </div>

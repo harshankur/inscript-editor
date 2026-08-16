@@ -87,6 +87,14 @@ export interface InscriptEditorProps {
     onToolbarConfigChange?: (newConfig: string[]) => void;
     bubbleMenuConfig?: string[];
     onBubbleMenuConfigChange?: (newConfig: string[]) => void;
+    /** Consumer-supplied named presets for the main toolbar (arrays of tool ids + '|'). */
+    toolbarPresets?: Record<string, string[]>;
+    /** Consumer-supplied named presets for the selection bubble menu. */
+    bubbleMenuPresets?: Record<string, string[]>;
+    /** Display labels for the consumer preset keys. */
+    toolbarPresetLabels?: Record<string, string>;
+    /** Whether consumer presets replace the built-ins or extend them. Default 'merge'. */
+    presetsMode?: 'replace' | 'merge';
     fontFamily?: string;
     maxWidth?: string;
     lineHeight?: string;
@@ -94,6 +102,35 @@ export interface InscriptEditorProps {
 }
 
 export const InscriptEditor: (props: InscriptEditorProps) => ReactNode;
+
+// --- Toolbar registry & presets (single source of truth for consumer UIs) ---
+export type ToolSurface = 'toolbar' | 'bubble';
+export interface ToolMeta {
+    id: string;
+    label: string;
+    icon: React.ComponentType<{ size?: number }> | null;
+    group: string;
+}
+export interface ToolMetaWithSurfaces extends ToolMeta {
+    surfaces: ToolSurface[];
+}
+export const TOOL_REGISTRY: Record<string, ToolMeta>;
+export const DIVIDER: '|';
+export const TOOLBAR_DIVIDER: '|';
+export const ALL_TOOL_IDS: string[];
+export const TOOLBAR_TOOL_IDS: string[];
+export const BUBBLE_ALLOWED_TOOL_IDS: string[];
+export const TOOLBAR_TOOLS: ToolMetaWithSurfaces[];
+export const TOOL_GROUPS: Array<{ id: string; label: string }>;
+/** Validate a serialized tool config for a surface; drops invalid ids, never throws. */
+export function sanitizeToolConfig(config: unknown, surface?: ToolSurface): string[];
+export const TOOLBAR_PRESETS: Record<string, string[]>;
+export const BUBBLE_PRESETS: Record<string, string[]>;
+export const BUBBLE_MENU_PRESETS: Record<string, string[]>;
+export const PRESET_LABELS: Record<string, string>;
+export const TOOLBAR_PRESET_LABELS: Record<string, string>;
+export const DEFAULT_TOOLBAR_CONFIG: string[];
+export const DEFAULT_BUBBLE_CONFIG: string[];
 
 // --- Extensions ---
 export const Youtube: import('@tiptap/core').Node;
