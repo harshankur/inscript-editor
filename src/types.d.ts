@@ -10,6 +10,28 @@ export interface HistoryEntry {
     isOriginal?: boolean;
 }
 
+export interface WikilinkResolution {
+    exists: boolean;
+    href: string;
+    onNavigate?: ((page: string) => void) | null;
+}
+
+/** Options threaded to buildExtensions to toggle opt-in features per editor. */
+export interface EditorBuildOptions {
+    taskList?: boolean;
+    admonition?: boolean;
+    footnote?: boolean;
+    definitionList?: boolean;
+    abbreviation?: boolean;
+    mermaid?: boolean;
+    math?: boolean;
+    citation?: boolean;
+    wikilink?: { enabled?: boolean; resolver?: (page: string) => WikilinkResolution | null };
+    /** Custom slash-command registry entries (replaces the default set when provided). */
+    slashCommands?: unknown[];
+    [key: string]: unknown;
+}
+
 export interface UseInscriptEditorOptions {
     /** Changing this value recreates the editor (pass a filename or document id). */
     contentKey?: string;
@@ -23,6 +45,8 @@ export interface UseInscriptEditorOptions {
     isReadonly?: boolean;
     /** Called with the new history entry after the 1000ms debounce settles. */
     onContentChange?: ((entry: HistoryEntry) => void) | null;
+    /** Feature toggles/callbacks passed to buildExtensions (changing this recreates the editor). */
+    editorOptions?: EditorBuildOptions;
 }
 
 export interface UseInscriptEditorResult {
@@ -55,6 +79,7 @@ export interface InscriptEditorRefHandle {
     setContent: (html: string) => void;
     restoreVersion: (index: number) => void;
     markSaved: () => void;
+    toggleFocusMode: () => void;
 }
 
 export interface OriginalContent {
@@ -68,6 +93,8 @@ export interface InscriptEditorProps {
     editor: Editor | null;
     isReadonly?: boolean;
     showDiff?: boolean;
+    /** Hides the toolbar and narrows/dims the column for distraction-free writing. */
+    focusMode?: boolean;
     history?: HistoryEntry[];
     historyIndex?: number;
     originalContent?: OriginalContent;
@@ -137,6 +164,7 @@ export const Youtube: import('@tiptap/core').Node;
 export const FontSize: import('@tiptap/core').Mark;
 export const CustomTable: import('@tiptap/core').Node;
 export const CustomImage: import('@tiptap/core').Node;
+export const Citation: import('@tiptap/core').Node;
 
 // --- Table utils ---
 export interface TableNodeResult {
@@ -152,6 +180,11 @@ export function setTableLayout(editor: Editor, attrs: Record<string, unknown>): 
 // --- Other utils ---
 export function getTextContent(html: string): string;
 export function extractYoutubeId(input: string): string | null;
+export interface HeadingEntry { level: number; text: string; pos: number; }
+/** Walks the document for heading nodes; shared by DocumentOutline and MiniMap. */
+export function extractHeadings(editor: Editor): HeadingEntry[];
+/** Registers inscript-editor's custom-node preservation rules on a TurndownService. */
+export function applyInscriptEditorTurndownRules(turndownService: { addRule: (key: string, rule: unknown) => unknown }): void;
 
 // --- UI components ---
 export interface ToolbarButtonProps {
@@ -190,8 +223,35 @@ export interface ResponsiveToolbarProps {
     showMetadataActive?: boolean;
     onShowMediaLibrary?: () => void;
     onAddYoutube?: () => void;
+    toolbarConfig?: string[];
+    onToolbarConfigChange?: (newConfig: string[]) => void;
+    bubbleMenuConfig?: string[];
+    onBubbleMenuConfigChange?: (newConfig: string[]) => void;
+    toolbarPresets?: Record<string, string[]>;
+    bubbleMenuPresets?: Record<string, string[]>;
+    toolbarPresetLabels?: Record<string, string>;
+    presetsMode?: 'replace' | 'merge';
 }
 export const ResponsiveToolbar: (props: ResponsiveToolbarProps) => ReactNode;
+
+export const ToolbarDropdown: (props: {
+    items?: Array<{ id: string; label?: string; icon?: React.ComponentType<{ size?: number }>; onClick?: () => void }>;
+    title?: string;
+    activeId?: string;
+}) => ReactNode;
+
+export interface ToolbarCustomizerProps {
+    currentConfig?: string[];
+    onSave: (config: string[]) => void;
+    onClose: () => void;
+    currentBubbleConfig?: string[];
+    onSaveBubble?: (config: string[]) => void;
+    toolbarPresets?: Record<string, string[]>;
+    bubbleMenuPresets?: Record<string, string[]>;
+    toolbarPresetLabels?: Record<string, string>;
+    presetsMode?: 'replace' | 'merge';
+}
+export const ToolbarCustomizer: (props: ToolbarCustomizerProps) => ReactNode;
 
 export interface LibraryImage {
     url: string;
@@ -233,6 +293,7 @@ export const HistoryView: (props: {
 
 export const DocumentOutline: (props: { editor: Editor | null }) => ReactNode;
 export const MiniMap: (props: { editor: Editor | null }) => ReactNode;
+export const BibliographyPanel: (props: { editor: Editor | null }) => ReactNode;
 export const TextBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean; bubbleMenuConfig?: string[] }) => ReactNode;
 export const TableBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean }) => ReactNode;
 export const ImageBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean }) => ReactNode;
