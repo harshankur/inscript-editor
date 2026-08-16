@@ -43,7 +43,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Node 24 ships npm >= 11.5.1, required for npm Trusted Publishing (OIDC).
+          node-version: 24
           cache: npm
           registry-url: https://registry.npmjs.org
 
@@ -81,16 +82,28 @@ jobs:
       - name: Test built output
         run: npm run test:dist
 
-      # Auth is the NPM_TOKEN secret for now. To switch to npm Trusted Publishing
-      # (OIDC, no secret): configure the trusted publisher for this package at
-      # npmjs.com (repo harshankur/inscript-editor, workflow release.yml), then
-      # remove the `env:`/NODE_AUTH_TOKEN below and add a step that strips the
-      # empty `_authToken` line setup-node writes into .npmrc (actions/setup-node#1551)
-      # so the OIDC exchange can engage. `id-token: write` above already covers it.
+      # setup-node writes `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}`
+      # into .npmrc whenever registry-url is set — even with NODE_AUTH_TOKEN unset,
+      # leaving an EMPTY token line. npm reads that and concludes token auth is
+      # configured, so it never starts the OIDC exchange and publish fails as
+      # unauthenticated (actions/setup-node#1551). Stripping the line is what makes
+      # Trusted Publishing actually engage.
+      - name: Clear the empty auth token so OIDC can engage
+        run: |
+          NPMRC="${NPM_CONFIG_USERCONFIG:-$HOME/.npmrc}"
+          if [ -f "$NPMRC" ]; then
+            sed -i '/_authToken/d' "$NPMRC"
+            echo "Stripped _authToken from $NPMRC"
+          fi
+
+      # Auth is npm Trusted Publishing (OIDC) — no NPM_TOKEN. The npm CLI detects
+      # the OIDC environment (needs id-token: write above + npm >= 11.5.1) and
+      # exchanges the GitHub id-token for a short-lived registry credential.
+      # Configured at npmjs.com > inscript-editor > Settings > Trusted Publisher,
+      # bound to this repo + workflow file. --provenance attaches the signed
+      # attestation (also implied by publishConfig.provenance, kept explicit).
       - name: Publish to npm
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
 
       # Manual (workflow_dispatch) runs have no tag yet — create and push it only
       # after a successful publish. Tag-push runs already have the tag.
