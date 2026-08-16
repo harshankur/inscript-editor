@@ -26,15 +26,19 @@ describe('MiniMap component', () => {
         editor.destroy();
     });
 
-    it('renders block SVGs correctly', () => {
+    it('renders a labeled glyph group per top-level block', () => {
         editor.commands.setContent('<h1>Heading</h1><p>Paragraph</p><pre><code>Code</code></pre>');
         const { container } = render(<MiniMap editor={editor} />);
-        
+
         expect(screen.getByText('Minimap')).toBeInTheDocument();
-        // SVG has rect elements for each block
-        const rects = container.querySelectorAll('rect');
-        console.log('RECT TYPES:', Array.from(rects).map(r => r.outerHTML || r.tagName));
-        expect(rects.length).toBe(5);
+        // Each block becomes a <g> carrying a <title> that names its content type.
+        const titles = Array.from(container.querySelectorAll('svg title')).map(t => t.textContent);
+        expect(titles).toContain('Heading');
+        expect(titles).toContain('Paragraph');
+        expect(titles).toContain('Code block');
+        expect(titles.length).toBeGreaterThanOrEqual(3);
+        // The draggable viewport indicator is present.
+        expect(container.querySelector('rect[stroke="#10b981"]')).toBeInTheDocument();
     });
 
     it('toggles collapse state and persists to localStorage', () => {
