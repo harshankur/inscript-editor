@@ -49,6 +49,18 @@ describe('Embed extension', () => {
         expect(editor.state.doc.firstChild.attrs.src).toBe('https://example.com/e');
     });
 
+    it('round-trips a data-embed-label caption', () => {
+        editor.commands.setContent('<div data-embed-src="https://x.com/e" data-embed-gated="true" data-embed-label="My CodePen"></div>');
+        expect(editor.state.doc.firstChild.attrs.label).toBe('My CodePen');
+        expect(editor.getHTML()).toContain('data-embed-label="My CodePen"');
+    });
+
+    it('omits data-embed-label when there is no caption', () => {
+        editor.commands.setContent('<div data-embed-src="https://x.com/e" data-embed-gated="true"></div>');
+        expect(editor.state.doc.firstChild.attrs.label).toBe(null);
+        expect(editor.getHTML()).not.toContain('data-embed-label');
+    });
+
     it('can be disabled via options.embed === false (iframe then dropped)', () => {
         const e = createEditor({}, { embed: false });
         e.commands.setContent('<p>x</p><iframe src="https://example.com/embed/x"></iframe>');

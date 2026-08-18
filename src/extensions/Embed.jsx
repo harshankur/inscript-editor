@@ -29,41 +29,34 @@ function isTrustedSrc(src, options) {
 
 const EmbedComponent = ({ node, extension }) => {
     const { t } = useTranslation('inscript-editor');
-    const { src } = node.attrs;
+    const { src, label } = node.attrs;
     // Auto-load only for host-trusted sources; otherwise wait for an explicit click.
     const [loaded, setLoaded] = useState(() => isTrustedSrc(src, extension.options));
 
+    let inner;
     if (!src) {
-        return (
-            <NodeViewWrapper className="embed-node my-4">
-                <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 p-6 text-center text-xs text-zinc-400 dark:text-zinc-500">
-                    {t('embedUnavailable', 'Embed unavailable')}
-                </div>
-            </NodeViewWrapper>
+        inner = (
+            <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 p-6 text-center text-xs text-zinc-400 dark:text-zinc-500">
+                {t('embedUnavailable', 'Embed unavailable')}
+            </div>
         );
-    }
-
-    if (loaded) {
-        return (
-            <NodeViewWrapper className="embed-node my-4">
-                <div className="relative aspect-video rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800">
-                    <iframe
-                        src={src}
-                        title="Embedded content"
-                        // No allow-same-origin: keeps the framed page from touching this origin
-                        // unless a consumer deliberately needs it.
-                        sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms allow-presentation"
-                        referrerPolicy="no-referrer"
-                        loading="lazy"
-                        className="absolute inset-0 w-full h-full"
-                    />
-                </div>
-            </NodeViewWrapper>
+    } else if (loaded) {
+        inner = (
+            <div className="relative aspect-video rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800">
+                <iframe
+                    src={src}
+                    title={label || 'Embedded content'}
+                    // No allow-same-origin: keeps the framed page from touching this origin
+                    // unless a consumer deliberately needs it.
+                    sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms allow-presentation"
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                    className="absolute inset-0 w-full h-full"
+                />
+            </div>
         );
-    }
-
-    return (
-        <NodeViewWrapper className="embed-node my-4">
+    } else {
+        inner = (
             <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 p-6 flex flex-col items-center gap-3 text-center">
                 <Globe size={22} className="text-zinc-400 dark:text-zinc-500" />
                 <div className="min-w-0 max-w-full">
@@ -82,6 +75,13 @@ const EmbedComponent = ({ node, extension }) => {
                     {t('embedThirdParty', 'Loads third-party content from the source above')}
                 </div>
             </div>
+        );
+    }
+
+    return (
+        <NodeViewWrapper as="figure" className="embed-node my-4">
+            {inner}
+            {label && <figcaption className="mt-1.5 text-center text-xs text-zinc-500 dark:text-zinc-400">{label}</figcaption>}
         </NodeViewWrapper>
     );
 };
@@ -107,6 +107,13 @@ export const Embed = Node.create({
                 default: null,
                 parseHTML: el => el.getAttribute('data-embed-src') || el.getAttribute('src') || null,
                 renderHTML: attrs => (attrs.src ? { 'data-embed-src': attrs.src } : {}),
+            },
+            // Caption/label from officeParser 10.B (::embed[Label]{…}). Round-trips
+            // as data-embed-label; dropped-if-absent, so nothing that parses today changes.
+            label: {
+                default: null,
+                parseHTML: el => el.getAttribute('data-embed-label') || null,
+                renderHTML: attrs => (attrs.label ? { 'data-embed-label': attrs.label } : {}),
             },
         };
     },

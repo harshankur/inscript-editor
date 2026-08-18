@@ -88,6 +88,14 @@ export const Youtube = Node.create({
                 parseHTML: element => element.getAttribute('data-align') || 'center',
                 renderHTML: () => ({}),
             },
+            // Caption/label (::youtube[Label]{…}), round-tripped as data-embed-label —
+            // handled manually in renderHTML/nodeView below. Waits on officeParser 10.B
+            // to actually emit it on the youtube div; harmless (defaults null) until then.
+            label: {
+                default: null,
+                parseHTML: element => element.getAttribute('data-embed-label') || null,
+                renderHTML: () => ({}),
+            },
         };
     },
 
@@ -127,6 +135,7 @@ export const Youtube = Node.create({
             class: 'youtube-embed relative aspect-video rounded-lg overflow-hidden my-4 bg-zinc-100 dark:bg-zinc-800',
             style: `width: ${w}; margin-left: ${ml}; margin-right: ${mr};`,
         };
+        if (node.attrs.label) wrapperAttrs['data-embed-label'] = node.attrs.label;
 
         // No id: never request /embed/null. Preserve attrs so the node round-trips
         // via parseHTML, but omit the iframe entirely.
@@ -165,7 +174,16 @@ export const Youtube = Node.create({
     addNodeView() {
         const facadeEnabled = this.options.facade;
         return ({ node }) => {
-            const dom = document.createElement('div');
+            // <figure> wrapper so an optional caption sits below the video; the video
+            // div (videoDom) keeps all the aspect/overlay/facade behavior.
+            const dom = document.createElement('figure');
+            dom.className = 'youtube-figure my-4';
+            const videoDom = document.createElement('div');
+            dom.appendChild(videoDom);
+            const captionEl = document.createElement('figcaption');
+            captionEl.className = 'mt-1.5 text-center text-xs text-zinc-500 dark:text-zinc-400';
+            let hasCaption = false;
+
             const iframe = document.createElement('iframe');
             iframe.title = 'YouTube video player';
             iframe.setAttribute('frameborder', '0');
@@ -210,11 +228,12 @@ export const Youtube = Node.create({
                 const id = attrs['data-youtube-video'];
                 const w = attrs.width || '100%';
                 const a = attrs.align || 'center';
-                dom.setAttribute('data-youtube-video', id || '');
-                dom.setAttribute('data-width', w);
-                dom.setAttribute('data-align', a);
-                dom.className = 'youtube-embed relative aspect-video rounded-lg overflow-hidden my-4 bg-zinc-100 dark:bg-zinc-800';
+                // Alignment/width live on the figure so the caption tracks the video.
                 dom.style.cssText = `width: ${w}; margin-left: ${a === 'left' ? '0' : 'auto'}; margin-right: ${a === 'right' ? '0' : 'auto'};`;
+                videoDom.setAttribute('data-youtube-video', id || '');
+                videoDom.setAttribute('data-width', w);
+                videoDom.setAttribute('data-align', a);
+                videoDom.className = 'youtube-embed relative aspect-video rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800';
 
                 const next = !id ? 'placeholder' : (facadeEnabled && !facadeLoaded) ? 'facade' : 'iframe';
                 if (next === 'iframe' && id) iframe.src = `https://www.youtube.com/embed/${id}`;
@@ -222,11 +241,20 @@ export const Youtube = Node.create({
 
                 if (state !== next) {
                     state = next;
-                    dom.innerHTML = '';
-                    if (next === 'placeholder') dom.appendChild(placeholder);
-                    else if (next === 'facade') { facadeEl = buildFacade(id); dom.appendChild(facadeEl); }
-                    else dom.appendChild(iframe);
-                    dom.appendChild(overlay);
+                    videoDom.innerHTML = '';
+                    if (next === 'placeholder') videoDom.appendChild(placeholder);
+                    else if (next === 'facade') { facadeEl = buildFacade(id); videoDom.appendChild(facadeEl); }
+                    else videoDom.appendChild(iframe);
+                    videoDom.appendChild(overlay);
+                }
+
+                // Optional caption from the label attribute.
+                if (attrs.label) {
+                    captionEl.textContent = attrs.label;
+                    if (!hasCaption) { dom.appendChild(captionEl); hasCaption = true; }
+                } else if (hasCaption) {
+                    dom.removeChild(captionEl);
+                    hasCaption = false;
                 }
             };
             render(node.attrs);

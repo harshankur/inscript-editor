@@ -156,6 +156,28 @@ describe('Youtube extension', () => {
         el.remove();
     });
 
+    it('round-trips a data-embed-label caption attribute', () => {
+        editor.commands.setContent(`<div data-youtube-video="${VALID_ID}" data-embed-label="My Talk"></div>`);
+        expect(editor.state.doc.firstChild.attrs.label).toBe('My Talk');
+        expect(editor.getHTML()).toContain('data-embed-label="My Talk"');
+    });
+
+    it('omits data-embed-label when there is no caption', () => {
+        editor.commands.setYoutubeVideo({ 'data-youtube-video': VALID_ID });
+        expect(editor.getHTML()).not.toContain('data-embed-label');
+    });
+
+    it('renders a figcaption for the label in the node view', () => {
+        const el = document.createElement('div');
+        document.body.appendChild(el);
+        const live = createEditor({ element: el });
+        live.commands.setContent(`<div data-youtube-video="${VALID_ID}" data-embed-label="Captioned"></div>`);
+        expect(el.querySelector('figcaption')?.textContent).toBe('Captioned');
+        expect(el.querySelector('.youtube-embed')).not.toBeNull();
+        live.destroy();
+        el.remove();
+    });
+
     it('facade mode renders a thumbnail instead of an immediate iframe', () => {
         const el = document.createElement('div');
         document.body.appendChild(el);
