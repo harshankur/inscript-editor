@@ -144,5 +144,8 @@
   "viewsSuffix": "{{views}} 回視聴",
   "wikilinkPrompt": "Enter wiki page name:",
   "youtubeSubtitle": "Embed a YouTube video",
-  "youtubeVideoUnavailable": "動画は利用できません"
+  "youtubeVideoUnavailable": "動画は利用できません",
+  "embedLoad": "Load embedded content",
+  "embedThirdParty": "Loads third-party content from the source above",
+  "embedUnavailable": "Embed unavailable"
 }

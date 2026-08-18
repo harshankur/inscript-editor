@@ -144,5 +144,8 @@
   "viewsSuffix": "조회수 {{views}}회",
   "wikilinkPrompt": "Enter wiki page name:",
   "youtubeSubtitle": "Embed a YouTube video",
-  "youtubeVideoUnavailable": "동영상을 사용할 수 없습니다"
+  "youtubeVideoUnavailable": "동영상을 사용할 수 없습니다",
+  "embedLoad": "Load embedded content",
+  "embedThirdParty": "Loads third-party content from the source above",
+  "embedUnavailable": "Embed unavailable"
 }

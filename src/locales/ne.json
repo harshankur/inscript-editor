@@ -144,5 +144,8 @@
   "viewsSuffix": "{{views}} पटक हेरिएको",
   "wikilinkPrompt": "Enter wiki page name:",
   "youtubeSubtitle": "Embed a YouTube video",
-  "youtubeVideoUnavailable": "भिडियो उपलब्ध छैन"
+  "youtubeVideoUnavailable": "भिडियो उपलब्ध छैन",
+  "embedLoad": "Load embedded content",
+  "embedThirdParty": "Loads third-party content from the source above",
+  "embedUnavailable": "Embed unavailable"
 }

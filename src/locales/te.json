@@ -144,5 +144,8 @@
   "viewsSuffix": "{{views}} వీక్షణలు",
   "wikilinkPrompt": "Enter wiki page name:",
   "youtubeSubtitle": "Embed a YouTube video",
-  "youtubeVideoUnavailable": "వీడియో అందుబాటులో లేదు"
+  "youtubeVideoUnavailable": "వీడియో అందుబాటులో లేదు",
+  "embedLoad": "Load embedded content",
+  "embedThirdParty": "Loads third-party content from the source above",
+  "embedUnavailable": "Embed unavailable"
 }

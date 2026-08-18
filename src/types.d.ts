@@ -26,6 +26,13 @@ export interface EditorBuildOptions {
     mermaid?: boolean;
     math?: boolean;
     citation?: boolean;
+    /** Generic third-party embeds (on by default). `false` disables; an object configures trust. */
+    embed?: boolean | { isTrusted?: (src: string) => boolean; trustedEmbedHosts?: string[] };
+    /** Host-supplied embed trust (alternative to the object form of `embed`). */
+    isEmbedTrusted?: (src: string) => boolean;
+    trustedEmbedHosts?: string[];
+    /** YouTube node options, e.g. `{ facade: true }` for thumbnail-then-load. */
+    youtube?: { facade?: boolean };
     wikilink?: { enabled?: boolean; resolver?: (page: string) => WikilinkResolution | null };
     /** Custom slash-command registry entries (replaces the default set when provided). */
     slashCommands?: unknown[];
@@ -165,6 +172,7 @@ export const FontSize: import('@tiptap/core').Mark;
 export const CustomTable: import('@tiptap/core').Node;
 export const CustomImage: import('@tiptap/core').Node;
 export const Citation: import('@tiptap/core').Node;
+export const Embed: import('@tiptap/core').Node;
 
 // --- Table utils ---
 export interface TableNodeResult {

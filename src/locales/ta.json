@@ -144,5 +144,8 @@
   "viewsSuffix": "{{views}} பார்வைகள்",
   "wikilinkPrompt": "Enter wiki page name:",
   "youtubeSubtitle": "Embed a YouTube video",
-  "youtubeVideoUnavailable": "வீடியோ கிடைக்கவில்லை"
+  "youtubeVideoUnavailable": "வீடியோ கிடைக்கவில்லை",
+  "embedLoad": "Load embedded content",
+  "embedThirdParty": "Loads third-party content from the source above",
+  "embedUnavailable": "Embed unavailable"
 }

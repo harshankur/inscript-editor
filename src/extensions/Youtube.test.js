@@ -156,6 +156,53 @@ describe('Youtube extension', () => {
         el.remove();
     });
 
+    it('facade mode renders a thumbnail instead of an immediate iframe', () => {
+        const el = document.createElement('div');
+        document.body.appendChild(el);
+        const liveEditor = createEditor({ element: el }, { youtube: { facade: true } });
+        liveEditor.commands.setYoutubeVideo({ 'data-youtube-video': VALID_ID });
+
+        expect(el.querySelector('iframe')).toBeNull(); // nothing loaded until the user clicks
+        const btn = el.querySelector('button[aria-label="Load YouTube video"]');
+        expect(btn).not.toBeNull();
+        expect(el.innerHTML).toContain(`i.ytimg.com/vi/${VALID_ID}`);
+
+        liveEditor.destroy();
+        el.remove();
+    });
+
+    it('pasting a bare YouTube URL inserts a youtube node (beating linkOnPaste)', () => {
+        const el = document.createElement('div');
+        document.body.appendChild(el);
+        const liveEditor = createEditor({ element: el });
+        const mockEvent = { clipboardData: { getData: (type) => (type === 'text/plain' ? `https://youtu.be/${VALID_ID}` : '') } };
+
+        const handled = liveEditor.view.someProp('handlePaste', fn => fn(liveEditor.view, mockEvent) || undefined);
+        expect(handled).toBe(true);
+        expect(liveEditor.state.doc.firstChild.type.name).toBe('youtube');
+        expect(liveEditor.state.doc.firstChild.attrs['data-youtube-video']).toBe(VALID_ID);
+
+        liveEditor.destroy();
+        el.remove();
+    });
+
+    it('does not hijack a paste that is not a bare YouTube URL', () => {
+        const el = document.createElement('div');
+        document.body.appendChild(el);
+        const liveEditor = createEditor({ element: el });
+        const mockEvent = { clipboardData: { getData: () => `see https://youtu.be/${VALID_ID} here` } };
+
+        // someProp runs every plugin's handlePaste; the point is only that OUR rule
+        // does not fire on text with surrounding words — no youtube node is created.
+        try { liveEditor.view.someProp('handlePaste', fn => fn(liveEditor.view, mockEvent) || undefined); } catch { /* minimal mock event */ }
+        let hasYoutube = false;
+        liveEditor.state.doc.descendants(n => { if (n.type.name === 'youtube') hasYoutube = true; });
+        expect(hasYoutube).toBe(false);
+
+        liveEditor.destroy();
+        el.remove();
+    });
+
     it('node view renders the placeholder (no iframe) when mounted with a null id', () => {
         const el = document.createElement('div');
         document.body.appendChild(el);

@@ -144,5 +144,8 @@
   "viewsSuffix": "{{views}} 次观看",
   "wikilinkPrompt": "Enter wiki page name:",
   "youtubeSubtitle": "Embed a YouTube video",
-  "youtubeVideoUnavailable": "视频不可用"
+  "youtubeVideoUnavailable": "视频不可用",
+  "embedLoad": "Load embedded content",
+  "embedThirdParty": "Loads third-party content from the source above",
+  "embedUnavailable": "Embed unavailable"
 }

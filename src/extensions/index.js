@@ -34,6 +34,7 @@ import { Wikilink } from './Wikilink.jsx';
 import { Mermaid } from './Mermaid.jsx';
 import { MathInline, MathBlock } from './Math.jsx';
 import { Citation } from './Citation.js';
+import { Embed } from './Embed.jsx';
 import { getDefaultSlashItems } from './slashCommandItems.js';
 import i18next from 'i18next';
 
@@ -44,6 +45,7 @@ export { FontSize } from './FontSize.js';
 export { CustomTable } from './CustomTable.js';
 export { CustomImage } from './CustomImage.js';
 export { Citation } from './Citation.js';
+export { Embed } from './Embed.jsx';
 
 /**
  * The full TipTap extension set used by useInscriptEditor. Shared with tests
@@ -73,7 +75,7 @@ export function buildExtensions(options = {}) {
         Subscript,
         Superscript,
         TextAlign.configure({ types: ['heading', 'paragraph'] }),
-        Youtube,
+        Youtube.configure({ facade: options.youtube?.facade ?? false }),
         CustomTable.configure({ resizable: true }),
         TableRow,
         TableHeader,
@@ -127,6 +129,16 @@ export function buildExtensions(options = {}) {
 
     if (options.citation !== false) {
         extensions.push(Citation);
+    }
+
+    // Generic third-party embeds. On by default — this is what turns a
+    // previously-DROPPED non-YouTube iframe into a round-tripping, gated node.
+    // Trust is supplied by the host (never read from the document).
+    if (options.embed !== false) {
+        extensions.push(Embed.configure({
+            isTrusted: options.embed?.isTrusted ?? options.isEmbedTrusted ?? null,
+            trustedEmbedHosts: options.embed?.trustedEmbedHosts ?? options.trustedEmbedHosts ?? [],
+        }));
     }
 
     const t = (k, f) => i18next.t(k, { defaultValue: f, ns: 'inscript-editor' });

@@ -144,5 +144,8 @@
   "viewsSuffix": "{{views}} views",
   "wikilinkPrompt": "Enter wiki page name:",
   "youtubeSubtitle": "Embed a YouTube video",
-  "youtubeVideoUnavailable": "Video unavailable"
+  "youtubeVideoUnavailable": "Video unavailable",
+  "embedLoad": "Load embedded content",
+  "embedThirdParty": "Loads third-party content from the source above",
+  "embedUnavailable": "Embed unavailable"
 }

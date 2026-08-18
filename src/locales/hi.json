@@ -144,5 +144,8 @@
   "viewsSuffix": "{{views}} बार देखा गया",
   "wikilinkPrompt": "Enter wiki page name:",
   "youtubeSubtitle": "Embed a YouTube video",
-  "youtubeVideoUnavailable": "वीडियो उपलब्ध नहीं है"
+  "youtubeVideoUnavailable": "वीडियो उपलब्ध नहीं है",
+  "embedLoad": "Load embedded content",
+  "embedThirdParty": "Loads third-party content from the source above",
+  "embedUnavailable": "Embed unavailable"
 }

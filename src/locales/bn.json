@@ -144,5 +144,8 @@
   "viewsSuffix": "{{views}} বার দেখা হয়েছে",
   "wikilinkPrompt": "Enter wiki page name:",
   "youtubeSubtitle": "Embed a YouTube video",
-  "youtubeVideoUnavailable": "ভিডিও উপলব্ধ নেই"
+  "youtubeVideoUnavailable": "ভিডিও উপলব্ধ নেই",
+  "embedLoad": "Load embedded content",
+  "embedThirdParty": "Loads third-party content from the source above",
+  "embedUnavailable": "Embed unavailable"
 }

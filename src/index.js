@@ -3,7 +3,7 @@ import './styles/index.css';
 export { useInscriptEditor } from './hooks/useInscriptEditor.js';
 export { InscriptEditor } from './InscriptEditor.jsx';
 
-export { Youtube, FontSize, CustomTable, CustomImage, Citation } from './extensions/index.js';
+export { Youtube, FontSize, CustomTable, CustomImage, Citation, Embed } from './extensions/index.js';
 export { getTableNode, isHeaderRowActive, isHeaderColumnActive, setTableLayout } from './utils/tableHelpers.js';
 export { extractHeadings } from './utils/headingExtraction.js';
 export { getTextContent } from './utils/getTextContent.js';

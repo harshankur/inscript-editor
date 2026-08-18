@@ -144,5 +144,8 @@
   "viewsSuffix": "{{views}} ವೀಕ್ಷಣೆಗಳು",
   "wikilinkPrompt": "Enter wiki page name:",
   "youtubeSubtitle": "Embed a YouTube video",
-  "youtubeVideoUnavailable": "ವೀಡಿಯೊ ಲಭ್ಯವಿಲ್ಲ"
+  "youtubeVideoUnavailable": "ವೀಡಿಯೊ ಲಭ್ಯವಿಲ್ಲ",
+  "embedLoad": "Load embedded content",
+  "embedThirdParty": "Loads third-party content from the source above",
+  "embedUnavailable": "Embed unavailable"
 }

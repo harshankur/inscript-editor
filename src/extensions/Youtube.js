@@ -1,4 +1,5 @@
 import { Node } from '@tiptap/core';
+import { Plugin } from '@tiptap/pm/state';
 import i18next from 'i18next';
 import { extractYoutubeId } from '../utils/youtubeUrl.js';
 
@@ -65,6 +66,15 @@ export const Youtube = Node.create({
     draggable: true,
     atom: true,
 
+    addOptions() {
+        return {
+            // When true, render a lite-youtube-style thumbnail facade that loads the
+            // real iframe only on click (privacy + load perf). Default is today's
+            // behavior (immediate iframe), so no consumer regresses.
+            facade: false,
+        };
+    },
+
     addAttributes() {
         return {
             'data-youtube-video': { default: null },
@@ -89,9 +99,11 @@ export const Youtube = Node.create({
             {
                 // Any standard YouTube embed (youtube.com, youtube-nocookie.com,
                 // youtu.be — embed/, watch?v=, shorts/, …). extractYoutubeId knows
-                // every URL shape and validates the 11-char id, so non-YouTube
-                // iframes fall through (getAttrs false) and stay unparsed.
+                // every URL shape and validates the 11-char id. Higher priority than
+                // the generic Embed node (40) so YouTube iframes are claimed here;
+                // non-YouTube iframes fall through (getAttrs false) to Embed.
                 tag: 'iframe[src]',
+                priority: 60,
                 getAttrs: node => {
                     const id = extractYoutubeId(node.getAttribute('src'));
                     return id ? { 'data-youtube-video': id } : false;
@@ -151,6 +163,7 @@ export const Youtube = Node.create({
         };
     },
     addNodeView() {
+        const facadeEnabled = this.options.facade;
         return ({ node }) => {
             const dom = document.createElement('div');
             const iframe = document.createElement('iframe');
@@ -167,9 +180,33 @@ export const Youtube = Node.create({
             const overlay = document.createElement('div');
             overlay.style.cssText = 'position: absolute; inset: 0; z-index: 10;';
 
-            let hasId = null; // tracked so we only touch the DOM tree when the id presence flips
+            // Facade (opt-in): a thumbnail + play button that loads the iframe only on
+            // click. Building it lazily keeps default (non-facade) mode untouched.
+            let facadeEl = null;
+            let facadeLoaded = false; // user has clicked play → show the iframe
+            const buildFacade = (id) => {
+                const wrap = document.createElement('button');
+                wrap.type = 'button';
+                wrap.setAttribute('aria-label', 'Load YouTube video');
+                wrap.className = 'absolute inset-0 w-full h-full block cursor-pointer group border-0 p-0';
+                // Thumbnail is the ONLY network request until the user consents to the iframe.
+                wrap.style.cssText = `border:0;padding:0;background:#000 center/cover no-repeat url("https://i.ytimg.com/vi/${id}/hqdefault.jpg");`;
+                const btn = document.createElement('span');
+                btn.className = 'absolute inset-0 flex items-center justify-center';
+                btn.innerHTML = '<span style="width:48px;height:34px;background:rgba(0,0,0,.75);border-radius:8px;display:flex;align-items:center;justify-content:center;transition:background .15s"><span style="border-style:solid;border-width:8px 0 8px 14px;border-color:transparent transparent transparent #fff;margin-left:3px"></span></span>';
+                wrap.appendChild(btn);
+                wrap.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    facadeLoaded = true;
+                    render(node.attrs);
+                });
+                return wrap;
+            };
 
-            const applyAttrs = (attrs) => {
+            let state = null; // 'placeholder' | 'facade' | 'iframe' — only re-touch DOM on change
+
+            const render = (attrs) => {
                 const id = attrs['data-youtube-video'];
                 const w = attrs.width || '100%';
                 const a = attrs.align || 'center';
@@ -179,26 +216,26 @@ export const Youtube = Node.create({
                 dom.className = 'youtube-embed relative aspect-video rounded-lg overflow-hidden my-4 bg-zinc-100 dark:bg-zinc-800';
                 dom.style.cssText = `width: ${w}; margin-left: ${a === 'left' ? '0' : 'auto'}; margin-right: ${a === 'right' ? '0' : 'auto'};`;
 
-                if (id) {
-                    iframe.src = `https://www.youtube.com/embed/${id}`;
-                } else {
-                    iframe.removeAttribute('src');
-                }
+                const next = !id ? 'placeholder' : (facadeEnabled && !facadeLoaded) ? 'facade' : 'iframe';
+                if (next === 'iframe' && id) iframe.src = `https://www.youtube.com/embed/${id}`;
+                else iframe.removeAttribute('src');
 
-                if (hasId !== !!id) {
-                    hasId = !!id;
+                if (state !== next) {
+                    state = next;
                     dom.innerHTML = '';
-                    dom.appendChild(hasId ? iframe : placeholder);
+                    if (next === 'placeholder') dom.appendChild(placeholder);
+                    else if (next === 'facade') { facadeEl = buildFacade(id); dom.appendChild(facadeEl); }
+                    else dom.appendChild(iframe);
                     dom.appendChild(overlay);
                 }
             };
-            applyAttrs(node.attrs);
+            render(node.attrs);
 
             return {
                 dom,
                 update(newNode) {
                     if (newNode.type.name !== 'youtube') return false;
-                    applyAttrs(newNode.attrs);
+                    render(newNode.attrs);
                     return true;
                 },
                 // Once the node is selected (bubble menu open), let clicks fall through
@@ -211,5 +248,25 @@ export const Youtube = Node.create({
                 },
             };
         };
+    },
+
+    // E.3 — paste a bare YouTube URL (its own token) → a Youtube node. handlePaste
+    // runs before Link's linkOnPaste, so it wins and the URL doesn't become a link.
+    addProseMirrorPlugins() {
+        const editor = this.editor;
+        return [
+            new Plugin({
+                props: {
+                    handlePaste: (view, event) => {
+                        const text = event.clipboardData?.getData('text/plain')?.trim();
+                        if (!text || /\s/.test(text)) return false; // must be a single URL token
+                        const id = extractYoutubeId(text);
+                        if (!id) return false;
+                        editor.chain().focus().setYoutubeVideo({ 'data-youtube-video': id }).run();
+                        return true;
+                    },
+                },
+            }),
+        ];
     },
 });
