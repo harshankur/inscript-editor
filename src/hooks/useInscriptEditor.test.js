@@ -92,6 +92,51 @@ describe('useInscriptEditor', () => {
         expect(result.current.history).toHaveLength(0);
     });
 
+    it('records a title-only change (no content edit)', () => {
+        const onContentChange = vi.fn();
+        const { result, rerender } = renderHook(
+            ({ title }) => useInscriptEditor({ contentKey: 'a.md', title, onContentChange }),
+            { initialProps: { title: 'Old' } },
+        );
+
+        act(() => { rerender({ title: 'New Heading' }); });
+        act(() => { vi.advanceTimersByTime(1000); });
+
+        expect(result.current.history).toHaveLength(1);
+        expect(result.current.history[0].title).toBe('New Heading');
+        expect(result.current.isDirty).toBe(true);
+        expect(onContentChange).toHaveBeenCalledTimes(1);
+        expect(onContentChange).toHaveBeenCalledWith(result.current.history[0]);
+    });
+
+    it('records a tags-only change (no content edit)', () => {
+        const { result, rerender } = renderHook(
+            ({ tags }) => useInscriptEditor({ contentKey: 'a.md', tags }),
+            { initialProps: { tags: ['a'] } },
+        );
+
+        act(() => { rerender({ tags: ['a', 'b'] }); });
+        act(() => { vi.advanceTimersByTime(1000); });
+
+        expect(result.current.history).toHaveLength(1);
+        expect(result.current.history[0].tags).toEqual(['a', 'b']);
+        expect(result.current.isDirty).toBe(true);
+    });
+
+    it('does not record a metadata change that coincides with a document switch', () => {
+        const { result, rerender } = renderHook(
+            ({ contentKey, title }) => useInscriptEditor({ contentKey, title }),
+            { initialProps: { contentKey: 'a.md', title: 'A' } },
+        );
+
+        // Switching documents changes both contentKey and title at once — a load, not an edit.
+        act(() => { rerender({ contentKey: 'b.md', title: 'B' }); });
+        act(() => { vi.advanceTimersByTime(1000); });
+
+        expect(result.current.history).toHaveLength(0);
+        expect(result.current.isDirty).toBe(false);
+    });
+
     it('does not push a duplicate entry when the resolved content is unchanged from the last entry', () => {
         const onContentChange = vi.fn();
         const { result } = renderHook(() => useInscriptEditor({ contentKey: 'a.md', onContentChange }));

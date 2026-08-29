@@ -8,7 +8,7 @@ import { buildExtensions } from '../extensions/index.js';
  *
  * @param {object} options
  * @param {string}   options.contentKey    - Changing this value recreates the editor (pass filename).
- * @param {string}   options.title         - Live title prop; mirrored to titleRef for onUpdate closure.
+ * @param {string}   options.title         - Live title prop; mirrored to titleRef for the commit closure.
  * @param {string[]} options.tags          - Live tags prop; mirrored to tagsRef.
  * @param {string[]} options.categories    - Live categories prop; mirrored to categoriesRef.
  * @param {boolean}  options.isReadonly    - Disable editing when true.
@@ -23,7 +23,7 @@ export function useInscriptEditor({
     onContentChange = null,
     editorOptions = {},
 } = {}) {
-    // --- Live-prop refs (prevent stale closures in onUpdate) ---
+    // --- Live-prop refs (prevent stale closures in the commit) ---
     const isReadonlyRef = useRef(isReadonly);
     const titleRef = useRef(title);
     const tagsRef = useRef(tags);
@@ -39,13 +39,13 @@ export function useInscriptEditor({
     const [historyIndex, setHistoryIndex] = useState(-1);
     const [isDirty, setIsDirty] = useState(false);
 
-    // Refs so onUpdate closure always reads latest values without re-creating the editor
+    // Refs so the commit closure always reads latest values without re-creating the editor
     const historyRef = useRef([]);
     const historyIndexRef = useRef(-1);
     const historyDebounceRef = useRef(null);
-    /** Set to true by the consumer before a server-side content set; prevents onUpdate push. */
+    /** Set to true by the consumer before a server-side content set; prevents a commit. */
     const isSyncingRef = useRef(false);
-    /** Set to true by the consumer during initial post load; prevents onUpdate push. */
+    /** Set to true by the consumer during initial post load; prevents a commit. */
     const isLoadingRef = useRef(false);
 
     useEffect(() => {
@@ -72,49 +72,91 @@ export function useInscriptEditor({
                 class: 'prose dark:prose-invert prose-lg max-w-none focus:outline-none min-h-[calc(100vh-300px)]',
             },
         },
-        onUpdate: ({ editor }) => {
-            if (isReadonlyRef.current || isLoadingRef.current || isSyncingRef.current) return;
-
-            if (historyDebounceRef.current) clearTimeout(historyDebounceRef.current);
-
-            historyDebounceRef.current = setTimeout(() => {
-                const newHtml = editor.getHTML();
-                const newTitle = titleRef.current;
-                const newTags = tagsRef.current;
-                const newCategories = categoriesRef.current;
-
-                const currentHist = historyRef.current;
-                const currentIndex = historyIndexRef.current;
-                const currentItem = currentHist[currentIndex];
-
-                const changed = (
-                    !currentItem ||
-                    currentItem.html !== newHtml ||
-                    currentItem.title !== newTitle ||
-                    JSON.stringify(currentItem.tags) !== JSON.stringify(newTags) ||
-                    JSON.stringify(currentItem.categories) !== JSON.stringify(newCategories)
-                );
-
-                if (changed) {
-                    const newHistory = currentHist.slice(0, currentIndex + 1);
-                    const newState = {
-                        html: newHtml,
-                        title: newTitle,
-                        tags: newTags,
-                        categories: newCategories,
-                        timestamp: new Date().toISOString(),
-                    };
-                    newHistory.push(newState);
-
-                    setHistory(newHistory);
-                    setHistoryIndex(newHistory.length - 1);
-                    setIsDirty(true);
-
-                    if (onContentChange) onContentChange(newState);
-                }
-            }, 1000);
-        },
+        // Both editor content edits (here) AND metadata edits (title/tags/categories,
+        // see the effect below) funnel through the same debounced commit, so a
+        // title-only change is recorded/saved just like a content change.
+        onUpdate: () => scheduleCommit(),
     }, [contentKey]);
+
+    // The commit itself — pushes a new history entry (and fires onContentChange)
+    // when the current html/title/tags/categories differ from the head entry.
+    // Kept in a ref so the once-bound onUpdate and the metadata effect always run
+    // the latest closure (fresh editor + onContentChange) without rebinding.
+    const commitRef = useRef(null);
+    commitRef.current = () => {
+        if (!editor || editor.isDestroyed) return;
+        // Re-check guards at fire time: a debounce armed while unguarded must still
+        // be dropped if loading/syncing/readonly flipped on before it fires.
+        if (isReadonlyRef.current || isLoadingRef.current || isSyncingRef.current) return;
+        const newHtml = editor.getHTML();
+        const newTitle = titleRef.current;
+        const newTags = tagsRef.current;
+        const newCategories = categoriesRef.current;
+
+        const currentHist = historyRef.current;
+        const currentIndex = historyIndexRef.current;
+        const currentItem = currentHist[currentIndex];
+
+        const changed = (
+            !currentItem ||
+            currentItem.html !== newHtml ||
+            currentItem.title !== newTitle ||
+            JSON.stringify(currentItem.tags) !== JSON.stringify(newTags) ||
+            JSON.stringify(currentItem.categories) !== JSON.stringify(newCategories)
+        );
+        if (!changed) return;
+
+        const newHistory = currentHist.slice(0, currentIndex + 1);
+        const newState = {
+            html: newHtml,
+            title: newTitle,
+            tags: newTags,
+            categories: newCategories,
+            timestamp: new Date().toISOString(),
+        };
+        newHistory.push(newState);
+
+        setHistory(newHistory);
+        setHistoryIndex(newHistory.length - 1);
+        setIsDirty(true);
+
+        if (onContentChange) onContentChange(newState);
+    };
+
+    // Debounced arming, shared by content and metadata edits. Guards mirror the
+    // old onUpdate guard so nothing commits while readonly / loading / syncing.
+    // References only refs, so it is safe to bind into onUpdate once.
+    function scheduleCommit() {
+        if (isReadonlyRef.current || isLoadingRef.current || isSyncingRef.current) return;
+        if (historyDebounceRef.current) clearTimeout(historyDebounceRef.current);
+        historyDebounceRef.current = setTimeout(() => {
+            if (commitRef.current) commitRef.current();
+        }, 1000);
+    }
+
+    // Record title/tags/categories edits even when the editor content is untouched.
+    // Skip the initial mount and any change that coincides with a document switch
+    // (contentKey change) — that is a load, not an edit.
+    // Compare tags/categories by value: the `[]` defaults (and fresh arrays from a
+    // consumer) change reference every render, which would otherwise re-run this
+    // effect on every render instead of only on real metadata edits.
+    const tagsKey = JSON.stringify(tags);
+    const categoriesKey = JSON.stringify(categories);
+    const didMountRef = useRef(false);
+    const lastContentKeyRef = useRef(contentKey);
+    useEffect(() => {
+        if (!didMountRef.current) {
+            didMountRef.current = true;
+            lastContentKeyRef.current = contentKey;
+            return;
+        }
+        if (lastContentKeyRef.current !== contentKey) {
+            lastContentKeyRef.current = contentKey;
+            return;
+        }
+        scheduleCommit();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [title, tagsKey, categoriesKey, contentKey]);
 
     // Sync editable state when isReadonly changes without recreating the editor
     useEffect(() => {
@@ -123,7 +165,7 @@ export function useInscriptEditor({
         }
     }, [editor, isReadonly]);
 
-    // Clear the pending debounced history push whenever the editor identity changes
+    // Clear the pending debounced commit whenever the editor identity changes
     // (contentKey change) or unmounts.
     //
     // A freshly (re)created editor can dispatch its own doc-changing transaction as
@@ -147,7 +189,7 @@ export function useInscriptEditor({
     }, [editor]);
 
     /**
-     * Restore editor content to a history entry without triggering an onUpdate push.
+     * Restore editor content to a history entry without triggering a commit.
      * The consumer is responsible for updating title/tags/categories from the history entry.
      */
     const restoreVersion = useCallback((index) => {
