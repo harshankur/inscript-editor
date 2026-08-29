@@ -43,6 +43,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     bubbleMenuPresets,
     toolbarPresetLabels,
     presetsMode,
+    customizerContainer,
     fontFamily = '',
     maxWidth = '',
     lineHeight = '',
@@ -83,6 +84,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                     bubbleMenuPresets={bubbleMenuPresets}
                     toolbarPresetLabels={toolbarPresetLabels}
                     presetsMode={presetsMode}
+                    customizerContainer={customizerContainer}
                 />
             )}
 

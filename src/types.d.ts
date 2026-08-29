@@ -129,6 +129,12 @@ export interface InscriptEditorProps {
     toolbarPresetLabels?: Record<string, string>;
     /** Whether consumer presets replace the built-ins or extend them. Default 'merge'. */
     presetsMode?: 'replace' | 'merge';
+    /**
+     * DOM element to render the toolbar-customizer drawer into and scope it to
+     * (position:absolute within it) instead of covering the viewport (the default,
+     * position:fixed). The element should be position:relative + overflow:hidden.
+     */
+    customizerContainer?: HTMLElement | null;
     fontFamily?: string;
     maxWidth?: string;
     lineHeight?: string;
@@ -239,6 +245,7 @@ export interface ResponsiveToolbarProps {
     bubbleMenuPresets?: Record<string, string[]>;
     toolbarPresetLabels?: Record<string, string>;
     presetsMode?: 'replace' | 'merge';
+    customizerContainer?: HTMLElement | null;
 }
 export const ResponsiveToolbar: (props: ResponsiveToolbarProps) => ReactNode;
 
@@ -258,6 +265,8 @@ export interface ToolbarCustomizerProps {
     bubbleMenuPresets?: Record<string, string[]>;
     toolbarPresetLabels?: Record<string, string>;
     presetsMode?: 'replace' | 'merge';
+    /** Render into + scope to this element (absolute) instead of the viewport (fixed). */
+    container?: HTMLElement | null;
 }
 export const ToolbarCustomizer: (props: ToolbarCustomizerProps) => ReactNode;
 

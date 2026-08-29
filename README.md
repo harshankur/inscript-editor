@@ -221,6 +221,21 @@ built-in border when the minimap lives inside your own bordered panel).
 <MiniMap editor={editor} width="6rem" className="border-l-0" />
 ```
 
+### Toolbar customizer containment
+
+The settings-gear customizer drawer covers the viewport (`position: fixed`) by
+default. To scope it to your editor panel instead, pass that panel's element as
+`customizerContainer` — the drawer renders into it and positions `absolute`
+within it. The element must be `position: relative; overflow: hidden`.
+
+```jsx
+const panelRef = useRef(null);
+// ...
+<div ref={panelRef} className="relative overflow-hidden">
+    <InscriptEditor editor={editor} customizerContainer={panelRef.current} … />
+</div>
+```
+
 ## Development
 
 ```bash

@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { GripVertical, X, Plus, Check, SlidersHorizontal } from 'lucide-react';
 import { TOOL_REGISTRY, DIVIDER, TOOLBAR_TOOL_IDS, BUBBLE_ALLOWED_TOOL_IDS, sanitizeToolConfig } from '../toolbar/toolRegistry.js';
 import { TOOLBAR_PRESETS, BUBBLE_PRESETS, PRESET_LABELS, DEFAULT_TOOLBAR_CONFIG, DEFAULT_BUBBLE_CONFIG } from '../toolbar/presets.js';
@@ -22,6 +23,10 @@ export const ToolbarCustomizer = ({
     bubbleMenuPresets,
     toolbarPresetLabels,
     presetsMode = 'merge',
+    // When a DOM element is passed, the drawer is rendered into it and scoped to
+    // it (position:absolute) instead of covering the viewport (position:fixed).
+    // The element should be position:relative + overflow:hidden.
+    container = null,
 }) => {
     const [activeTab, setActiveTab] = useState('toolbar'); // 'toolbar' | 'bubble'
 
@@ -179,9 +184,9 @@ export const ToolbarCustomizer = ({
 
     const availableTools = totalAllowedTools.filter(id => !usedToolIds.has(id));
 
-    return (
-        // Backdrop container
-        <div className="fixed inset-0 z-[80] flex justify-end" onClick={handleClose}>
+    const tree = (
+        // Backdrop container — fixed (viewport) by default, absolute when contained.
+        <div className={`${container ? 'absolute' : 'fixed'} inset-0 z-[80] flex justify-end`} onClick={handleClose}>
             {/* Overlay background with fade-in and backdrop-blur */}
             <div
                 className={`absolute inset-0 transition-all duration-300 ease-in-out ${
@@ -366,4 +371,6 @@ export const ToolbarCustomizer = ({
             </div>
         </div>
     );
+
+    return container ? createPortal(tree, container) : tree;
 };
