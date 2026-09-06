@@ -45,6 +45,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     presetsMode,
     customizerContainer,
     fontFamily = '',
+    fontSize = '',
     maxWidth = '',
     lineHeight = '',
 }, ref) {
@@ -107,6 +108,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                         style={{
                             '--inscript-max-width': focusMode ? '48rem' : (maxWidth || undefined),
                             '--inscript-font-family': fontFamily || undefined,
+                            '--inscript-font-size': fontSize || undefined,
                             '--inscript-line-height': lineHeight || undefined,
                         }}
                     >

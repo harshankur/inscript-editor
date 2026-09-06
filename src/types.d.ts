@@ -136,6 +136,9 @@ export interface InscriptEditorProps {
      */
     customizerContainer?: HTMLElement | null;
     fontFamily?: string;
+    /** Reading text size (any CSS length, e.g. '1.125rem'). Sets --inscript-font-size; headings scale
+     *  in em off it. Omitted/empty keeps the 18px default. */
+    fontSize?: string;
     maxWidth?: string;
     lineHeight?: string;
     ref?: Ref<InscriptEditorRefHandle>;

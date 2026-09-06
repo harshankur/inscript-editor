@@ -3,7 +3,10 @@
 @variant dark (&:where(.dark, .dark *));
 
 .ProseMirror {
-  @apply outline-none min-h-[500px] p-8 text-lg text-zinc-900 dark:text-zinc-100;
+  @apply outline-none min-h-[500px] p-8 text-zinc-900 dark:text-zinc-100;
+  /* Reading text size. Default 1.125rem (18px) = the previous hard-coded `text-lg`, so nothing changes
+     unless a host sets the var. Headings below scale in `em` off this, so one knob resizes coherently. */
+  font-size: var(--inscript-font-size, 1.125rem);
   font-family: var(--inscript-font-family, inherit);
   line-height: var(--inscript-line-height, 1.625);
 }
@@ -18,16 +21,22 @@
   @apply font-bold text-zinc-900 dark:text-zinc-100;
 }
 
+/* Heading sizes are `em`-relative to the ProseMirror base so the reading-size knob scales the whole
+   document. At the 1.125rem (18px) default these resolve to 36 / 30 / 24px, matching the previous
+   text-4xl / text-3xl / text-2xl exactly. */
 .ProseMirror h1 {
-  @apply text-4xl mb-6 mt-8;
+  @apply mb-6 mt-8;
+  font-size: 2em;
 }
 
 .ProseMirror h2 {
-  @apply text-3xl mb-4 mt-6;
+  @apply mb-4 mt-6;
+  font-size: 1.6667em;
 }
 
 .ProseMirror h3 {
-  @apply text-2xl mb-4 mt-6;
+  @apply mb-4 mt-6;
+  font-size: 1.3333em;
 }
 
 .ProseMirror p {
