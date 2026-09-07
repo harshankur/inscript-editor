@@ -26,19 +26,24 @@ describe('MiniMap component', () => {
         editor.destroy();
     });
 
-    it('renders a labeled glyph group per top-level block', () => {
-        editor.commands.setContent('<h1>Heading</h1><p>Paragraph</p><pre><code>Code</code></pre>');
+    it('renders a titled box per block and a readable heading label', () => {
+        editor.commands.setContent('<h1>My Big Heading</h1><p>Paragraph</p><pre><code>Code</code></pre>');
         const { container } = render(<MiniMap editor={editor} />);
 
         expect(screen.getByText('Minimap')).toBeInTheDocument();
-        // Each block becomes a <g> carrying a <title> that names its content type.
-        const titles = Array.from(container.querySelectorAll('svg title')).map(t => t.textContent);
+        // Each block becomes a box carrying a native title naming its content type.
+        const titles = Array.from(container.querySelectorAll('[title]')).map(t => t.getAttribute('title'));
         expect(titles).toContain('Heading');
         expect(titles).toContain('Paragraph');
         expect(titles).toContain('Code block');
-        expect(titles.length).toBeGreaterThanOrEqual(3);
-        // The draggable viewport indicator is present, themable via CSS var.
-        expect(container.querySelector('rect[stroke^="var(--im-minimap-viewport"]')).toBeInTheDocument();
+        // The redesign's headline win: the heading renders as READABLE text, not a glyph.
+        expect(screen.getByText('My Big Heading')).toBeInTheDocument();
+    });
+
+    it('collapses headings to ticks (no label) when showHeadingText is false', () => {
+        editor.commands.setContent('<h1>My Big Heading</h1><p>Paragraph</p>');
+        render(<MiniMap editor={editor} showHeadingText={false} />);
+        expect(screen.queryByText('My Big Heading')).not.toBeInTheDocument();
     });
 
     it('toggles collapse state and persists to localStorage', () => {

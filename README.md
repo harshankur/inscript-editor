@@ -197,6 +197,22 @@ import 'inscript-editor/styles';
 
 Dark mode follows Tailwind's `dark:` class strategy — add/remove a `dark` class on an ancestor element (e.g. `<html>`) to toggle it.
 
+`<MiniMap>` is a *spatial outline*, not a shrunk photo of the text. Prose has weak
+silhouette, so instead of near-identical grey blocks it makes the picture a function of the
+content and keeps the whole document in view:
+
+- **Readable heading landmarks** — headings render as real, truncated text at their true
+  position, sized and indented by level (an H1 gets a full-width rule). Click a label to
+  jump to that heading. This is what lets you actually follow the page.
+- **Content-derived body texture** — paragraphs are per-line bars with a ragged last line
+  and colored inline runs (links, inline code); lists, tables, code and quotes keep their
+  real counts/shape.
+- **Real image thumbnails** — images draw their actual bitmap, the strongest anchor in prose.
+- **Fit to panel** — the entire document is scaled into the available height, so the labels
+  never scroll out of reach; a draggable viewport marker shows where you are.
+
+Pass `showHeadingText={false}` to collapse headings to level ticks (labels off).
+
 ### MiniMap theming & sizing
 
 `<MiniMap>` reads CSS custom properties (with fallbacks equal to its default zinc/emerald
@@ -206,16 +222,18 @@ look), so a themed host restyles it by setting variables on any ancestor — no 
 .my-right-rail {
     --im-minimap-bg: var(--surface);        /* panel background */
     --im-minimap-border: var(--line);       /* panel + header border */
-    --im-minimap-label: var(--ink);         /* header label text */
-    --im-minimap-line: var(--ink-dim);      /* neutral text-line rects / list markers */
+    --im-minimap-label: var(--ink);         /* header label text + heading landmarks + ticks */
+    --im-minimap-line: var(--ink-dim);      /* neutral body lines / list markers */
     --im-minimap-viewport: var(--brand);    /* draggable viewport marker */
 }
 ```
 
-Content-semantic glyph colors (YouTube red, image blue, code block, …) are intentionally
-not themed — they identify content types. Sizing: pass `width` (inline style, beats the
-default `9rem`) and/or `className` (appended to the root, e.g. `border-l-0` to drop the
-built-in border when the minimap lives inside your own bordered panel).
+Content-semantic colors (image sky, code emerald, table violet, link blue, …) are
+intentionally not themed — they identify content types. Sizing: pass `width` (inline style,
+beats the default `9rem`) and/or `className` (appended to the root, e.g. `border-l-0` to drop
+the built-in border when the minimap lives inside your own bordered panel). The minimap fits
+the document to its own height, so give it a **bounded-height** container (it falls back to a
+natural scale with internal scroll if the height is unbounded).
 
 ```jsx
 <MiniMap editor={editor} width="6rem" className="border-l-0" />

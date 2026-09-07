@@ -330,6 +330,9 @@ export const MiniMap: (props: {
     width?: string;
     /** Extra classes appended to the root, e.g. `border-l-0` to drop the built-in border. */
     className?: string;
+    /** Render readable heading labels at their true positions (default true).
+     *  When false, headings collapse to level ticks only. */
+    showHeadingText?: boolean;
 }) => ReactNode;
 export const BibliographyPanel: (props: { editor: Editor | null }) => ReactNode;
 export const TextBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean; bubbleMenuConfig?: string[] }) => ReactNode;
