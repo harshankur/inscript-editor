@@ -82,8 +82,8 @@ export function buildExtensions(options = {}) {
         TableCell,
         Link.configure({
             openOnClick: false,
-            linkOnPaste: true,
-            autolink: true,
+            linkOnPaste: options.link?.linkOnPaste ?? true,
+            autolink: options.link?.autolink ?? true,
             HTMLAttributes: {
                 class: 'text-emerald-500 underline underline-offset-4 cursor-pointer hover:text-emerald-400 transition-colors',
             },
@@ -141,12 +141,16 @@ export function buildExtensions(options = {}) {
         }));
     }
 
-    const t = (k, f) => i18next.t(k, { defaultValue: f, ns: 'inscript-editor' });
-    extensions.push(
-        SlashCommand.configure({
-            items: options.slashCommands ?? getDefaultSlashItems(t, options)
-        })
-    );
+    // The "/" command menu can be turned off entirely (options.slashCommand === false); otherwise it
+    // offers the host-provided items or the defaults.
+    if (options.slashCommand !== false) {
+        const t = (k, f) => i18next.t(k, { defaultValue: f, ns: 'inscript-editor' });
+        extensions.push(
+            SlashCommand.configure({
+                items: options.slashCommands ?? getDefaultSlashItems(t, options)
+            })
+        );
+    }
 
     return extensions;
 }

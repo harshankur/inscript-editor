@@ -34,6 +34,10 @@ export interface EditorBuildOptions {
     /** YouTube node options, e.g. `{ facade: true }` for thumbnail-then-load. */
     youtube?: { facade?: boolean };
     wikilink?: { enabled?: boolean; resolver?: (page: string) => WikilinkResolution | null };
+    /** Link behavior: turn typed/pasted URLs into links (both default true). */
+    link?: { autolink?: boolean; linkOnPaste?: boolean };
+    /** The "/" command menu. `false` disables it entirely. */
+    slashCommand?: boolean;
     /** Custom slash-command registry entries (replaces the default set when provided). */
     slashCommands?: unknown[];
     [key: string]: unknown;
