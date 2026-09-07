@@ -48,6 +48,9 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     fontSize = '',
     maxWidth = '',
     lineHeight = '',
+    headingFontFamily = '',
+    focusMaxWidth = '',
+    focusDim = true,
 }, ref) {
     useInscriptEditorTranslations();
 
@@ -104,11 +107,12 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                     />
                 ) : (
                     <div 
-                        className={`mx-auto px-2 pt-3 pb-[57px] md:px-8 md:pt-12 md:pb-[57px] flex flex-col min-h-full inscript-editor-container w-full ${focusMode ? 'focus-mode' : ''}`}
+                        className={`mx-auto px-2 pt-3 pb-[57px] md:px-8 md:pt-12 md:pb-[57px] flex flex-col min-h-full inscript-editor-container w-full ${focusMode ? 'focus-mode' : ''} ${focusMode && focusDim ? 'focus-dim' : ''}`}
                         style={{
-                            '--inscript-max-width': focusMode ? '48rem' : (maxWidth || undefined),
+                            '--inscript-max-width': focusMode ? (focusMaxWidth || '48rem') : (maxWidth || undefined),
                             '--inscript-font-family': fontFamily || undefined,
                             '--inscript-font-size': fontSize || undefined,
+                            '--inscript-heading-font': headingFontFamily || undefined,
                             '--inscript-line-height': lineHeight || undefined,
                         }}
                     >

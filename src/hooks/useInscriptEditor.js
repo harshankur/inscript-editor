@@ -22,6 +22,7 @@ export function useInscriptEditor({
     isReadonly = false,
     onContentChange = null,
     editorOptions = {},
+    spellcheck = true,
 } = {}) {
     // --- Live-prop refs (prevent stale closures in the commit) ---
     const isReadonlyRef = useRef(isReadonly);
@@ -70,6 +71,7 @@ export function useInscriptEditor({
         editorProps: {
             attributes: {
                 class: 'prose dark:prose-invert prose-lg max-w-none focus:outline-none min-h-[calc(100vh-300px)]',
+                spellcheck: String(spellcheck),
             },
         },
         // Both editor content edits (here) AND metadata edits (title/tags/categories,
@@ -77,6 +79,12 @@ export function useInscriptEditor({
         // title-only change is recorded/saved just like a content change.
         onUpdate: () => scheduleCommit(),
     }, [contentKey]);
+
+    // Live-toggle spellcheck on the editor DOM so the host's setting flips without recreating the
+    // editor (which would lose the undo stack and cursor).
+    useEffect(() => {
+        if (editor?.view?.dom) editor.view.dom.setAttribute('spellcheck', String(spellcheck));
+    }, [editor, spellcheck]);
 
     // The commit itself — pushes a new history entry (and fires onContentChange)
     // when the current html/title/tags/categories differ from the head entry.

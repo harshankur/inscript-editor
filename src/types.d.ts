@@ -54,6 +54,8 @@ export interface UseInscriptEditorOptions {
     onContentChange?: ((entry: HistoryEntry) => void) | null;
     /** Feature toggles/callbacks passed to buildExtensions (changing this recreates the editor). */
     editorOptions?: EditorBuildOptions;
+    /** Browser spellcheck underlines in the editor (default true). Applied live, no editor recreation. */
+    spellcheck?: boolean;
 }
 
 export interface UseInscriptEditorResult {
@@ -141,6 +143,12 @@ export interface InscriptEditorProps {
     fontSize?: string;
     maxWidth?: string;
     lineHeight?: string;
+    /** Optional distinct heading font-family stack (--inscript-heading-font). Empty = same as body. */
+    headingFontFamily?: string;
+    /** Column width in focus mode (any CSS length). Empty = the 48rem default. */
+    focusMaxWidth?: string;
+    /** Dim non-focused paragraphs in focus mode (default true). False = narrow column only, no dimming. */
+    focusDim?: boolean;
     ref?: Ref<InscriptEditorRefHandle>;
 }
 
