@@ -39,4 +39,19 @@ describe('DefinitionList extension', () => {
         editor.commands.toggleDefinitionList();
         expect(editor.getHTML()).toContain('<dl><dt>Apple</dt>');
     });
+
+    it('wraps then unwraps a definition list without crashing or a dangling selection', () => {
+        editor.commands.setContent('<p>Apple</p>');
+        editor.commands.setTextSelection(2);
+        editor.commands.toggleDefinitionList(); // wrap
+        expect(editor.getHTML()).toContain('<dl>');
+        // The wrap must leave the caret inside inline content (the term), not at a node boundary -
+        // a boundary selection is what ProseMirror rejects and what corrupted the doc on re-toggle.
+        expect(editor.state.selection.$head.parent.isTextblock).toBe(true);
+        // Toggling again from that same caret must unwrap cleanly, not throw.
+        expect(() => editor.commands.toggleDefinitionList()).not.toThrow();
+        expect(editor.getHTML()).not.toContain('<dl>');
+        expect(editor.getHTML()).toContain('Apple');
+        expect(editor.state.selection.$head.parent.isTextblock).toBe(true);
+    });
 });

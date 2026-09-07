@@ -35,7 +35,17 @@ export const DocumentOutline = ({ editor }) => {
 
     const handleClick = (pos) => {
         if (!editor) return;
-        editor.chain().focus().setTextSelection(pos).scrollIntoView().run();
+        // Place the caret at the heading, then scroll the heading itself to the TOP of the viewport.
+        // The old `.scrollIntoView()` (ProseMirror's minimum-scroll) put a heading at the top when it
+        // was above the view but at the bottom when it was below - inconsistent. Scroll the node's DOM
+        // with `block: 'start'` so a clicked heading always lands at the top (matches the minimap).
+        // `focus()` defaults to its own minimum-scroll (which is the inconsistent behavior); disable it
+        // so ours is the only scroll, then align the heading's DOM node to the TOP.
+        editor.chain().setTextSelection(pos).focus(null, { scrollIntoView: false }).run();
+        const dom = editor.view.nodeDOM(pos);
+        if (dom && typeof dom.scrollIntoView === 'function') {
+            dom.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }
     };
 
     if (!editor) return null;
