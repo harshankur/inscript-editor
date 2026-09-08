@@ -147,5 +147,12 @@
   "youtubeVideoUnavailable": "Видео недоступно",
   "embedLoad": "Загрузить встроенное содержимое",
   "embedThirdParty": "Загружает стороннее содержимое из указанного выше источника",
-  "embedUnavailable": "Встраивание недоступно"
+  "embedUnavailable": "Встраивание недоступно",
+  "videoUrl": "URL видео",
+  "imageUrl": "URL изображения",
+  "imageAlt": "Альтернативный текст",
+  "embedUrl": "URL для встраивания",
+  "embedCaption": "Подпись",
+  "openEmbed": "Открыть в новой вкладке",
+  "deleteEmbed": "Удалить встраивание"
 }

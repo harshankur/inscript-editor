@@ -147,5 +147,12 @@
   "youtubeVideoUnavailable": "వీడియో అందుబాటులో లేదు",
   "embedLoad": "పొందుపరచిన కంటెంట్‌ను లోడ్ చేయండి",
   "embedThirdParty": "పైన ఉన్న మూలం నుండి థర్డ్-పార్టీ కంటెంట్‌ను లోడ్ చేస్తుంది",
-  "embedUnavailable": "పొందుపరచడం అందుబాటులో లేదు"
+  "embedUnavailable": "పొందుపరచడం అందుబాటులో లేదు",
+  "videoUrl": "వీడియో URL",
+  "imageUrl": "చిత్రం URL",
+  "imageAlt": "ప్రత్యామ్నాయ వచనం",
+  "embedUrl": "ఎంబెడ్ URL",
+  "embedCaption": "శీర్షిక",
+  "openEmbed": "కొత్త ట్యాబ్‌లో తెరవండి",
+  "deleteEmbed": "ఎంబెడ్‌ను తొలగించు"
 }

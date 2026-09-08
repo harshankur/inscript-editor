@@ -147,5 +147,12 @@
   "youtubeVideoUnavailable": "Video nicht verfügbar",
   "embedLoad": "Eingebetteten Inhalt laden",
   "embedThirdParty": "Lädt Inhalte von Drittanbietern aus der obigen Quelle",
-  "embedUnavailable": "Einbettung nicht verfügbar"
+  "embedUnavailable": "Einbettung nicht verfügbar",
+  "videoUrl": "Video-URL",
+  "imageUrl": "Bild-URL",
+  "imageAlt": "Alt-Text",
+  "embedUrl": "Embed-URL",
+  "embedCaption": "Beschriftung",
+  "openEmbed": "In neuem Tab öffnen",
+  "deleteEmbed": "Einbettung löschen"
 }

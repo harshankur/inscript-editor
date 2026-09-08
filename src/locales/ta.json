@@ -147,5 +147,12 @@
   "youtubeVideoUnavailable": "வீடியோ கிடைக்கவில்லை",
   "embedLoad": "உட்பொதிக்கப்பட்ட உள்ளடக்கத்தை ஏற்று",
   "embedThirdParty": "மேலே உள்ள மூலத்திலிருந்து மூன்றாம் தரப்பு உள்ளடக்கத்தை ஏற்றுகிறது",
-  "embedUnavailable": "உட்பொதிப்பு கிடைக்கவில்லை"
+  "embedUnavailable": "உட்பொதிப்பு கிடைக்கவில்லை",
+  "videoUrl": "வீடியோ URL",
+  "imageUrl": "படம் URL",
+  "imageAlt": "மாற்று உரை",
+  "embedUrl": "உட்பொதிப்பு URL",
+  "embedCaption": "தலைப்பு",
+  "openEmbed": "புதிய தாவலில் திறக்கவும்",
+  "deleteEmbed": "உட்பொதிப்பை நீக்கு"
 }

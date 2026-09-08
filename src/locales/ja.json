@@ -147,5 +147,12 @@
   "youtubeVideoUnavailable": "動画は利用できません",
   "embedLoad": "埋め込みコンテンツを読み込む",
   "embedThirdParty": "上記のソースからサードパーティのコンテンツを読み込みます",
-  "embedUnavailable": "埋め込みは利用できません"
+  "embedUnavailable": "埋め込みは利用できません",
+  "videoUrl": "動画URL",
+  "imageUrl": "画像URL",
+  "imageAlt": "代替テキスト",
+  "embedUrl": "埋め込みURL",
+  "embedCaption": "キャプション",
+  "openEmbed": "新しいタブで開く",
+  "deleteEmbed": "埋め込みを削除"
 }

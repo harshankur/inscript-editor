@@ -147,5 +147,12 @@
   "youtubeVideoUnavailable": "ভিডিও উপলব্ধ নেই",
   "embedLoad": "এম্বেড করা কন্টেন্ট লোড করুন",
   "embedThirdParty": "উপরের উৎস থেকে তৃতীয় পক্ষের কন্টেন্ট লোড করে",
-  "embedUnavailable": "এম্বেড অনুপলব্ধ"
+  "embedUnavailable": "এম্বেড অনুপলব্ধ",
+  "videoUrl": "ভিডিও URL",
+  "imageUrl": "ছবি URL",
+  "imageAlt": "বিকল্প টেক্সট",
+  "embedUrl": "এমবেড URL",
+  "embedCaption": "ক্যাপশন",
+  "openEmbed": "নতুন ট্যাবে খুলুন",
+  "deleteEmbed": "এমবেড মুছুন"
 }

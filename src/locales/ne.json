@@ -147,5 +147,12 @@
   "youtubeVideoUnavailable": "भिडियो उपलब्ध छैन",
   "embedLoad": "एम्बेड गरिएको सामग्री लोड गर्नुहोस्",
   "embedThirdParty": "माथिको स्रोतबाट तेस्रो पक्षको सामग्री लोड गर्छ",
-  "embedUnavailable": "एम्बेड अनुपलब्ध"
+  "embedUnavailable": "एम्बेड अनुपलब्ध",
+  "videoUrl": "भिडियो URL",
+  "imageUrl": "छवि URL",
+  "imageAlt": "वैकल्पिक पाठ",
+  "embedUrl": "इम्बेड URL",
+  "embedCaption": "क्याप्सन",
+  "openEmbed": "नयाँ ट्याबमा खोल्नुहोस्",
+  "deleteEmbed": "इम्बेड मेट्नुहोस्"
 }

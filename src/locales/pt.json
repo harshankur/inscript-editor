@@ -147,5 +147,12 @@
   "youtubeVideoUnavailable": "Vídeo indisponível",
   "embedLoad": "Carregar conteúdo incorporado",
   "embedThirdParty": "Carrega conteúdo de terceiros a partir da origem acima",
-  "embedUnavailable": "Incorporação indisponível"
+  "embedUnavailable": "Incorporação indisponível",
+  "videoUrl": "URL do vídeo",
+  "imageUrl": "URL da imagem",
+  "imageAlt": "Texto alternativo",
+  "embedUrl": "URL de incorporação",
+  "embedCaption": "Legenda",
+  "openEmbed": "Abrir em nova aba",
+  "deleteEmbed": "Excluir incorporação"
 }

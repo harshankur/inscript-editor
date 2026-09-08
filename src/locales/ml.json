@@ -147,5 +147,12 @@
   "youtubeVideoUnavailable": "വീഡിയോ ലഭ്യമല്ല",
   "embedLoad": "ഉൾച്ചേർത്ത ഉള്ളടക്കം ലോഡ് ചെയ്യുക",
   "embedThirdParty": "മുകളിലുള്ള ഉറവിടത്തിൽ നിന്ന് മൂന്നാം കക്ഷി ഉള്ളടക്കം ലോഡ് ചെയ്യുന്നു",
-  "embedUnavailable": "ഉൾച്ചേർക്കൽ ലഭ്യമല്ല"
+  "embedUnavailable": "ഉൾച്ചേർക്കൽ ലഭ്യമല്ല",
+  "videoUrl": "വീഡിയോ URL",
+  "imageUrl": "ചിത്രം URL",
+  "imageAlt": "ബദൽ ടെക്സ്റ്റ്",
+  "embedUrl": "എംബെഡ് URL",
+  "embedCaption": "അടിക്കുറിപ്പ്",
+  "openEmbed": "പുതിയ ടാബിൽ തുറക്കുക",
+  "deleteEmbed": "എംബെഡ് ഇല്ലാതാക്കുക"
 }

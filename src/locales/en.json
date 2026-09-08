@@ -147,5 +147,12 @@
   "youtubeVideoUnavailable": "Video unavailable",
   "embedLoad": "Load embedded content",
   "embedThirdParty": "Loads third-party content from the source above",
-  "embedUnavailable": "Embed unavailable"
+  "embedUnavailable": "Embed unavailable",
+  "videoUrl": "Video URL",
+  "imageUrl": "Image URL",
+  "imageAlt": "Alt text",
+  "embedUrl": "Embed URL",
+  "embedCaption": "Caption",
+  "openEmbed": "Open in new tab",
+  "deleteEmbed": "Delete embed"
 }

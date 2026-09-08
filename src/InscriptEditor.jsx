@@ -6,6 +6,7 @@ import { TextBubbleMenu } from './components/bubble-menus/TextBubbleMenu.jsx';
 import { TableBubbleMenu } from './components/bubble-menus/TableBubbleMenu.jsx';
 import { ImageBubbleMenu } from './components/bubble-menus/ImageBubbleMenu.jsx';
 import { YoutubeBubbleMenu } from './components/bubble-menus/YoutubeBubbleMenu.jsx';
+import { EmbedBubbleMenu } from './components/bubble-menus/EmbedBubbleMenu.jsx';
 import { SlashCommandMenu } from './components/SlashCommandMenu.jsx';
 import { useInscriptEditorTranslations } from './hooks/useInscriptEditorTranslations.js';
 
@@ -120,6 +121,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                         <TableBubbleMenu editor={editor} isReadonly={isReadonly} />
                         <ImageBubbleMenu editor={editor} isReadonly={isReadonly} />
                         <YoutubeBubbleMenu editor={editor} isReadonly={isReadonly} />
+                        <EmbedBubbleMenu editor={editor} isReadonly={isReadonly} />
                         <SlashCommandMenu isReadonly={isReadonly} />
                         <EditorContent editor={editor} />
                     </div>

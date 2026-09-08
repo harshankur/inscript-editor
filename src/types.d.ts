@@ -339,3 +339,14 @@ export const TextBubbleMenu: (props: { editor: Editor | null; isReadonly?: boole
 export const TableBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean }) => ReactNode;
 export const ImageBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean }) => ReactNode;
 export const YoutubeBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean }) => ReactNode;
+export const EmbedBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean }) => ReactNode;
+/** Compact, editable URL/source field used inside bubble menus (see + replace a node's source). */
+export const SourceField: (props: {
+    value?: string;
+    onApply: (value: string) => void;
+    validate?: (value: string) => boolean;
+    placeholder?: string;
+    label?: string;
+    icon?: ReactNode;
+    inputClassName?: string;
+}) => ReactNode;

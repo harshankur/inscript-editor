@@ -147,5 +147,12 @@
   "youtubeVideoUnavailable": "Video non disponibile",
   "embedLoad": "Carica contenuto incorporato",
   "embedThirdParty": "Carica contenuto di terze parti dalla fonte sopra indicata",
-  "embedUnavailable": "Incorporamento non disponibile"
+  "embedUnavailable": "Incorporamento non disponibile",
+  "videoUrl": "URL del video",
+  "imageUrl": "URL dell'immagine",
+  "imageAlt": "Testo alternativo",
+  "embedUrl": "URL di incorporamento",
+  "embedCaption": "Didascalia",
+  "openEmbed": "Apri in una nuova scheda",
+  "deleteEmbed": "Elimina incorporamento"
 }

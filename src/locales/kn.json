@@ -147,5 +147,12 @@
   "youtubeVideoUnavailable": "ವೀಡಿಯೊ ಲಭ್ಯವಿಲ್ಲ",
   "embedLoad": "ಎಂಬೆಡ್ ಮಾಡಿದ ವಿಷಯವನ್ನು ಲೋಡ್ ಮಾಡಿ",
   "embedThirdParty": "ಮೇಲಿನ ಮೂಲದಿಂದ ಮೂರನೇ ವ್ಯಕ್ತಿಯ ವಿಷಯವನ್ನು ಲೋಡ್ ಮಾಡುತ್ತದೆ",
-  "embedUnavailable": "ಎಂಬೆಡ್ ಲಭ್ಯವಿಲ್ಲ"
+  "embedUnavailable": "ಎಂಬೆಡ್ ಲಭ್ಯವಿಲ್ಲ",
+  "videoUrl": "ವೀಡಿಯೊ URL",
+  "imageUrl": "ಚಿತ್ರ URL",
+  "imageAlt": "ಪರ್ಯಾಯ ಪಠ್ಯ",
+  "embedUrl": "ಎಂಬೆಡ್ URL",
+  "embedCaption": "ಶೀರ್ಷಿಕೆ",
+  "openEmbed": "ಹೊಸ ಟ್ಯಾಬ್‌ನಲ್ಲಿ ತೆರೆಯಿರಿ",
+  "deleteEmbed": "ಎಂಬೆಡ್ ಅಳಿಸಿ"
 }

@@ -147,5 +147,12 @@
   "youtubeVideoUnavailable": "影片無法使用",
   "embedLoad": "載入嵌入內容",
   "embedThirdParty": "從上方來源載入第三方內容",
-  "embedUnavailable": "無法嵌入"
+  "embedUnavailable": "無法嵌入",
+  "videoUrl": "影片 URL",
+  "imageUrl": "圖片 URL",
+  "imageAlt": "替代文字",
+  "embedUrl": "嵌入 URL",
+  "embedCaption": "說明文字",
+  "openEmbed": "在新分頁中開啟",
+  "deleteEmbed": "刪除嵌入"
 }

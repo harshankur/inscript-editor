@@ -36,5 +36,7 @@ export { TextBubbleMenu } from './components/bubble-menus/TextBubbleMenu.jsx';
 export { TableBubbleMenu } from './components/bubble-menus/TableBubbleMenu.jsx';
 export { ImageBubbleMenu } from './components/bubble-menus/ImageBubbleMenu.jsx';
 export { YoutubeBubbleMenu } from './components/bubble-menus/YoutubeBubbleMenu.jsx';
+export { EmbedBubbleMenu } from './components/bubble-menus/EmbedBubbleMenu.jsx';
+export { SourceField } from './components/bubble-menus/SourceField.jsx';
 
 export { applyInscriptEditorTurndownRules } from './markdown/turndownRules.js';

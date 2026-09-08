@@ -147,5 +147,12 @@
   "youtubeVideoUnavailable": "동영상을 사용할 수 없습니다",
   "embedLoad": "임베드 콘텐츠 불러오기",
   "embedThirdParty": "위 소스에서 제3자 콘텐츠를 불러옵니다",
-  "embedUnavailable": "임베드를 사용할 수 없습니다"
+  "embedUnavailable": "임베드를 사용할 수 없습니다",
+  "videoUrl": "동영상 URL",
+  "imageUrl": "이미지 URL",
+  "imageAlt": "대체 텍스트",
+  "embedUrl": "임베드 URL",
+  "embedCaption": "캡션",
+  "openEmbed": "새 탭에서 열기",
+  "deleteEmbed": "임베드 삭제"
 }

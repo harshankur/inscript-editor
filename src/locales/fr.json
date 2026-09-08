@@ -147,5 +147,12 @@
   "youtubeVideoUnavailable": "Vidéo indisponible",
   "embedLoad": "Charger le contenu intégré",
   "embedThirdParty": "Charge le contenu tiers depuis la source ci-dessus",
-  "embedUnavailable": "Intégration indisponible"
+  "embedUnavailable": "Intégration indisponible",
+  "videoUrl": "URL de la vidéo",
+  "imageUrl": "URL de l'image",
+  "imageAlt": "Texte alternatif",
+  "embedUrl": "URL d'intégration",
+  "embedCaption": "Légende",
+  "openEmbed": "Ouvrir dans un nouvel onglet",
+  "deleteEmbed": "Supprimer l'intégration"
 }

@@ -5,6 +5,7 @@ import { TextBubbleMenu } from './TextBubbleMenu.jsx';
 import { ImageBubbleMenu } from './ImageBubbleMenu.jsx';
 import { YoutubeBubbleMenu } from './YoutubeBubbleMenu.jsx';
 import { TableBubbleMenu } from './TableBubbleMenu.jsx';
+import { EmbedBubbleMenu } from './EmbedBubbleMenu.jsx';
 
 vi.mock('@tiptap/react/menus', () => ({
     BubbleMenu: ({ children }) => <div data-testid="bubble-menu">{children}</div>,
@@ -64,6 +65,23 @@ describe('bubble menus', () => {
             expect(editor.getAttributes('image').align).toBe('right');
         });
 
+        it('shows the image src and replaces it', () => {
+            render(<ImageBubbleMenu editor={editor} />);
+            const input = screen.getByLabelText('Image URL');
+            expect(input.value).toBe('https://example.com/a.png');
+            fireEvent.change(input, { target: { value: 'https://example.com/b.png' } });
+            fireEvent.keyDown(input, { key: 'Enter' });
+            expect(editor.getAttributes('image').src).toBe('https://example.com/b.png');
+        });
+
+        it('edits the alt text', () => {
+            render(<ImageBubbleMenu editor={editor} />);
+            const input = screen.getByLabelText('Alt text');
+            fireEvent.change(input, { target: { value: 'A photo' } });
+            fireEvent.keyDown(input, { key: 'Enter' });
+            expect(editor.getAttributes('image').alt).toBe('A photo');
+        });
+
         it('deletes the image via the delete button', () => {
             render(<ImageBubbleMenu editor={editor} />);
             fireEvent.click(screen.getByTitle('Delete image'));
@@ -85,6 +103,23 @@ describe('bubble menus', () => {
             expect(editor.getAttributes('youtube').width).toBe('25%');
         });
 
+        it('shows the video URL and replaces it from a pasted link', () => {
+            render(<YoutubeBubbleMenu editor={editor} />);
+            const input = screen.getByLabelText('Video URL');
+            expect(input.value).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+            fireEvent.change(input, { target: { value: 'https://youtu.be/abcdefghijk' } });
+            fireEvent.keyDown(input, { key: 'Enter' });
+            expect(editor.getAttributes('youtube')['data-youtube-video']).toBe('abcdefghijk');
+        });
+
+        it('ignores an invalid URL (keeps the current video)', () => {
+            render(<YoutubeBubbleMenu editor={editor} />);
+            const input = screen.getByLabelText('Video URL');
+            fireEvent.change(input, { target: { value: 'not a youtube link' } });
+            fireEvent.keyDown(input, { key: 'Enter' });
+            expect(editor.getAttributes('youtube')['data-youtube-video']).toBe('dQw4w9WgXcQ');
+        });
+
         it('opens the video on YouTube in a new tab', () => {
             const openSpy = vi.spyOn(window, 'open').mockImplementation(() => {});
             render(<YoutubeBubbleMenu editor={editor} />);
@@ -97,6 +132,29 @@ describe('bubble menus', () => {
             render(<YoutubeBubbleMenu editor={editor} />);
             fireEvent.click(screen.getByTitle('Delete video'));
             expect(editor.state.doc.firstChild.type.name).not.toBe('youtube');
+        });
+    });
+
+    describe('EmbedBubbleMenu', () => {
+        beforeEach(() => {
+            editor = createEditor();
+            editor.commands.insertEmbed('https://example.com/widget');
+            editor.commands.selectAll();
+        });
+
+        it('shows the embed src and replaces it', () => {
+            render(<EmbedBubbleMenu editor={editor} />);
+            const input = screen.getByLabelText('Embed URL');
+            expect(input.value).toBe('https://example.com/widget');
+            fireEvent.change(input, { target: { value: 'https://example.com/other' } });
+            fireEvent.keyDown(input, { key: 'Enter' });
+            expect(editor.getAttributes('embed').src).toBe('https://example.com/other');
+        });
+
+        it('deletes the embed via the delete button', () => {
+            render(<EmbedBubbleMenu editor={editor} />);
+            fireEvent.click(screen.getByTitle('Delete embed'));
+            expect(editor.state.doc.firstChild.type.name).not.toBe('embed');
         });
     });
 

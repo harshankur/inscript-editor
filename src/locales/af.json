@@ -147,5 +147,12 @@
   "youtubeVideoUnavailable": "Video nie beskikbaar nie",
   "embedLoad": "Laai ingebedde inhoud",
   "embedThirdParty": "Laai derdeparty-inhoud vanaf die bron hierbo",
-  "embedUnavailable": "Inbedding nie beskikbaar nie"
+  "embedUnavailable": "Inbedding nie beskikbaar nie",
+  "videoUrl": "Video-URL",
+  "imageUrl": "Beeld-URL",
+  "imageAlt": "Alt-teks",
+  "embedUrl": "Inbed-URL",
+  "embedCaption": "Onderskrif",
+  "openEmbed": "Open in nuwe oortjie",
+  "deleteEmbed": "Verwyder inbedding"
 }
