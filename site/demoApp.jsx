@@ -68,7 +68,7 @@ export const SAMPLE = `
 <blockquote>Wake before the first ferry and the fjord is a mirror; by ten it is a highway of tour boats.</blockquote>
 <h2>A Musical Interlude</h2>
 <p>Embeds are first-class. Here's one, because the internet demands it:</p>
-<div data-youtube-video><iframe src="https://www.youtube.com/watch?v=dQw4w9WgXcQ"></iframe></div>
+<div data-youtube-video="dQw4w9WgXcQ"></div>
 <h2>Costs at a Glance</h2>
 <table>
 <thead><tr><th>Item</th><th>Low (NOK)</th><th>High (NOK)</th></tr></thead>
