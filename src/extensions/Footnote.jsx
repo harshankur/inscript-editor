@@ -1,4 +1,5 @@
 import { Node, mergeAttributes } from '@tiptap/core';
+import { TextSelection } from '@tiptap/pm/state';
 import { ReactNodeViewRenderer, NodeViewWrapper, NodeViewContent } from '@tiptap/react';
 
 const FootnoteReferenceComponent = ({ node, editor, getPos }) => {
@@ -152,45 +153,51 @@ export const FootnotesSection = Node.create({
 
     addCommands() {
         return {
-            insertFootnote: () => ({ tr, state, dispatch, editor }) => {
-                const id = `fn-${Math.random().toString(36).substr(2, 9)}`;
-                
-                if (dispatch) {
-                    const { selection } = state;
-                    const position = selection.$to.pos;
+            insertFootnote: () => ({ tr, state, dispatch }) => {
+                const { schema } = state;
+                const refType = schema.nodes.footnoteReference;
+                const defType = schema.nodes.footnoteDefinition;
+                const secType = schema.nodes.footnotesSection;
+                const pType = schema.nodes.paragraph;
+                if (!refType || !defType || !secType || !pType) return false;
+                if (!dispatch) return true;
 
-                    // 1. Insert the reference
-                    tr.insert(position, this.editor.schema.nodes.footnoteReference.create({ id }));
-                    
-                    // 2. Find or create the section
-                    let sectionPos = null;
-                    state.doc.descendants((n, pos) => {
-                        if (n.type.name === 'footnotesSection') sectionPos = pos;
-                    });
+                const id = `fn-${Math.random().toString(36).slice(2, 11)}`;
 
-                    let defNode = this.editor.schema.nodes.footnoteDefinition.create(
-                        { id },
-                        this.editor.schema.nodes.paragraph.create()
-                    );
+                // 1. Insert the inline reference at the cursor. Every step after this
+                //    must account for the shift it introduces — so read section/end
+                //    positions from the ORIGINAL doc and map them through `tr`, rather
+                //    than using stale positions against the already-modified doc (that
+                //    off-by-one is what nested the 2nd definition inside the 1st and
+                //    left a stray paragraph on the 1st).
+                tr.insert(state.selection.$to.pos, refType.create({ id }));
 
-                    if (sectionPos !== null) {
-                        // Append to existing section
-                        const sectionNode = state.doc.nodeAt(sectionPos);
-                        tr.insert(sectionPos + sectionNode.nodeSize - 1, defNode);
-                        
-                        // Focus the new definition's paragraph
-                        const newDefPos = sectionPos + sectionNode.nodeSize - 1;
-                        tr.setSelection(state.selection.constructor.near(tr.doc.resolve(newDefPos + 2)));
-                    } else {
-                        // Create section at the very end of the doc
-                        const section = this.editor.schema.nodes.footnotesSection.create({}, defNode);
-                        const docEnd = state.doc.content.size;
-                        tr.insert(docEnd, section);
-                        
-                        // Focus
-                        tr.setSelection(state.selection.constructor.near(tr.doc.resolve(docEnd + 3)));
-                    }
+                const defNode = defType.create({ id }, pType.create());
+
+                let sectionPos = null, sectionNode = null;
+                state.doc.descendants((n, pos) => {
+                    if (n.type.name === 'footnotesSection') { sectionPos = pos; sectionNode = n; return false; }
+                    return true;
+                });
+
+                let caretBase;
+                if (sectionPos !== null) {
+                    // Append the definition just before the section's closing token.
+                    const insertAt = tr.mapping.map(sectionPos + sectionNode.nodeSize - 1);
+                    tr.insert(insertAt, defNode);
+                    caretBase = insertAt;                 // -> footnoteDefinition open
+                } else {
+                    // No section yet: create one at the very end of the updated doc.
+                    const insertAt = tr.doc.content.size;
+                    tr.insert(insertAt, secType.create(null, defNode));
+                    caretBase = insertAt + 1;             // step into the section
                 }
+
+                // Caret into the new definition's paragraph (+1 into the definition,
+                // +1 into the paragraph). `near` snaps to the nearest valid inline spot.
+                const caret = Math.min(caretBase + 2, tr.doc.content.size);
+                tr.setSelection(TextSelection.near(tr.doc.resolve(caret)));
+                tr.scrollIntoView();
                 return true;
             },
         };

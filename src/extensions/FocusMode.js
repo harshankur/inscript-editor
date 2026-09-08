@@ -16,15 +16,18 @@ export const FocusModeBlock = Extension.create({
                         if (!isEditable || !isFocused) return DecorationSet.empty;
 
                         const decorations = [];
-                        const { $from, $to } = selection;
+                        const { $from } = selection;
 
-                        // Find the block node that contains the selection
-                        let startNodePos = $from.before(1);
-                        let endNodePos = $to.after(1);
+                        // Position before the top-level block containing the selection. At depth 0
+                        // (e.g. a NodeSelection on a top-level atom, or a gap cursor) `before(1)`
+                        // returns the boundary position itself, where there may be no node — so guard
+                        // `nodeAt` before reading `.nodeSize` (a gap cursor at the doc end would be null).
+                        const startNodePos = $from.before(1);
+                        const focusNode = doc.nodeAt(startNodePos);
 
-                        if (startNodePos !== undefined) {
+                        if (focusNode) {
                             decorations.push(
-                                Decoration.node(startNodePos, startNodePos + doc.nodeAt(startNodePos).nodeSize, {
+                                Decoration.node(startNodePos, startNodePos + focusNode.nodeSize, {
                                     class: 'has-focus',
                                 })
                             );
