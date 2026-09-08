@@ -154,5 +154,7 @@
   "embedUrl": "ఎంబెడ్ URL",
   "embedCaption": "శీర్షిక",
   "openEmbed": "కొత్త ట్యాబ్‌లో తెరవండి",
-  "deleteEmbed": "ఎంబెడ్‌ను తొలగించు"
+  "deleteEmbed": "ఎంబెడ్‌ను తొలగించు",
+  "inlineCode": "ఇన్‌లైన్ కోడ్",
+  "clearFormat": "ఫార్మాటింగ్‌ను తొలగించు"
 }

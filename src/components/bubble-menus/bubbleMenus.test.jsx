@@ -39,10 +39,20 @@ describe('bubble menus', () => {
             expect(editor.isActive('italic')).toBe(true);
         });
 
-        it('toggles a code block via the Code Block button', () => {
+        it('toggles inline code on the selection (not a code block)', () => {
             render(<TextBubbleMenu editor={editor} />);
-            fireEvent.click(screen.getByTitle('Code Block'));
-            expect(editor.getHTML()).toContain('<pre><code>hello</code></pre>');
+            fireEvent.click(screen.getByTitle('Inline Code'));
+            expect(editor.isActive('code')).toBe(true);
+            expect(editor.getHTML()).toContain('<code>hello</code>');
+            expect(editor.getHTML()).not.toContain('<pre>');
+        });
+
+        it('clears formatting via the Clear Formatting button', () => {
+            editor.chain().focus().selectAll().toggleBold().run();
+            expect(editor.isActive('bold')).toBe(true);
+            render(<TextBubbleMenu editor={editor} />);
+            fireEvent.click(screen.getByTitle('Clear Formatting'));
+            expect(editor.isActive('bold')).toBe(false);
         });
     });
 

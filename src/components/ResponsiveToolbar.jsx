@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     AlignCenter, AlignJustify, AlignLeft, AlignRight,
-    Bold, ChevronsRight, Code, Heading1, Heading2, Heading3,
+    Bold, ChevronsRight, Code, SquareCode, Minus, RemoveFormatting, Heading1, Heading2, Heading3,
     Highlighter, Image as ImageIcon, Italic, List, ListOrdered,
     Palette, Quote, Redo, Strikethrough,
     Subscript as SubscriptIcon, Superscript as SuperscriptIcon,
@@ -44,9 +44,11 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
         italic:      { id: 'italic',      icon: Italic,           action: () => editor.chain().focus().toggleItalic().run(),       active: editor.isActive('italic'),       title: t('italic', 'Italic') },
         underline:   { id: 'underline',   icon: UnderlineIcon,    action: () => editor.chain().focus().toggleUnderline().run(),    active: editor.isActive('underline'),    title: t('underline', 'Underline') },
         strike:      { id: 'strike',      icon: Strikethrough,    action: () => editor.chain().focus().toggleStrike().run(),       active: editor.isActive('strike'),       title: t('strike', 'Strikethrough') },
+        inlineCode:  { id: 'inlineCode',  icon: Code,             action: () => editor.chain().focus().toggleCode().run(),         active: editor.isActive('code'),         title: t('inlineCode', 'Inline Code') },
         sub:         { id: 'sub',         icon: SubscriptIcon,    action: () => editor.chain().focus().toggleSubscript().run(),    active: editor.isActive('subscript'),    title: t('subscript', 'Subscript') },
         sup:         { id: 'sup',         icon: SuperscriptIcon,  action: () => editor.chain().focus().toggleSuperscript().run(),  active: editor.isActive('superscript'),  title: t('superscript', 'Superscript') },
         abbreviation:{ id: 'abbreviation',icon: TextSelect,       action: () => editor.chain().focus().setAbbreviation().run(),    active: editor.isActive('abbreviation'), title: t('abbreviation', 'Abbreviation') },
+        clearFormat: { id: 'clearFormat', icon: RemoveFormatting, action: () => editor.chain().focus().unsetAllMarks().clearNodes().run(), title: t('clearFormat', 'Clear Formatting') },
 
         // Styling — these are custom-rendered, so we mark them
         fontSize: {
@@ -138,8 +140,9 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
         },
 
         // Blocks
-        code:  { id: 'code',  icon: Code,  action: () => editor.chain().focus().toggleCodeBlock().run(),     active: editor.isActive('codeBlock'),  title: t('codeBlock', 'Code Block') },
-        quote: { id: 'quote', icon: Quote, action: () => editor.chain().focus().toggleBlockquote().run(),    active: editor.isActive('blockquote'), title: t('quote', 'Quote') },
+        code:  { id: 'code',  icon: SquareCode, action: () => editor.chain().focus().toggleCodeBlock().run(),  active: editor.isActive('codeBlock'),  title: t('codeBlock', 'Code Block') },
+        quote: { id: 'quote', icon: Quote,      action: () => editor.chain().focus().toggleBlockquote().run(), active: editor.isActive('blockquote'), title: t('quote', 'Quote') },
+        hr:    { id: 'hr',    icon: Minus,      action: () => editor.chain().focus().setHorizontalRule().run(), title: t('horizontalRule', 'Divider') },
 
         // Admonitions dropdown
         admonitions: {

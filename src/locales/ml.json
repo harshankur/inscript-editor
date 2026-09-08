@@ -154,5 +154,7 @@
   "embedUrl": "എംബെഡ് URL",
   "embedCaption": "അടിക്കുറിപ്പ്",
   "openEmbed": "പുതിയ ടാബിൽ തുറക്കുക",
-  "deleteEmbed": "എംബെഡ് ഇല്ലാതാക്കുക"
+  "deleteEmbed": "എംബെഡ് ഇല്ലാതാക്കുക",
+  "inlineCode": "ഇൻലൈൻ കോഡ്",
+  "clearFormat": "ഫോർമാറ്റിംഗ് മായ്‌ക്കുക"
 }

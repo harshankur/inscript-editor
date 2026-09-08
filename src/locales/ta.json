@@ -154,5 +154,7 @@
   "embedUrl": "உட்பொதிப்பு URL",
   "embedCaption": "தலைப்பு",
   "openEmbed": "புதிய தாவலில் திறக்கவும்",
-  "deleteEmbed": "உட்பொதிப்பை நீக்கு"
+  "deleteEmbed": "உட்பொதிப்பை நீக்கு",
+  "inlineCode": "இன்லைன் குறியீடு",
+  "clearFormat": "வடிவமைப்பை அழி"
 }

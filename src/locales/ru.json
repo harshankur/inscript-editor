@@ -154,5 +154,7 @@
   "embedUrl": "URL для встраивания",
   "embedCaption": "Подпись",
   "openEmbed": "Открыть в новой вкладке",
-  "deleteEmbed": "Удалить встраивание"
+  "deleteEmbed": "Удалить встраивание",
+  "inlineCode": "Строчный код",
+  "clearFormat": "Очистить форматирование"
 }

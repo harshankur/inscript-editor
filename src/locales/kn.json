@@ -154,5 +154,7 @@
   "embedUrl": "ಎಂಬೆಡ್ URL",
   "embedCaption": "ಶೀರ್ಷಿಕೆ",
   "openEmbed": "ಹೊಸ ಟ್ಯಾಬ್‌ನಲ್ಲಿ ತೆರೆಯಿರಿ",
-  "deleteEmbed": "ಎಂಬೆಡ್ ಅಳಿಸಿ"
+  "deleteEmbed": "ಎಂಬೆಡ್ ಅಳಿಸಿ",
+  "inlineCode": "ಇನ್‌ಲೈನ್ ಕೋಡ್",
+  "clearFormat": "ಫಾರ್ಮ್ಯಾಟಿಂಗ್ ತೆರವುಗೊಳಿಸಿ"
 }

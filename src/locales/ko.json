@@ -154,5 +154,7 @@
   "embedUrl": "임베드 URL",
   "embedCaption": "캡션",
   "openEmbed": "새 탭에서 열기",
-  "deleteEmbed": "임베드 삭제"
+  "deleteEmbed": "임베드 삭제",
+  "inlineCode": "인라인 코드",
+  "clearFormat": "서식 지우기"
 }

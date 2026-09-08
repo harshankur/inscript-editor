@@ -4,7 +4,7 @@ import {
     Bold, Code, Highlighter, Italic, Palette, Quote,
     Underline as UnderlineIcon, Strikethrough,
     Subscript as SubscriptIcon, Superscript as SuperscriptIcon,
-    TextSelect,
+    TextSelect, RemoveFormatting,
 } from 'lucide-react';
 import { ColorSelector } from '../ColorSelector.jsx';
 import { FontSizeSelector } from '../FontSizeSelector.jsx';
@@ -134,6 +134,30 @@ function buildToolMap(editor, t) {
         link: {
             id: 'link',
             render: () => <LinkSelector editor={editor} />
+        },
+        inlineCode: {
+            id: 'inlineCode',
+            render: () => (
+                <button
+                    onClick={() => editor.chain().focus().toggleCode().run()}
+                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${editor.isActive('code') ? 'text-yellow-400 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-700 dark:text-zinc-300'}`}
+                    title={t('inlineCode', 'Inline Code')}
+                >
+                    <Code size={16} />
+                </button>
+            )
+        },
+        clearFormat: {
+            id: 'clearFormat',
+            render: () => (
+                <button
+                    onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
+                    className="w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-300"
+                    title={t('clearFormat', 'Clear Formatting')}
+                >
+                    <RemoveFormatting size={16} />
+                </button>
+            )
         },
         code: {
             id: 'code',

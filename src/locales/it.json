@@ -154,5 +154,7 @@
   "embedUrl": "URL di incorporamento",
   "embedCaption": "Didascalia",
   "openEmbed": "Apri in una nuova scheda",
-  "deleteEmbed": "Elimina incorporamento"
+  "deleteEmbed": "Elimina incorporamento",
+  "inlineCode": "Codice inline",
+  "clearFormat": "Cancella formattazione"
 }

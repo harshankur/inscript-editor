@@ -154,5 +154,7 @@
   "embedUrl": "嵌入 URL",
   "embedCaption": "说明文字",
   "openEmbed": "在新标签页中打开",
-  "deleteEmbed": "删除嵌入"
+  "deleteEmbed": "删除嵌入",
+  "inlineCode": "行内代码",
+  "clearFormat": "清除格式"
 }

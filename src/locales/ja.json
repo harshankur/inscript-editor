@@ -154,5 +154,7 @@
   "embedUrl": "埋め込みURL",
   "embedCaption": "キャプション",
   "openEmbed": "新しいタブで開く",
-  "deleteEmbed": "埋め込みを削除"
+  "deleteEmbed": "埋め込みを削除",
+  "inlineCode": "インラインコード",
+  "clearFormat": "書式をクリア"
 }

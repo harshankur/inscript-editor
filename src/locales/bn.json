@@ -154,5 +154,7 @@
   "embedUrl": "এমবেড URL",
   "embedCaption": "ক্যাপশন",
   "openEmbed": "নতুন ট্যাবে খুলুন",
-  "deleteEmbed": "এমবেড মুছুন"
+  "deleteEmbed": "এমবেড মুছুন",
+  "inlineCode": "ইনলাইন কোড",
+  "clearFormat": "ফরম্যাটিং সাফ করুন"
 }

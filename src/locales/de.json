@@ -154,5 +154,7 @@
   "embedUrl": "Embed-URL",
   "embedCaption": "Beschriftung",
   "openEmbed": "In neuem Tab öffnen",
-  "deleteEmbed": "Einbettung löschen"
+  "deleteEmbed": "Einbettung löschen",
+  "inlineCode": "Inline-Code",
+  "clearFormat": "Formatierung entfernen"
 }

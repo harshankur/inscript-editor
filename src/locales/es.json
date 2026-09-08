@@ -154,5 +154,7 @@
   "embedUrl": "URL de inserción",
   "embedCaption": "Leyenda",
   "openEmbed": "Abrir en una pestaña nueva",
-  "deleteEmbed": "Eliminar inserción"
+  "deleteEmbed": "Eliminar inserción",
+  "inlineCode": "Código en línea",
+  "clearFormat": "Borrar formato"
 }

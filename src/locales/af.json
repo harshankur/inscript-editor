@@ -154,5 +154,7 @@
   "embedUrl": "Inbed-URL",
   "embedCaption": "Onderskrif",
   "openEmbed": "Open in nuwe oortjie",
-  "deleteEmbed": "Verwyder inbedding"
+  "deleteEmbed": "Verwyder inbedding",
+  "inlineCode": "Inlynkode",
+  "clearFormat": "Wis formatering"
 }

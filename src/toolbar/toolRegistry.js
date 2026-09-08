@@ -16,7 +16,7 @@ import {
     Link, Link2, MessageSquareQuote,
     List, ListOrdered, SquareCheck, BookType, BookOpen,
     AlignLeft,
-    Code, Quote,
+    Code, SquareCode, Quote, Minus, RemoveFormatting,
     Info,
     Sigma, Workflow,
     Image as ImageIcon, Youtube as YoutubeIcon, Table as TableIcon, Tag,
@@ -44,9 +44,11 @@ export const TOOL_REGISTRY = {
     italic:      { id: 'italic',      label: 'Italic',            icon: Italic,           group: 'formatting' },
     underline:   { id: 'underline',   label: 'Underline',         icon: UnderlineIcon,    group: 'formatting' },
     strike:      { id: 'strike',      label: 'Strikethrough',     icon: Strikethrough,    group: 'formatting' },
+    inlineCode:  { id: 'inlineCode',  label: 'Inline Code',       icon: Code,             group: 'formatting' },
     sub:         { id: 'sub',         label: 'Subscript',         icon: SubscriptIcon,    group: 'formatting' },
     sup:         { id: 'sup',         label: 'Superscript',       icon: SuperscriptIcon,  group: 'formatting' },
     abbreviation:{ id: 'abbreviation',label: 'Abbreviation',      icon: TextSelect,       group: 'formatting' },
+    clearFormat: { id: 'clearFormat', label: 'Clear Formatting',  icon: RemoveFormatting, group: 'formatting' },
 
     // Styling
     fontSize:    { id: 'fontSize',    label: 'Font Size',         icon: null,             group: 'styling'    },
@@ -69,9 +71,10 @@ export const TOOL_REGISTRY = {
     align:       { id: 'align',       label: 'Text Alignment',    icon: AlignLeft,        group: 'alignment'  },
 
     // Block types
-    code:        { id: 'code',        label: 'Code Block',        icon: Code,             group: 'blocks'     },
+    code:        { id: 'code',        label: 'Code Block',        icon: SquareCode,       group: 'blocks'     },
     quote:       { id: 'quote',       label: 'Quote',             icon: Quote,            group: 'blocks'     },
     admonitions: { id: 'admonitions', label: 'Admonitions',       icon: Info,             group: 'blocks'     },
+    hr:          { id: 'hr',          label: 'Divider',           icon: Minus,            group: 'blocks'     },
 
     // Advanced
     math:        { id: 'math',        label: 'Math Block',        icon: Sigma,            group: 'advanced'   },
@@ -96,8 +99,8 @@ export const TOOLBAR_DIVIDER = DIVIDER;
  * (headings, lists, tables, image, …) have no meaning mid-selection.
  */
 const BUBBLE_ALLOWED = new Set([
-    'bold', 'italic', 'underline', 'strike', 'sub', 'sup', 'abbreviation',
-    'fontSize', 'highlight', 'color', 'link', 'code', 'quote',
+    'bold', 'italic', 'underline', 'strike', 'inlineCode', 'sub', 'sup', 'abbreviation',
+    'fontSize', 'highlight', 'color', 'link', 'quote', 'clearFormat',
 ]);
 
 /** Every tool that may appear in the main toolbar (all of them). */

@@ -22,6 +22,19 @@ describe('toolbar registry exports', () => {
         expect(BUBBLE_ALLOWED_TOOL_IDS).not.toContain('h1');
     });
 
+    it('registers inline code, divider, and clear formatting as distinct tools', () => {
+        for (const id of ['inlineCode', 'hr', 'clearFormat']) {
+            expect(TOOL_REGISTRY[id]).toBeTruthy();
+            expect(ALL_TOOL_IDS).toContain(id);
+        }
+        // inline code (mark) and clear formatting belong in the bubble menu; the divider
+        // and the code BLOCK do not.
+        expect(BUBBLE_ALLOWED_TOOL_IDS).toContain('inlineCode');
+        expect(BUBBLE_ALLOWED_TOOL_IDS).toContain('clearFormat');
+        expect(BUBBLE_ALLOWED_TOOL_IDS).not.toContain('hr');
+        expect(BUBBLE_ALLOWED_TOOL_IDS).not.toContain('code');
+    });
+
     it('TOOLBAR_TOOLS annotates each tool with its permitted surfaces', () => {
         expect(TOOLBAR_TOOLS.length).toBe(ALL_TOOL_IDS.length);
         expect(TOOLBAR_TOOLS.find(t => t.id === 'bold').surfaces).toContain('bubble');

@@ -19,12 +19,12 @@ export const TOOLBAR_PRESETS = {
     full: [
         'undo', 'redo', D,
         'h1', 'h2', 'h3', D,
-        'bold', 'italic', 'underline', 'strike', 'sub', 'sup', 'abbreviation', D,
+        'bold', 'italic', 'underline', 'strike', 'inlineCode', 'sub', 'sup', 'abbreviation', 'clearFormat', D,
         'fontSize', 'highlight', 'color', D,
         'link', 'wikilink', 'footnote', 'citation', D,
         'bullet', 'ordered', 'task', 'definition', D,
         'align', D,
-        'code', 'quote', 'admonitions', D,
+        'code', 'quote', 'admonitions', 'hr', D,
         'math', 'mermaid', D,
         'image', 'youtube', 'table', 'tags',
     ],
@@ -36,12 +36,12 @@ export const TOOLBAR_PRESETS = {
     blogger: [
         'undo', 'redo', D,
         'h1', 'h2', D,
-        'bold', 'italic', 'underline', 'strike', D,
+        'bold', 'italic', 'underline', 'strike', 'clearFormat', D,
         'highlight', 'color', D,
         'link', D,
         'bullet', 'ordered', D,
         'align', D,
-        'quote', D,
+        'quote', 'hr', D,
         'image', 'youtube', 'table', 'tags',
     ],
 
@@ -52,11 +52,11 @@ export const TOOLBAR_PRESETS = {
     technical: [
         'undo', 'redo', D,
         'h1', 'h2', 'h3', D,
-        'bold', 'italic', 'underline', 'strike', 'abbreviation', D,
+        'bold', 'italic', 'underline', 'strike', 'inlineCode', 'abbreviation', D,
         'link', 'wikilink', 'footnote', D,
         'bullet', 'ordered', 'task', 'definition', D,
         'align', D,
-        'code', 'quote', 'admonitions', D,
+        'code', 'quote', 'admonitions', 'hr', D,
         'mermaid', D,
         'image', 'table', 'tags',
     ],
@@ -68,11 +68,11 @@ export const TOOLBAR_PRESETS = {
     science: [
         'undo', 'redo', D,
         'h1', 'h2', 'h3', D,
-        'bold', 'italic', 'underline', 'strike', 'sub', 'sup', 'abbreviation', D,
+        'bold', 'italic', 'underline', 'strike', 'inlineCode', 'sub', 'sup', 'abbreviation', D,
         'link', 'footnote', 'citation', D,
         'bullet', 'ordered', 'task', D,
         'align', D,
-        'code', 'quote', D,
+        'code', 'quote', 'hr', D,
         'math', 'mermaid', D,
         'image', 'table',
     ],
@@ -88,22 +88,22 @@ export const PRESET_LABELS = {
 
 export const BUBBLE_PRESETS = {
     full: [
-        'bold', 'italic', 'underline', 'strike', 'sub', 'sup', D,
+        'bold', 'italic', 'underline', 'strike', 'inlineCode', 'sub', 'sup', D,
         'fontSize', 'highlight', 'color', D,
-        'link', 'code', 'quote'
+        'link', 'quote', 'clearFormat'
     ],
     blogger: [
         'bold', 'italic', 'underline', D,
         'highlight', 'color', D,
-        'link', 'quote'
+        'link', 'quote', 'clearFormat'
     ],
     technical: [
-        'bold', 'italic', 'underline', D,
-        'link', 'code', 'quote'
+        'bold', 'italic', 'underline', 'inlineCode', D,
+        'link', 'quote'
     ],
     science: [
-        'bold', 'italic', 'underline', 'sub', 'sup', D,
-        'link', 'code', 'quote'
+        'bold', 'italic', 'underline', 'inlineCode', 'sub', 'sup', D,
+        'link', 'quote'
     ],
 };
 

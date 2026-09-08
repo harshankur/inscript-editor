@@ -154,5 +154,7 @@
   "embedUrl": "इम्बेड URL",
   "embedCaption": "क्याप्सन",
   "openEmbed": "नयाँ ट्याबमा खोल्नुहोस्",
-  "deleteEmbed": "इम्बेड मेट्नुहोस्"
+  "deleteEmbed": "इम्बेड मेट्नुहोस्",
+  "inlineCode": "इनलाइन कोड",
+  "clearFormat": "ढाँचा हटाउनुहोस्"
 }

@@ -154,5 +154,7 @@
   "embedUrl": "URL de incorporação",
   "embedCaption": "Legenda",
   "openEmbed": "Abrir em nova aba",
-  "deleteEmbed": "Excluir incorporação"
+  "deleteEmbed": "Excluir incorporação",
+  "inlineCode": "Código embutido",
+  "clearFormat": "Limpar formatação"
 }
