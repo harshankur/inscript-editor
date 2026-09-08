@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>inscript-editor: a standalone TipTap rich-text editor for React</title>
+    <meta name="description" content="A batteries-included, TipTap v3 rich-text editor for React: images, tables, YouTube, math, diagrams, version history, a spatial-outline minimap, focus mode, and i18n in 19 languages." />
+    <meta property="og:title" content="inscript-editor" />
+    <meta property="og:description" content="A standalone TipTap v3 rich-text editor for React. Batteries included." />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2310b981'/%3E%3Ctext x='16' y='23' font-size='20' font-family='sans-serif' font-weight='800' fill='white' text-anchor='middle'%3EI%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+    <header class="hdr">
+        <div class="wrap hdr-in">
+            <a class="brand" href="#top"><span class="mark">I</span> inscript-editor</a>
+            <nav class="nav">
+                <a class="hide-sm" href="#features">Features</a>
+                <a class="hide-sm" href="#demo">Demo</a>
+                <a class="hide-sm" href="#start">Quick start</a>
+                <a href="https://github.com/harshankur/inscript-editor" target="_blank" rel="noopener">GitHub</a>
+                <a class="hide-sm" href="https://www.npmjs.com/package/inscript-editor" target="_blank" rel="noopener">npm</a>
+                <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main id="top">
+        <!-- Hero -->
+        <div class="hero wrap">
+            <span class="badge"><span class="dot"></span> Extracted from Inscript · MIT licensed</span>
+            <h1>The rich-text editor,<br /><span class="grad">batteries included.</span></h1>
+            <p class="lede">A standalone <strong>TipTap v3</strong> editor for React with everything a real writing app needs: images, tables, YouTube, math, diagrams, version history, a followable minimap, and i18n in 19 languages. Drop it in and ship.</p>
+            <div class="hero-cta">
+                <a class="btn btn-primary" href="#demo">Try the live demo</a>
+                <a class="btn btn-ghost" href="https://github.com/harshankur/inscript-editor" target="_blank" rel="noopener">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.3-1.7-1.3-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.79 2.73 1.27 3.4.97.1-.76.4-1.27.74-1.56-2.56-.29-5.26-1.28-5.26-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0C17.2 5 18.17 5.32 18.17 5.32c.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.4-5.28 5.69.41.36.78 1.07.78 2.16v3.2c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5Z"/></svg>
+                    View on GitHub
+                </a>
+            </div>
+            <div class="install">
+                <span><span class="prompt">$</span> npm install inscript-editor</span>
+                <button id="copy-install" title="Copy">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                </button>
+            </div>
+            <div class="shot">
+                <div class="shot-bar"><i></i><i></i><i></i></div>
+                <img src="./screenshots/shot-hero.png" alt="The inscript-editor editing a document, with the toolbar and the spatial-outline minimap" width="1000" loading="eager" />
+            </div>
+        </div>
+
+        <!-- Features -->
+        <section id="features">
+            <div class="wrap">
+                <div class="sec-head">
+                    <span class="eyebrow">Everything in the box</span>
+                    <h2>A whole writing surface, not just bold and italics</h2>
+                    <p>Saving, uploads and search stay in your app; the editor brings the rest.</p>
+                </div>
+                <div class="grid" id="feature-grid"></div>
+            </div>
+        </section>
+
+        <!-- Showcase -->
+        <section style="background: var(--bg-soft); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);">
+            <div class="wrap showcase">
+                <div class="row">
+                    <div class="txt">
+                        <h3>A minimap you can actually follow</h3>
+                        <p>Not a shrunk photo of grey blocks, but a spatial outline. Headings render as readable labels at their true position, body text becomes content-derived density, images show real thumbnails, and the whole document fits the panel so you always know where you are.</p>
+                        <ul>
+                            <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Click a heading to jump to it</li>
+                            <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Draggable viewport, fit to panel</li>
+                            <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Fully themeable via CSS variables</li>
+                        </ul>
+                    </div>
+                    <div class="shot"><div class="shot-bar"><i></i><i></i><i></i></div><img src="./screenshots/shot-dark.png" alt="inscript-editor in dark mode with the minimap" loading="lazy" /></div>
+                </div>
+                <div class="row rev">
+                    <div class="shot"><div class="shot-bar"><i></i><i></i><i></i></div><img src="./screenshots/shot-focus.png" alt="Focus mode: a narrowed column with the chrome hidden" loading="lazy" /></div>
+                    <div class="txt">
+                        <h3>Focus mode, version history &amp; a configurable toolbar</h3>
+                        <p>Dim everything but the sentence you're writing. Keep a client-side history stack with a visual/text/source diff and one-click restore. Let users rearrange the toolbar with a drag-and-drop customizer, or lock it down with presets.</p>
+                        <ul>
+                            <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Host-controlled width, font &amp; dimming</li>
+                            <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Diff view with restore</li>
+                            <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Responsive toolbar collapses to “More”</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Live demo -->
+        <section id="demo">
+            <div class="wrap">
+                <div class="sec-head">
+                    <span class="eyebrow">Live, right here</span>
+                    <h2>Try it: this is the real thing</h2>
+                    <p>The panel below is a running instance of the package. Type, select text for the bubble menu, press “/” for commands, drag the minimap, or click the gear to rearrange the toolbar.</p>
+                </div>
+                <div class="demo-window"><div id="demo-root"></div></div>
+                <p class="demo-note">Nothing you type is saved or sent anywhere; it lives only in this browser tab.</p>
+            </div>
+        </section>
+
+        <!-- Quick start -->
+        <section id="start" style="background: var(--bg-soft); border-top: 1px solid var(--line);">
+            <div class="wrap">
+                <div class="sec-head">
+                    <span class="eyebrow">Quick start</span>
+                    <h2>Two imports and a component</h2>
+                    <p>Own the editor instance with a hook; render it with one component. Everything else is props.</p>
+                </div>
+                <div class="two">
+                    <div>
+                        <p style="font-weight:600;margin:0 0 10px;">1. Install</p>
+                        <pre class="codeblock"><span class="c"># the package</span>
+npm install inscript-editor
+
+<span class="c"># its peers (React + TipTap)</span>
+npm install react react-dom @tiptap/core \
+  @tiptap/react @tiptap/starter-kit <span class="c">…</span></pre>
+                    </div>
+                    <div>
+                        <p style="font-weight:600;margin:0 0 10px;">2. Use</p>
+                        <pre class="codeblock"><span class="k">import</span> { useInscriptEditor, InscriptEditor }
+  <span class="k">from</span> <span style="color:var(--brand-strong)">'inscript-editor'</span>;
+<span class="k">import</span> <span style="color:var(--brand-strong)">'inscript-editor/styles'</span>;
+
+<span class="k">function</span> Post() {
+  <span class="k">const</span> api = useInscriptEditor({
+    contentKey: filename,
+    onContentChange: (e) =&gt; save(e),
+  });
+  <span class="k">return</span> &lt;InscriptEditor {...api} /&gt;;
+}</pre>
+                    </div>
+                </div>
+                <p style="text-align:center;margin-top:28px;">
+                    <a class="btn btn-ghost" href="https://github.com/harshankur/inscript-editor#readme" target="_blank" rel="noopener">Read the full docs →</a>
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="ftr">
+        <div class="wrap ftr-in">
+            <span class="brand"><span class="mark">I</span> inscript-editor</span>
+            <a href="https://github.com/harshankur/inscript-editor" target="_blank" rel="noopener">GitHub</a>
+            <a href="https://www.npmjs.com/package/inscript-editor" target="_blank" rel="noopener">npm</a>
+            <a href="https://github.com/harshankur/inscript-editor#readme" target="_blank" rel="noopener">Docs</a>
+            <span class="sp">MIT © Harsh Ankur · built with <a href="https://tiptap.dev" target="_blank" rel="noopener">TipTap</a></span>
+        </div>
+    </footer>
+
+    <script type="module" src="./main.jsx"></script>
+</body>
+</html>
