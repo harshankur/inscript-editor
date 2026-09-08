@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     AlignCenter, AlignJustify, AlignLeft, AlignRight,
@@ -231,39 +231,49 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
         return configToSlots(activeConfig, toolMap);
     }, [editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, t, activeConfig]);
 
-    // Mirror `tools` into a ref so the resize handler always reads latest list.
+    // Mirror `tools` into a ref so the resize handler always reads the latest list.
     const toolsRef = useRef(tools);
-    useEffect(() => { toolsRef.current = tools; }, [tools]);
 
-    // Precise resize logic using source-of-truth widths.
-    // Reserve extra space for the settings gear when onToolbarConfigChange is provided.
+    // Precise fit logic using source-of-truth widths. Reserve space for the settings gear
+    // when onToolbarConfigChange is provided.
     const rightReserve = 50 + (onToolbarConfigChange ? TOOLBAR_SIZES.BUTTON + TOOLBAR_SIZES.GAP : 0);
+    const recomputeVisible = useCallback(() => {
+        if (!containerRef.current) return;
+        const currentTools = toolsRef.current;
+        const containerWidth = containerRef.current.clientWidth - rightReserve;
+        let currentTotal = 0;
+        let count = 0;
+
+        for (const tool of currentTools) {
+            let toolWidth;
+            if (tool.type === 'divider') toolWidth = TOOLBAR_SIZES.DIVIDER;
+            else if (tool.width) toolWidth = tool.width;
+            else toolWidth = TOOLBAR_SIZES.BUTTON;
+
+            if (currentTotal + toolWidth + TOOLBAR_SIZES.GAP > containerWidth) break;
+            currentTotal += toolWidth + TOOLBAR_SIZES.GAP;
+            count++;
+        }
+        setVisibleCount(Math.max(2, count));
+    }, [rightReserve]);
+
+    // Recompute whenever the TOOL SET changes (e.g. switching presets), not only on resize.
+    // A preset swap changes the number of tools with no resize event, so without this the
+    // count stays stale — leaving a phantom ">>" with empty space beside it.
     useEffect(() => {
-        const handleResize = () => {
-            if (!containerRef.current) return;
-            const currentTools = toolsRef.current;
-            const containerWidth = containerRef.current.clientWidth - rightReserve;
-            let currentTotal = 0;
-            let count = 0;
+        toolsRef.current = tools;
+        recomputeVisible();
+    }, [tools, recomputeVisible]);
 
-            for (const tool of currentTools) {
-                let toolWidth;
-                if (tool.type === 'divider') toolWidth = TOOLBAR_SIZES.DIVIDER;
-                else if (tool.width) toolWidth = tool.width;
-                else toolWidth = TOOLBAR_SIZES.BUTTON;
-
-                if (currentTotal + toolWidth + TOOLBAR_SIZES.GAP > containerWidth) break;
-                currentTotal += toolWidth + TOOLBAR_SIZES.GAP;
-                count++;
-            }
-            setVisibleCount(Math.max(2, count));
-        };
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        const observer = new ResizeObserver(handleResize);
+    // Recompute on container/window resize. Depends on `editor` so the ResizeObserver
+    // attaches once the toolbar container actually mounts (editor can be null on first render).
+    useEffect(() => {
+        recomputeVisible();
+        window.addEventListener('resize', recomputeVisible);
+        const observer = new ResizeObserver(recomputeVisible);
         if (containerRef.current) observer.observe(containerRef.current);
-        return () => { window.removeEventListener('resize', handleResize); observer.disconnect(); };
-    }, []);
+        return () => { window.removeEventListener('resize', recomputeVisible); observer.disconnect(); };
+    }, [recomputeVisible, editor]);
 
     if (!editor) return null;
 

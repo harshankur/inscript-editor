@@ -97,6 +97,21 @@ describe('ResponsiveToolbar overflow', () => {
         expect(screen.queryByTitle('More tools')).not.toBeInTheDocument();
     });
 
+    it('recomputes when the preset/config changes without a resize (no phantom overflow)', () => {
+        // Reproduces the reported bug: at a wide width, switch from a small preset to a
+        // large one. The tool set changes but nothing resizes, so a stale count would leave
+        // a ">>" with empty space beside it.
+        stubClientWidth(2000);
+        const { rerender } = render(<ResponsiveToolbar editor={editor} toolbarConfig={TOOLBAR_PRESETS.blogger} />);
+        expect(screen.queryByTitle('More tools')).not.toBeInTheDocument();
+
+        rerender(<ResponsiveToolbar editor={editor} toolbarConfig={TOOLBAR_PRESETS.full} />);
+        // Full also fits at 2000px, so there must be no phantom More button, and a tool near
+        // the end of the full config must be visible (not stranded in overflow).
+        expect(screen.queryByTitle('More tools')).not.toBeInTheDocument();
+        expect(screen.getByTitle('Insert Table')).toBeInTheDocument();
+    });
+
     it('a visible command button drives the editor', () => {
         stubClientWidth(2000);
         render(<ResponsiveToolbar editor={editor} />);
