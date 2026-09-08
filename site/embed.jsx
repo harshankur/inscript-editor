@@ -12,3 +12,13 @@ createRoot(document.getElementById('root')).render(
         <Demo focusMode={params.get('focus') === '1'} showMiniMap={params.get('nomap') !== '1'} />
     </React.StrictMode>
 );
+
+// For the screenshot of the toolbar customizer: open its drawer once the editor mounts.
+if (params.get('customizer') === '1') {
+    const tryOpen = (n = 0) => {
+        const gear = document.querySelector('button[title="Customize toolbar"]');
+        if (gear) gear.click();
+        else if (n < 40) setTimeout(() => tryOpen(n + 1), 100);
+    };
+    setTimeout(() => tryOpen(), 400);
+}

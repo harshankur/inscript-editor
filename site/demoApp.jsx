@@ -3,7 +3,10 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import '../dist/styles/inscript-editor.css';
 import './demo.css';
-import { useInscriptEditor, InscriptEditor, MiniMap, extractYoutubeId } from '../src/index.js';
+import {
+    useInscriptEditor, InscriptEditor, MiniMap, DocumentOutline, extractYoutubeId,
+    DEFAULT_TOOLBAR_CONFIG, DEFAULT_BUBBLE_CONFIG,
+} from '../src/index.js';
 
 if (!i18n.isInitialized) {
     i18n.use(initReactI18next).init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
@@ -35,6 +38,9 @@ export const SAMPLE = `
 <li data-type="taskItem" data-checked="false">Reserve a harbour room</li>
 </ul>
 <blockquote>Wake before the first ferry and the fjord is a mirror; by ten it is a highway of tour boats.</blockquote>
+<h2>A Musical Interlude</h2>
+<p>Embeds are first-class. Here's one, because the internet demands it:</p>
+<div data-youtube-video><iframe src="https://www.youtube.com/watch?v=dQw4w9WgXcQ"></iframe></div>
 <h2>Costs at a Glance</h2>
 <table>
 <thead><tr><th>Item</th><th>Low (NOK)</th><th>High (NOK)</th></tr></thead>
@@ -55,9 +61,19 @@ export const SAMPLE = `
 <p>By the third morning the rhythm of ferries and quiet villages has become the whole point, and the itinerary matters less than the light.</p>
 `;
 
-export function Demo({ focusMode = false, showMiniMap = true }) {
+export function Demo({ focusMode = false, showMiniMap = true, showOutline = true, enableCustomizer = true }) {
     const api = useInscriptEditor({ contentKey: 'inscript-editor-demo', title: 'The Fjords of Western Norway' });
     const { editor } = api;
+
+    // The customizer drawer scopes itself to this element (position: relative; overflow:
+    // hidden) instead of covering the viewport. Track it in state so it's set once mounted.
+    const panelRef = React.useRef(null);
+    const [container, setContainer] = React.useState(null);
+    React.useEffect(() => { setContainer(panelRef.current); }, []);
+
+    // Host-owned toolbar/bubble config — providing onChange is what reveals the settings gear.
+    const [toolbarConfig, setToolbarConfig] = React.useState(DEFAULT_TOOLBAR_CONFIG);
+    const [bubbleConfig, setBubbleConfig] = React.useState(DEFAULT_BUBBLE_CONFIG);
 
     React.useEffect(() => { if (editor) editor.commands.setContent(SAMPLE); }, [editor]);
 
@@ -82,7 +98,10 @@ export function Demo({ focusMode = false, showMiniMap = true }) {
     };
 
     return (
-        <div className="im-demo">
+        <div className="im-demo" ref={panelRef}>
+            {showOutline && !focusMode && (
+                <div className="im-demo-aside im-demo-outline"><DocumentOutline editor={editor} /></div>
+            )}
             <div className="im-demo-main">
                 <InscriptEditor
                     editor={editor}
@@ -90,9 +109,16 @@ export function Demo({ focusMode = false, showMiniMap = true }) {
                     focusMode={focusMode}
                     onShowMediaLibrary={onShowMediaLibrary}
                     onAddYoutube={onAddYoutube}
+                    toolbarConfig={enableCustomizer ? toolbarConfig : undefined}
+                    onToolbarConfigChange={enableCustomizer ? setToolbarConfig : undefined}
+                    bubbleMenuConfig={bubbleConfig}
+                    onBubbleMenuConfigChange={setBubbleConfig}
+                    customizerContainer={container}
                 />
             </div>
-            {showMiniMap && <MiniMap editor={editor} width="13rem" />}
+            {showMiniMap && !focusMode && (
+                <div className="im-demo-aside"><MiniMap editor={editor} width="12rem" /></div>
+            )}
         </div>
     );
 }

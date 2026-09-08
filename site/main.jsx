@@ -1,7 +1,18 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import i18n from 'i18next';
 import './site.css';
 import { Demo } from './demoApp.jsx';
+
+// ── Live editor language (switches the whole demo: tooltips, menus, panels) ──
+const langSelect = document.getElementById('lang-select');
+if (langSelect) {
+    const sync = () => { langSelect.value = i18n.resolvedLanguage || i18n.language || 'en'; };
+    i18n.on('initialized', sync);
+    i18n.on('languageChanged', sync);
+    sync();
+    langSelect.addEventListener('change', () => i18n.changeLanguage(langSelect.value));
+}
 
 // ── Theme (persisted; the same `dark` class drives the page and the editor) ──
 const root = document.documentElement;
