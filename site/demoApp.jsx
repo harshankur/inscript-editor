@@ -3,6 +3,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import '../dist/styles/inscript-editor.css';
 import './demo.css';
+import { ListTree, Map as MapIcon, X } from 'lucide-react';
 import {
     useInscriptEditor, InscriptEditor, MiniMap, DocumentOutline, extractYoutubeId,
     DEFAULT_TOOLBAR_CONFIG, DEFAULT_BUBBLE_CONFIG,
@@ -19,24 +20,52 @@ try {
     localStorage.removeItem('inscript-minimap-collapsed');
 } catch { /* ignore */ }
 
-// One right-hand sidebar that holds BOTH the document outline and the minimap, with a
-// tab strip so only one is open at a time. The library components keep their own chrome,
-// so demo.css hides their internal headers and lets them fill this panel.
+// Right-hand tools, markdownwriter-style: a narrow always-present rail of icon buttons
+// (Outline / Minimap), with ONE panel open at a time beside it. Clicking the active
+// button closes it, collapsing back to just the rail — so the editor gets the full width
+// by default. The library components keep their own chrome, so demo.css hides their
+// internal headers and lets them fill the panel body.
+const PANELS = {
+    outline: { icon: ListTree, title: 'Outline', render: (editor) => <DocumentOutline editor={editor} /> },
+    minimap: { icon: MapIcon, title: 'Minimap', render: (editor) => <MiniMap editor={editor} /> },
+};
+
 function DemoSidebar({ editor }) {
-    const [tab, setTab] = React.useState(() => {
-        try { return new URLSearchParams(location.search).get('tab') === 'minimap' ? 'minimap' : 'outline'; }
-        catch { return 'outline'; }
+    // Default collapsed (rail only); ?tab=outline|minimap opens one (used for screenshots).
+    const [view, setView] = React.useState(() => {
+        try { const p = new URLSearchParams(location.search).get('tab'); return p === 'minimap' || p === 'outline' ? p : null; }
+        catch { return null; }
     });
+    const toggle = (v) => setView((cur) => (cur === v ? null : v));
+    const active = view && PANELS[view];
     return (
-        <div className="demo-sidebar im-demo-aside">
-            <div className="demo-sidebar-tabs" role="tablist">
-                <button role="tab" aria-selected={tab === 'outline'} className={tab === 'outline' ? 'active' : ''} onClick={() => setTab('outline')}>Outline</button>
-                <button role="tab" aria-selected={tab === 'minimap'} className={tab === 'minimap' ? 'active' : ''} onClick={() => setTab('minimap')}>Minimap</button>
+        <>
+            {active && (
+                <aside className="demo-panel im-demo-aside">
+                    <header className="demo-panel-head">
+                        <active.icon size={14} />
+                        <span>{active.title}</span>
+                        <button onClick={() => setView(null)} title="Close" aria-label="Close panel"><X size={15} /></button>
+                    </header>
+                    <div className="demo-panel-body">{active.render(editor)}</div>
+                </aside>
+            )}
+            <div className="demo-rail im-demo-aside" role="toolbar" aria-orientation="vertical" aria-label="Editor panels">
+                {Object.entries(PANELS).map(([id, p]) => (
+                    <button
+                        key={id}
+                        type="button"
+                        className={`demo-railbtn ${view === id ? 'active' : ''}`}
+                        onClick={() => toggle(id)}
+                        title={p.title}
+                        aria-label={p.title}
+                        aria-pressed={view === id}
+                    >
+                        <p.icon size={16} />
+                    </button>
+                ))}
             </div>
-            <div className="demo-sidebar-body">
-                {tab === 'outline' ? <DocumentOutline editor={editor} /> : <MiniMap editor={editor} />}
-            </div>
-        </div>
+        </>
     );
 }
 

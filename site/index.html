@@ -204,29 +204,29 @@ npm install react react-dom @tiptap/core \
                 </div>
 
                 <div class="recipe">
-                    <p class="recipe-title">Recipe: the outline &amp; minimap in one sidebar</p>
-                    <p class="recipe-sub">The <code>DocumentOutline</code> and <code>MiniMap</code> are separate exports, so compose them however you like. Here's the tabbed sidebar from the demo above, where only one is open at a time:</p>
+                    <p class="recipe-title">Recipe: an outline &amp; minimap rail</p>
+                    <p class="recipe-sub">The <code>DocumentOutline</code> and <code>MiniMap</code> are separate exports, so compose them however you like. Here's the rail from the demo above: a slim strip of icon buttons that opens one panel at a time (and collapses to just the rail).</p>
                     <pre class="codeblock"><span class="k">import</span> { useState } <span class="k">from</span> <span style="color:var(--brand-strong)">'react'</span>;
 <span class="k">import</span> { DocumentOutline, MiniMap } <span class="k">from</span> <span style="color:var(--brand-strong)">'inscript-editor'</span>;
+<span class="k">import</span> { ListTree, Map } <span class="k">from</span> <span style="color:var(--brand-strong)">'lucide-react'</span>;
 
-<span class="k">function</span> EditorSidebar({ editor }) {
-  <span class="k">const</span> [tab, setTab] = useState(<span style="color:var(--brand-strong)">'outline'</span>);
+<span class="k">function</span> EditorTools({ editor }) {
+  <span class="k">const</span> [view, setView] = useState(<span style="color:var(--brand-strong)">null</span>);  <span class="c">// 'outline' | 'minimap' | null</span>
+  <span class="k">const</span> toggle = (v) =&gt; setView((c) =&gt; (c === v ? <span style="color:var(--brand-strong)">null</span> : v));
   <span class="k">return</span> (
-    &lt;aside className=<span style="color:var(--brand-strong)">"sidebar"</span>&gt;
-      &lt;div className=<span style="color:var(--brand-strong)">"tabs"</span>&gt;
-        &lt;button onClick={() =&gt; setTab(<span style="color:var(--brand-strong)">'outline'</span>)}&gt;Outline&lt;/button&gt;
-        &lt;button onClick={() =&gt; setTab(<span style="color:var(--brand-strong)">'minimap'</span>)}&gt;Minimap&lt;/button&gt;
+    &lt;&gt;
+      {view === <span style="color:var(--brand-strong)">'outline'</span> &amp;&amp; &lt;aside className=<span style="color:var(--brand-strong)">"panel"</span>&gt;&lt;DocumentOutline editor={editor} /&gt;&lt;/aside&gt;}
+      {view === <span style="color:var(--brand-strong)">'minimap'</span> &amp;&amp; &lt;aside className=<span style="color:var(--brand-strong)">"panel"</span>&gt;&lt;MiniMap editor={editor} /&gt;&lt;/aside&gt;}
+      &lt;div className=<span style="color:var(--brand-strong)">"rail"</span>&gt;
+        &lt;button onClick={() =&gt; toggle(<span style="color:var(--brand-strong)">'outline'</span>)}&gt;&lt;ListTree size={16} /&gt;&lt;/button&gt;
+        &lt;button onClick={() =&gt; toggle(<span style="color:var(--brand-strong)">'minimap'</span>)}&gt;&lt;Map size={16} /&gt;&lt;/button&gt;
       &lt;/div&gt;
-
-      {tab === <span style="color:var(--brand-strong)">'outline'</span>
-        ? &lt;DocumentOutline editor={editor} /&gt;
-        : &lt;MiniMap editor={editor} /&gt;}
-    &lt;/aside&gt;
+    &lt;/&gt;
   );
 }</pre>
-                    <p class="recipe-sub">Each component ships its own header and collapse control. To let your tab strip be the only header, hide theirs with one line of CSS:</p>
-                    <pre class="codeblock"><span class="c">/* the outline/minimap is the sidebar's last child; its header is that child's first child */</span>
-.sidebar &gt; :last-child &gt; :first-child { display: none; }</pre>
+                    <p class="recipe-sub">Each component ships its own header and collapse control. To let your panel header be the only one, hide theirs with a line of CSS:</p>
+                    <pre class="codeblock"><span class="c">/* hide the embedded component's own header (its first child) */</span>
+.panel &gt; * &gt; :first-child { display: none; }</pre>
                 </div>
 
                 <p style="text-align:center;margin-top:28px;">

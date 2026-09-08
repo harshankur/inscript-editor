@@ -19,50 +19,69 @@
     min-height: 0;
 }
 
-/* ── Combined right sidebar (outline + minimap, one open at a time) ── */
-.demo-sidebar {
+/* ── Right tools: a narrow rail + one open panel (outline / minimap) ── */
+/* Rail: always present, holds the icon buttons. Collapsed by default, so the editor
+   gets the full width and the toolbar folds far less. */
+.demo-rail {
     flex: none;
-    width: 15rem;
+    width: 44px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 0;
+    border-left: 1px solid #e4e4e7;
+    background: #fafafa;
+}
+.dark .demo-rail { border-left-color: #27272a; background: #18181b; }
+.demo-railbtn {
+    width: 32px; height: 32px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 0; border-radius: 8px;
+    background: transparent; color: #71717a; cursor: pointer;
+    transition: background-color .12s, color .12s;
+}
+.demo-railbtn:hover { background: #f4f4f5; color: #18181b; }
+.dark .demo-railbtn:hover { background: #27272a; color: #f4f4f5; }
+.demo-railbtn.active { background: color-mix(in srgb, #10b981 15%, transparent); color: #059669; }
+.dark .demo-railbtn.active { color: #34d399; }
+
+/* Panel: opens beside the rail when a tool is active. One width, one header. */
+.demo-panel {
+    flex: none;
+    width: 18rem;
     display: flex;
     flex-direction: column;
     min-height: 0;
     border-left: 1px solid #e4e4e7;
     background: #fafafa;
 }
-.dark .demo-sidebar { border-left-color: #27272a; background: #18181b; }
-
-.demo-sidebar-tabs {
-    display: flex;
-    gap: 4px;
-    padding: 6px;
-    flex: none;
+.dark .demo-panel { border-left-color: #27272a; background: #18181b; }
+.demo-panel-head {
+    display: flex; align-items: center; gap: 8px;
+    height: 40px; padding: 0 12px; flex: none;
     border-bottom: 1px solid #e4e4e7;
+    color: #71717a; font: 700 11px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    letter-spacing: 0.06em; text-transform: uppercase;
 }
-.dark .demo-sidebar-tabs { border-bottom-color: #27272a; }
-.demo-sidebar-tabs button {
-    flex: 1;
-    padding: 6px 0;
-    border: 0;
-    border-radius: 7px;
-    background: transparent;
-    color: #71717a;
-    font: 600 11px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    cursor: pointer;
+.dark .demo-panel-head { border-bottom-color: #27272a; }
+.demo-panel-head span { flex: 1; min-width: 0; }
+.demo-panel-head button {
+    width: 24px; height: 24px; flex: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 0; border-radius: 6px; background: transparent; color: #71717a; cursor: pointer;
 }
-.demo-sidebar-tabs button:hover { color: #18181b; }
-.dark .demo-sidebar-tabs button:hover { color: #f4f4f5; }
-.demo-sidebar-tabs button.active { background: #fff; color: #18181b; box-shadow: 0 1px 2px rgba(16, 24, 40, .08); }
-.dark .demo-sidebar-tabs button.active { background: #27272a; color: #f4f4f5; box-shadow: none; }
+.demo-panel-head button:hover { background: #f4f4f5; color: #18181b; }
+.dark .demo-panel-head button:hover { background: #27272a; color: #f4f4f5; }
 
-.demo-sidebar-body { flex: 1; min-height: 0; position: relative; }
-/* The embedded outline/minimap keep their own chrome; strip it so this sidebar frames
-   them: drop their border/width and hide their internal header (their first child). */
-.demo-sidebar-body > * {
+.demo-panel-body { flex: 1; min-height: 0; position: relative; }
+/* The embedded outline/minimap keep their own chrome; strip it so the panel header is the
+   only one: drop their border/width/bg and hide their internal header (their first child). */
+.demo-panel-body > * {
     border: 0 !important;
     width: 100% !important;
     height: 100% !important;
     max-height: 100% !important;
+    background: transparent !important;
 }
-.demo-sidebar-body > * > :first-child { display: none !important; }
+.demo-panel-body > * > :first-child { display: none !important; }
