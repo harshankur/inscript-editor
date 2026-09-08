@@ -234,28 +234,36 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
     // Mirror `tools` into a ref so the resize handler always reads the latest list.
     const toolsRef = useRef(tools);
 
-    // Precise fit logic using source-of-truth widths. Reserve space for the settings gear
-    // when onToolbarConfigChange is provided.
-    const rightReserve = 50 + (onToolbarConfigChange ? TOOLBAR_SIZES.BUTTON + TOOLBAR_SIZES.GAP : 0);
+    // Precise fit logic using source-of-truth widths. The settings gear (when present) is
+    // always on the right; the ">>" overflow button is only reserved when tools actually
+    // overflow — reserving it unconditionally would collapse ~one tool too early, leaving a
+    // phantom ">>" with empty space beside it.
+    const gearReserve = onToolbarConfigChange ? TOOLBAR_SIZES.BUTTON + TOOLBAR_SIZES.GAP : 0;
+    const moreReserve = TOOLBAR_SIZES.BUTTON + TOOLBAR_SIZES.GAP;
     const recomputeVisible = useCallback(() => {
         if (!containerRef.current) return;
         const currentTools = toolsRef.current;
-        const containerWidth = containerRef.current.clientWidth - rightReserve;
-        let currentTotal = 0;
-        let count = 0;
-
-        for (const tool of currentTools) {
-            let toolWidth;
-            if (tool.type === 'divider') toolWidth = TOOLBAR_SIZES.DIVIDER;
-            else if (tool.width) toolWidth = tool.width;
-            else toolWidth = TOOLBAR_SIZES.BUTTON;
-
-            if (currentTotal + toolWidth + TOOLBAR_SIZES.GAP > containerWidth) break;
-            currentTotal += toolWidth + TOOLBAR_SIZES.GAP;
-            count++;
+        const total = containerRef.current.clientWidth;
+        const widthOf = (tool) => tool.type === 'divider' ? TOOLBAR_SIZES.DIVIDER : (tool.width || TOOLBAR_SIZES.BUTTON);
+        const fitCount = (available) => {
+            let used = 0;
+            let n = 0;
+            for (const tool of currentTools) {
+                const w = widthOf(tool) + TOOLBAR_SIZES.GAP;
+                if (used + w > available) break;
+                used += w;
+                n++;
+            }
+            return n;
+        };
+        // First see if EVERYTHING fits with only the gear reserved (no overflow button).
+        if (fitCount(total - gearReserve) >= currentTools.length) {
+            setVisibleCount(currentTools.length);
+            return;
         }
-        setVisibleCount(Math.max(2, count));
-    }, [rightReserve]);
+        // It doesn't — a ">>" is needed, so reserve its width too and recount.
+        setVisibleCount(Math.max(2, fitCount(total - gearReserve - moreReserve)));
+    }, [gearReserve, moreReserve]);
 
     // Recompute whenever the TOOL SET changes (e.g. switching presets), not only on resize.
     // A preset swap changes the number of tools with no resize event, so without this the
