@@ -115,6 +115,18 @@ export function Demo({ focusMode = false, showMiniMap = true, showOutline = true
         editor.commands.focus();
     }, [editor, focusMode]);
 
+    // Optional deep-link (?select=youtube|image|embed): select the first node of that type
+    // so its bubble menu opens — handy for screenshots and for linking to a feature.
+    React.useEffect(() => {
+        if (!editor) return;
+        let type;
+        try { type = new URLSearchParams(location.search).get('select'); } catch { type = null; }
+        if (!type) return;
+        let pos = null;
+        editor.state.doc.descendants((n, p) => { if (n.type.name === type && pos == null) pos = p; });
+        if (pos != null) setTimeout(() => editor.chain().focus().setNodeSelection(pos).run(), 350);
+    }, [editor]);
+
     const onShowMediaLibrary = () => {
         const url = window.prompt('Image URL');
         if (url && editor) editor.chain().focus().setImage({ src: url }).run();
