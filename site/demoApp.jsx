@@ -12,6 +12,34 @@ if (!i18n.isInitialized) {
     i18n.use(initReactI18next).init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 }
 
+// The combined sidebar renders the outline/minimap header-less, so make sure neither
+// component starts in its own collapsed state.
+try {
+    localStorage.removeItem('inscript-outline-collapsed');
+    localStorage.removeItem('inscript-minimap-collapsed');
+} catch { /* ignore */ }
+
+// One right-hand sidebar that holds BOTH the document outline and the minimap, with a
+// tab strip so only one is open at a time. The library components keep their own chrome,
+// so demo.css hides their internal headers and lets them fill this panel.
+function DemoSidebar({ editor }) {
+    const [tab, setTab] = React.useState(() => {
+        try { return new URLSearchParams(location.search).get('tab') === 'minimap' ? 'minimap' : 'outline'; }
+        catch { return 'outline'; }
+    });
+    return (
+        <div className="demo-sidebar im-demo-aside">
+            <div className="demo-sidebar-tabs" role="tablist">
+                <button role="tab" aria-selected={tab === 'outline'} className={tab === 'outline' ? 'active' : ''} onClick={() => setTab('outline')}>Outline</button>
+                <button role="tab" aria-selected={tab === 'minimap'} className={tab === 'minimap' ? 'active' : ''} onClick={() => setTab('minimap')}>Minimap</button>
+            </div>
+            <div className="demo-sidebar-body">
+                {tab === 'outline' ? <DocumentOutline editor={editor} /> : <MiniMap editor={editor} />}
+            </div>
+        </div>
+    );
+}
+
 const IMG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="420"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#38bdf8"/><stop offset=".45" stop-color="#a7f3d0"/><stop offset=".46" stop-color="#4ade80"/><stop offset="1" stop-color="#166534"/></linearGradient></defs><rect width="960" height="420" fill="url(#g)"/><circle cx="720" cy="110" r="46" fill="#fde68a"/><path d="M0 420 L250 180 L420 270 L620 140 L820 300 L960 220 L960 420 Z" fill="#15803d"/></svg>`);
 
@@ -113,14 +141,8 @@ export function Demo({ focusMode = false, showMiniMap = true, showOutline = true
                     customizerContainer={container}
                 />
             </div>
-            {/* Both the outline and the minimap sit on the RIGHT of the editor. Each brings its
-                own left border, so they read as a stacked pair of right-hand panels. */}
-            {showOutline && !focusMode && (
-                <div className="im-demo-aside"><DocumentOutline editor={editor} /></div>
-            )}
-            {showMiniMap && !focusMode && (
-                <div className="im-demo-aside"><MiniMap editor={editor} width="12rem" /></div>
-            )}
+            {/* A single right-hand sidebar holding the outline and the minimap, one open at a time. */}
+            {!focusMode && (showOutline || showMiniMap) && <DemoSidebar editor={editor} />}
         </div>
     );
 }
