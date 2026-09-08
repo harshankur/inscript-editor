@@ -154,6 +154,30 @@ function fallbackHeight(b) {
     }
 }
 
+// ── Pure layout math (exported for direct unit testing) ─────────────────────────
+// The vertical scale. Fit-to-panel: scale the whole doc into the available height so
+// it fills the panel and the viewport marker is a true proportional slice; cap
+// upscaling so a short doc doesn't balloon. Falls back to a fixed density (with the
+// body scrolling) when the host height is unbounded or the doc isn't measured yet.
+export function miniMapScale({ measured, docHeight, availH, lineHeightPx }) {
+    const natScale = NAT_PX_PER_LINE / (lineHeightPx || 28);
+    const canFit = !!measured && availH >= MIN_FIT_HEIGHT && docHeight > 0;
+    const S = canFit ? Math.min(availH / docHeight, MAX_SCALE) : natScale;
+    return { S, canFit, natScale };
+}
+
+// The viewport marker as a proportional slice of the DRAWN document region (`drawnPx`),
+// NOT the padded container — mapping against the container is what made a one-third-
+// visible window render a marker that overran all the content.
+export function miniMapViewport({ scrollTop, scrollHeight, clientHeight, drawnPx }) {
+    const total = scrollHeight || 1;
+    return {
+        top: PAD_TOP + (scrollTop / total) * drawnPx,
+        height: Math.max(12, (clientHeight / total) * drawnPx),
+        scrolls: scrollHeight > clientHeight + 2,
+    };
+}
+
 // Per-line body bars with content-derived ragged last line and colored inline runs.
 function bodyLines({ w, h, lines, textLen, runs, cls = LINE_CLS, indent = 0 }) {
     const n = clamp(Math.round(lines || 2), 1, 400);
@@ -364,13 +388,7 @@ export const MiniMap = ({ editor, width, className = '', showHeadingText = true 
     const panelW = panel.w || 136;
     const INNER = Math.max(20, panelW - X0 - RIGHT);
     const availH = panel.h - PAD_TOP - PAD_BOTTOM;
-    const natScale = NAT_PX_PER_LINE / (lineHeightPx || 28);
-    // Fit-to-panel: scale the WHOLE doc to the available height so it fills the panel
-    // and the viewport marker is a true proportional slice of it. Cap upscaling so a
-    // very short doc doesn't balloon. Fall back to a fixed density with internal scroll
-    // when the host gives an unbounded height.
-    const canFit = measured && availH >= MIN_FIT_HEIGHT && docHeight > 0;
-    const S = canFit ? Math.min(availH / docHeight, MAX_SCALE) : natScale;
+    const { S, canFit } = miniMapScale({ measured, docHeight, availH, lineHeightPx });
     const Sx = measured && colWidth > 0 ? INNER / colWidth : 1;
 
     let stackY = PAD_TOP;
@@ -434,13 +452,7 @@ export const MiniMap = ({ editor, width, className = '', showHeadingText = true 
         const onScroll = () => {
             if (isDragging.current) return;
             const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-            const total = scrollHeight || 1;
-            const scrolls = scrollHeight > clientHeight + 2;
-            setViewport({
-                top: PAD_TOP + (scrollTop / total) * drawnPx,
-                height: Math.max(12, (clientHeight / total) * drawnPx),
-                scrolls,
-            });
+            setViewport(miniMapViewport({ scrollTop, scrollHeight, clientHeight, drawnPx }));
         };
         onScroll();
         const id = setTimeout(onScroll, 80);
