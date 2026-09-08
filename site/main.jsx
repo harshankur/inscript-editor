@@ -1,7 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import i18n from 'i18next';
-import './site.css';
 import { Demo } from './demoApp.jsx';
 
 // ── Live editor language (switches the whole demo: tooltips, menus, panels) ──

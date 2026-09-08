@@ -99,9 +99,6 @@ export function Demo({ focusMode = false, showMiniMap = true, showOutline = true
 
     return (
         <div className="im-demo" ref={panelRef}>
-            {showOutline && !focusMode && (
-                <div className="im-demo-aside im-demo-outline"><DocumentOutline editor={editor} /></div>
-            )}
             <div className="im-demo-main">
                 <InscriptEditor
                     editor={editor}
@@ -116,6 +113,11 @@ export function Demo({ focusMode = false, showMiniMap = true, showOutline = true
                     customizerContainer={container}
                 />
             </div>
+            {/* Both the outline and the minimap sit on the RIGHT of the editor. Each brings its
+                own left border, so they read as a stacked pair of right-hand panels. */}
+            {showOutline && !focusMode && (
+                <div className="im-demo-aside"><DocumentOutline editor={editor} /></div>
+            )}
             {showMiniMap && !focusMode && (
                 <div className="im-demo-aside"><MiniMap editor={editor} width="12rem" /></div>
             )}
