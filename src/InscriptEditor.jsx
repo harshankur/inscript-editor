@@ -52,6 +52,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     headingFontFamily = '',
     focusMaxWidth = '',
     focusDim = true,
+    onOpenExternal,
 }, ref) {
     useInscriptEditorTranslations();
 
@@ -120,8 +121,8 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                         <TextBubbleMenu editor={editor} isReadonly={isReadonly} bubbleMenuConfig={bubbleMenuConfig} />
                         <TableBubbleMenu editor={editor} isReadonly={isReadonly} />
                         <ImageBubbleMenu editor={editor} isReadonly={isReadonly} />
-                        <YoutubeBubbleMenu editor={editor} isReadonly={isReadonly} />
-                        <EmbedBubbleMenu editor={editor} isReadonly={isReadonly} />
+                        <YoutubeBubbleMenu editor={editor} isReadonly={isReadonly} onOpenExternal={onOpenExternal} />
+                        <EmbedBubbleMenu editor={editor} isReadonly={isReadonly} onOpenExternal={onOpenExternal} />
                         <SlashCommandMenu isReadonly={isReadonly} />
                         <EditorContent editor={editor} />
                     </div>

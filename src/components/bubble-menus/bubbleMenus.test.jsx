@@ -134,7 +134,17 @@ describe('bubble menus', () => {
             const openSpy = vi.spyOn(window, 'open').mockImplementation(() => {});
             render(<YoutubeBubbleMenu editor={editor} />);
             fireEvent.click(screen.getByTitle('Open in YouTube'));
-            expect(openSpy).toHaveBeenCalledWith('https://www.youtube.com/watch?v=dQw4w9WgXcQ', '_blank');
+            expect(openSpy).toHaveBeenCalledWith('https://www.youtube.com/watch?v=dQw4w9WgXcQ', '_blank', 'noopener,noreferrer');
+            openSpy.mockRestore();
+        });
+
+        it('routes "Open in YouTube" through onOpenExternal when the host provides it', () => {
+            const openSpy = vi.spyOn(window, 'open').mockImplementation(() => {});
+            const onOpenExternal = vi.fn();
+            render(<YoutubeBubbleMenu editor={editor} onOpenExternal={onOpenExternal} />);
+            fireEvent.click(screen.getByTitle('Open in YouTube'));
+            expect(onOpenExternal).toHaveBeenCalledWith('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+            expect(openSpy).not.toHaveBeenCalled();
             openSpy.mockRestore();
         });
 
@@ -159,6 +169,24 @@ describe('bubble menus', () => {
             fireEvent.change(input, { target: { value: 'https://example.com/other' } });
             fireEvent.keyDown(input, { key: 'Enter' });
             expect(editor.getAttributes('embed').src).toBe('https://example.com/other');
+        });
+
+        it('opens the embed source in a new tab (window.open fallback)', () => {
+            const openSpy = vi.spyOn(window, 'open').mockImplementation(() => {});
+            render(<EmbedBubbleMenu editor={editor} />);
+            fireEvent.click(screen.getByTitle('Open in new tab'));
+            expect(openSpy).toHaveBeenCalledWith('https://example.com/widget', '_blank', 'noopener,noreferrer');
+            openSpy.mockRestore();
+        });
+
+        it('routes the embed open through onOpenExternal when the host provides it', () => {
+            const openSpy = vi.spyOn(window, 'open').mockImplementation(() => {});
+            const onOpenExternal = vi.fn();
+            render(<EmbedBubbleMenu editor={editor} onOpenExternal={onOpenExternal} />);
+            fireEvent.click(screen.getByTitle('Open in new tab'));
+            expect(onOpenExternal).toHaveBeenCalledWith('https://example.com/widget');
+            expect(openSpy).not.toHaveBeenCalled();
+            openSpy.mockRestore();
         });
 
         it('deletes the embed via the delete button', () => {

@@ -7,9 +7,12 @@ import { SourceField } from './SourceField.jsx';
 import { extractYoutubeId } from '../../utils/youtubeUrl.js';
 import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTranslations.js';
 
-export const YoutubeBubbleMenu = ({ editor, isReadonly }) => {
+export const YoutubeBubbleMenu = ({ editor, isReadonly, onOpenExternal }) => {
     useInscriptEditorTranslations();
     const { t } = useTranslation('inscript-editor');
+    // The host may own external-link opening (e.g. a desktop app where window.open is blocked); fall
+    // back to window.open when no handler is supplied.
+    const openExternal = (url) => (onOpenExternal ? onOpenExternal(url) : window.open(url, '_blank', 'noopener,noreferrer'));
     // Subscribe to the selected node's attrs so the fields/active-states re-render live
     // as the selection changes (the bubble-menu content isn't otherwise reactive).
     const attrs = useEditorState({
@@ -67,7 +70,7 @@ export const YoutubeBubbleMenu = ({ editor, isReadonly }) => {
                     <ToolbarButton
                         onClick={() => {
                             const id = editor.getAttributes('youtube')['data-youtube-video'];
-                            if (id) window.open(`https://www.youtube.com/watch?v=${id}`, '_blank');
+                            if (id) openExternal(`https://www.youtube.com/watch?v=${id}`);
                         }}
                         title={t('openInYoutube', 'Open in YouTube')}
                     >

@@ -153,6 +153,10 @@ export interface InscriptEditorProps {
     focusMaxWidth?: string;
     /** Dim non-focused paragraphs in focus mode (default true). False = narrow column only, no dimming. */
     focusDim?: boolean;
+    /** Open an external URL (a media node's "open in new tab" action). Supply this on hosts where
+     *  window.open is blocked/inert (e.g. a Tauri desktop webview) to route through the host's opener.
+     *  When omitted, the editor falls back to window.open. */
+    onOpenExternal?: (url: string) => void;
     ref?: Ref<InscriptEditorRefHandle>;
 }
 
@@ -338,8 +342,8 @@ export const BibliographyPanel: (props: { editor: Editor | null }) => ReactNode;
 export const TextBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean; bubbleMenuConfig?: string[] }) => ReactNode;
 export const TableBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean }) => ReactNode;
 export const ImageBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean }) => ReactNode;
-export const YoutubeBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean }) => ReactNode;
-export const EmbedBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean }) => ReactNode;
+export const YoutubeBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean; onOpenExternal?: (url: string) => void }) => ReactNode;
+export const EmbedBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean; onOpenExternal?: (url: string) => void }) => ReactNode;
 /** Compact, editable URL/source field used inside bubble menus (see + replace a node's source). */
 export const SourceField: (props: {
     value?: string;

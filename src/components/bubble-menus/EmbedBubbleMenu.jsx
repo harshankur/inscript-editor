@@ -11,9 +11,12 @@ import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTran
  * otherwise hidden once the iframe loads) and lets you replace it, edit the caption,
  * open it in a new tab, or delete it.
  */
-export const EmbedBubbleMenu = ({ editor, isReadonly }) => {
+export const EmbedBubbleMenu = ({ editor, isReadonly, onOpenExternal }) => {
     useInscriptEditorTranslations();
     const { t } = useTranslation('inscript-editor');
+    // The host may own external-link opening (e.g. a desktop app where window.open is blocked); fall
+    // back to window.open when no handler is supplied.
+    const openExternal = (url) => (onOpenExternal ? onOpenExternal(url) : window.open(url, '_blank', 'noopener,noreferrer'));
     const attrs = useEditorState({
         editor,
         selector: ({ editor }) => {
@@ -52,7 +55,7 @@ export const EmbedBubbleMenu = ({ editor, isReadonly }) => {
                     <ToolbarButton
                         onClick={() => {
                             const src = editor.getAttributes('embed').src;
-                            if (src) window.open(src, '_blank', 'noopener,noreferrer');
+                            if (src) openExternal(src);
                         }}
                         title={t('openEmbed', 'Open in new tab')}
                     >
