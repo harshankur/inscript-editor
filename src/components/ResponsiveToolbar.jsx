@@ -29,7 +29,7 @@ const DROPDOWN_WIDTH = TOOLBAR_SIZES.BUTTON + 14 + 1;
  * Builds the full map of tool ID → tool slot descriptor.
  * This needs the editor instance + callbacks, so it's a function not a constant.
  */
-function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, t }) {
+function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t }) {
     return {
         undo: { id: 'undo', icon: Undo, action: onHistoryUndo, disabled: !canUndo, title: t('undo', 'Undo') },
         redo: { id: 'redo', icon: Redo, action: onHistoryRedo, disabled: !canRedo, title: t('redo', 'Redo') },
@@ -47,7 +47,14 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
         inlineCode:  { id: 'inlineCode',  icon: Code,             action: () => editor.chain().focus().toggleCode().run(),         active: editor.isActive('code'),         title: t('inlineCode', 'Inline Code') },
         sub:         { id: 'sub',         icon: SubscriptIcon,    action: () => editor.chain().focus().toggleSubscript().run(),    active: editor.isActive('subscript'),    title: t('subscript', 'Subscript') },
         sup:         { id: 'sup',         icon: SuperscriptIcon,  action: () => editor.chain().focus().toggleSuperscript().run(),  active: editor.isActive('superscript'),  title: t('superscript', 'Superscript') },
-        abbreviation:{ id: 'abbreviation',icon: TextSelect,       action: () => editor.chain().focus().setAbbreviation().run(),    active: editor.isActive('abbreviation'), title: t('abbreviation', 'Abbreviation') },
+        abbreviation:{ id: 'abbreviation',icon: TextSelect,       action: () => {
+            // An abbreviation needs its expansion (the <abbr title>). A host can own the
+            // input via onAddAbbreviation; otherwise fall back to a native prompt.
+            if (onAddAbbreviation) return onAddAbbreviation();
+            if (editor.isActive('abbreviation')) { editor.chain().focus().unsetAbbreviation().run(); return; }
+            const title = window.prompt(t('abbreviationPrompt', 'Enter the full form (e.g. HyperText Markup Language):'));
+            if (title) editor.chain().focus().setAbbreviation(title).run();
+        }, active: editor.isActive('abbreviation'), title: t('abbreviation', 'Abbreviation') },
         clearFormat: { id: 'clearFormat', icon: RemoveFormatting, action: () => editor.chain().focus().unsetAllMarks().clearNodes().run(), title: t('clearFormat', 'Clear Formatting') },
 
         // Styling — these are custom-rendered, so we mark them
@@ -96,6 +103,10 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
         wikilink: {
             id: 'wikilink', icon: Link2,
             action: () => {
+                if (onAddWikilink) return onAddWikilink();
+                // The Wikilink extension is opt-in (editorOptions.wikilink.enabled). If it is
+                // not loaded there is no insertWikilink command, so guard against throwing.
+                if (typeof editor.commands.insertWikilink !== 'function') return;
                 const target = window.prompt(t('wikilinkPrompt', 'Enter wiki page name:'));
                 if (target) editor.chain().focus().insertWikilink({ target, alias: target }).run();
             },
@@ -106,6 +117,9 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
             id: 'citation',
             icon: BookOpen,
             action: () => {
+                // A host can own citation entry via onAddCitation (its own modal + a
+                // .insertCitation() call); otherwise fall back to native prompts.
+                if (onAddCitation) return onAddCitation();
                 const key = window.prompt(t('citationKeyPrompt', 'Enter citation key (e.g. author2026):'));
                 if (key) {
                     const label = window.prompt(t('citationLabelPrompt', 'Enter inline label (e.g. Author, 2026):'), key);
@@ -211,7 +225,7 @@ function configToSlots(config, toolMap) {
  *                            Called with the new config array when the user saves.
  *                            The CONSUMER is responsible for persisting and passing back the config.
  */
-export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, toolbarConfig, onToolbarConfigChange, bubbleMenuConfig, onBubbleMenuConfigChange, toolbarPresets, bubbleMenuPresets, toolbarPresetLabels, presetsMode, customizerContainer }) => {
+export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, toolbarConfig, onToolbarConfigChange, bubbleMenuConfig, onBubbleMenuConfigChange, toolbarPresets, bubbleMenuPresets, toolbarPresetLabels, presetsMode, customizerContainer }) => {
     useInscriptEditorTranslations();
     const { t } = useTranslation('inscript-editor');
     const containerRef = useRef(null);
@@ -226,10 +240,10 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
         const toolMap = buildToolMap(editor, {
             onHistoryUndo, onHistoryRedo, canUndo, canRedo,
             onShowMetadataModal, hasMetadata, showMetadataActive,
-            onShowMediaLibrary, onAddYoutube, t
+            onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t
         });
         return configToSlots(activeConfig, toolMap);
-    }, [editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, t, activeConfig]);
+    }, [editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t, activeConfig]);
 
     // Mirror `tools` into a ref so the resize handler always reads the latest list.
     const toolsRef = useRef(tools);

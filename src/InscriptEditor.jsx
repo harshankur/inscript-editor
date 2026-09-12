@@ -34,6 +34,9 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     showMetadataActive = false,
     onShowMediaLibrary,
     onAddYoutube,
+    onAddCitation,
+    onAddWikilink,
+    onAddAbbreviation,
     onHistorySelect,
     restoreVersion,
     markSaved,
@@ -97,6 +100,9 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                     showMetadataActive={showMetadataActive}
                     onShowMediaLibrary={onShowMediaLibrary}
                     onAddYoutube={onAddYoutube}
+                    onAddCitation={onAddCitation}
+                    onAddWikilink={onAddWikilink}
+                    onAddAbbreviation={onAddAbbreviation}
                     toolbarConfig={toolbarConfig}
                     onToolbarConfigChange={onToolbarConfigChange}
                     bubbleMenuConfig={bubbleMenuConfig}
@@ -127,7 +133,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                         className={`mx-auto px-2 pt-3 pb-[57px] md:px-8 md:pt-12 md:pb-[57px] flex flex-col min-h-full inscript-editor-container w-full ${focusMode ? 'focus-mode' : ''} ${focusMode && focusDim ? 'focus-dim' : ''}`}
                         style={{ '--inscript-max-width': resolvedMaxWidth }}
                     >
-                        <TextBubbleMenu editor={editor} isReadonly={isReadonly} bubbleMenuConfig={bubbleMenuConfig} />
+                        <TextBubbleMenu editor={editor} isReadonly={isReadonly} bubbleMenuConfig={bubbleMenuConfig} onAddAbbreviation={onAddAbbreviation} />
                         <TableBubbleMenu editor={editor} isReadonly={isReadonly} />
                         <ImageBubbleMenu editor={editor} isReadonly={isReadonly} />
                         <YoutubeBubbleMenu editor={editor} isReadonly={isReadonly} onOpenExternal={onOpenExternal} />

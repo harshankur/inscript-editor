@@ -13,7 +13,7 @@ import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTran
 import { BUBBLE_PRESETS } from '../../toolbar/presets.js';
 import { DIVIDER } from '../../toolbar/toolRegistry.js';
 
-function buildToolMap(editor, t) {
+function buildToolMap(editor, t, onAddAbbreviation) {
     return {
         bold: {
             id: 'bold',
@@ -91,7 +91,12 @@ function buildToolMap(editor, t) {
             id: 'abbreviation',
             render: () => (
                 <button
-                    onClick={() => editor.chain().focus().setAbbreviation().run()}
+                    onClick={() => {
+                        if (onAddAbbreviation) return onAddAbbreviation();
+                        if (editor.isActive('abbreviation')) { editor.chain().focus().unsetAbbreviation().run(); return; }
+                        const title = window.prompt(t('abbreviationPrompt', 'Enter the full form (e.g. HyperText Markup Language):'));
+                        if (title) editor.chain().focus().setAbbreviation(title).run();
+                    }}
                     className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${editor.isActive('abbreviation') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('abbreviation', 'Abbreviation')}
                 >
@@ -186,14 +191,14 @@ function buildToolMap(editor, t) {
     };
 }
 
-export const TextBubbleMenu = ({ editor, isReadonly, bubbleMenuConfig }) => {
+export const TextBubbleMenu = ({ editor, isReadonly, bubbleMenuConfig, onAddAbbreviation }) => {
     useInscriptEditorTranslations();
     const { t } = useTranslation('inscript-editor');
 
     if (!editor) return null;
 
     const activeConfig = bubbleMenuConfig ?? BUBBLE_PRESETS.full;
-    const toolMap = buildToolMap(editor, t);
+    const toolMap = buildToolMap(editor, t, onAddAbbreviation);
 
     return (
         <BubbleMenu

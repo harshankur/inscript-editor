@@ -185,6 +185,17 @@ export interface InscriptEditorProps {
     showMetadataActive?: boolean;
     onShowMediaLibrary?: () => void;
     onAddYoutube?: () => void;
+    /** Host handler for the Citation toolbar button. Provide it to open your own modal
+     *  (and call `editor.commands.insertCitation({ key, label, title })`). When omitted,
+     *  a built-in native prompt is used. */
+    onAddCitation?: () => void;
+    /** Host handler for the Wikilink toolbar button (needs the opt-in Wikilink extension).
+     *  When omitted, a built-in native prompt is used. */
+    onAddWikilink?: () => void;
+    /** Host handler for the Abbreviation toolbar/bubble button. Provide it to collect the
+     *  expansion via your own modal (and call `editor.commands.setAbbreviation(title)`).
+     *  When omitted, a built-in native prompt is used. */
+    onAddAbbreviation?: () => void;
     onHistorySelect?: (index: number) => void;
     restoreVersion?: (index: number) => void;
     markSaved?: () => void;
@@ -348,6 +359,9 @@ export interface ResponsiveToolbarProps {
     showMetadataActive?: boolean;
     onShowMediaLibrary?: () => void;
     onAddYoutube?: () => void;
+    onAddCitation?: () => void;
+    onAddWikilink?: () => void;
+    onAddAbbreviation?: () => void;
     toolbarConfig?: string[];
     onToolbarConfigChange?: (newConfig: string[]) => void;
     bubbleMenuConfig?: string[];

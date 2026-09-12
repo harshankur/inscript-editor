@@ -169,6 +169,7 @@ Returns `{ editor, history, setHistory, historyIndex, setHistoryIndex, isDirty, 
 | `onShowMetadataModal`, `hasMetadata`, `showMetadataActive` | | Tags/categories entry point — bring your own modal. |
 | `onShowMediaLibrary` | `() => void` | Opens your `<ImageSelectorModal>`. |
 | `onAddYoutube` | `() => void` | Opens your `<YoutubeEmbedModal>`. |
+| `onAddCitation`, `onAddWikilink`, `onAddAbbreviation` | `() => void` | Optional host handlers for the Citation / Wikilink / Abbreviation buttons. Provide one to open your own modal and call the matching editor command (`insertCitation` / `insertWikilink` / `setAbbreviation`); when omitted, a built-in native prompt is used. |
 | `onHistorySelect` | `(index) => void` | Called when a version is chosen for restore in `<HistoryView>`. |
 | `restoreVersion`, `markSaved` | | From `useInscriptEditor`, exposed through the imperative ref too. |
 | `theme` | `InscriptEditorTheme` | Colors, surfaces, borders, radii, spacing and fonts for the whole editor. See [Theming](#theming). |

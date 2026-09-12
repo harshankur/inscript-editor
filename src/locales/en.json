@@ -1,5 +1,6 @@
 {
   "abbreviation": "Abbreviation",
+  "abbreviationPrompt": "Enter the full form (e.g. HyperText Markup Language):",
   "active": "Active",
   "addColumnAfter": "Add Column Right",
   "addColumnBefore": "Add Column Left",

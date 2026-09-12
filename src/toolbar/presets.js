@@ -21,7 +21,7 @@ export const TOOLBAR_PRESETS = {
         'h1', 'h2', 'h3', D,
         'bold', 'italic', 'underline', 'strike', 'inlineCode', 'sub', 'sup', 'abbreviation', 'clearFormat', D,
         'fontSize', 'highlight', 'color', D,
-        'link', 'wikilink', 'footnote', 'citation', D,
+        'link', 'footnote', 'citation', D,
         'bullet', 'ordered', 'task', 'definition', D,
         'align', D,
         'code', 'quote', 'admonitions', 'hr', D,
@@ -47,13 +47,13 @@ export const TOOLBAR_PRESETS = {
 
     /**
      * Technical Writer — documentation, APIs, dev guides.
-     * Heavy on structure, code, wikilinks, admonitions, diagrams.
+     * Heavy on structure, code, admonitions, diagrams.
      */
     technical: [
         'undo', 'redo', D,
         'h1', 'h2', 'h3', D,
         'bold', 'italic', 'underline', 'strike', 'inlineCode', 'abbreviation', D,
-        'link', 'wikilink', 'footnote', D,
+        'link', 'footnote', D,
         'bullet', 'ordered', 'task', 'definition', D,
         'align', D,
         'code', 'quote', 'admonitions', 'hr', D,

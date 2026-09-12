@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ResponsiveToolbar } from './ResponsiveToolbar.jsx';
 import { TOOLBAR_SIZES } from './ToolbarButton.jsx';
 import { TOOLBAR_PRESETS } from '../toolbar/presets.js';
@@ -137,6 +137,78 @@ describe('ResponsiveToolbar overflow', () => {
         render(<ResponsiveToolbar editor={editor} toolbarConfig={TOOLBAR_PRESETS.blogger} />);
         expect(screen.getByTitle('Bold')).toBeInTheDocument();
         expect(screen.queryByTitle('Math Block')).not.toBeInTheDocument();
-        expect(screen.queryByTitle('Wikilink')).not.toBeInTheDocument();
+        expect(screen.queryByTitle('Insert Wikilink')).not.toBeInTheDocument();
+    });
+
+    it('the default (full) preset does not include wikilink (its extension is opt-in)', () => {
+        stubClientWidth(2000);
+        render(<ResponsiveToolbar editor={editor} />);
+        expect(screen.queryByTitle('Insert Wikilink')).not.toBeInTheDocument();
+    });
+});
+
+describe('ResponsiveToolbar input tools (abbreviation / citation / wikilink)', () => {
+    let editor;
+    let originalCW;
+
+    beforeEach(() => {
+        editor = createEditor();
+        editor.commands.setContent('<p>HTML rocks</p>');
+        originalCW = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth');
+        stubClientWidth(2000);
+    });
+
+    afterEach(() => {
+        editor.destroy();
+        if (originalCW) Object.defineProperty(HTMLElement.prototype, 'clientWidth', originalCW);
+    });
+
+    it('abbreviation prompts for the expansion and applies a titled <abbr>', () => {
+        const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue('HyperText Markup Language');
+        render(<ResponsiveToolbar editor={editor} />);
+        editor.commands.selectAll();
+        fireEvent.click(screen.getByTitle('Abbreviation'));
+        expect(promptSpy).toHaveBeenCalled();
+        expect(editor.isActive('abbreviation')).toBe(true);
+        expect(editor.getHTML()).toContain('title="HyperText Markup Language"');
+        promptSpy.mockRestore();
+    });
+
+    it('abbreviation with an empty prompt (cancelled) applies nothing', () => {
+        const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue(null);
+        render(<ResponsiveToolbar editor={editor} />);
+        editor.commands.selectAll();
+        fireEvent.click(screen.getByTitle('Abbreviation'));
+        expect(editor.isActive('abbreviation')).toBe(false);
+        promptSpy.mockRestore();
+    });
+
+    it('abbreviation routes through onAddAbbreviation when the host provides it (no prompt)', () => {
+        const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue('x');
+        const onAddAbbreviation = vi.fn();
+        render(<ResponsiveToolbar editor={editor} onAddAbbreviation={onAddAbbreviation} />);
+        fireEvent.click(screen.getByTitle('Abbreviation'));
+        expect(onAddAbbreviation).toHaveBeenCalledTimes(1);
+        expect(promptSpy).not.toHaveBeenCalled();
+        promptSpy.mockRestore();
+    });
+
+    it('citation routes through onAddCitation when the host provides it (no prompt)', () => {
+        const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue('x');
+        const onAddCitation = vi.fn();
+        render(<ResponsiveToolbar editor={editor} onAddCitation={onAddCitation} />);
+        fireEvent.click(screen.getByTitle('Citation'));
+        expect(onAddCitation).toHaveBeenCalledTimes(1);
+        expect(promptSpy).not.toHaveBeenCalled();
+        promptSpy.mockRestore();
+    });
+
+    it('wikilink button does not throw when its opt-in extension is absent', () => {
+        // The default editor has no Wikilink extension, so insertWikilink is undefined.
+        const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue('Page');
+        render(<ResponsiveToolbar editor={editor} toolbarConfig={['wikilink']} />);
+        expect(() => fireEvent.click(screen.getByTitle('Insert Wikilink'))).not.toThrow();
+        expect(promptSpy).not.toHaveBeenCalled(); // guarded before prompting
+        promptSpy.mockRestore();
     });
 });

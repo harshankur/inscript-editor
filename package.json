@@ -1,6 +1,6 @@
 {
   "name": "inscript-editor",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Standalone TipTap-based rich text editor extracted from Inscript.",
   "author": "Harsh Ankur <harshankur@outlook.com>",
   "license": "MIT",
@@ -15,7 +15,8 @@
     "dist",
     "src/types.d.ts",
     "src/locales",
-    "tailwind-content.js"
+    "tailwind-content.js",
+    "CHANGELOG.md"
   ],
   "exports": {
     ".": {
