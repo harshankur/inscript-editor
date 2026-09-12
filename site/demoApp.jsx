@@ -38,12 +38,12 @@ const PANELS = {
 // alone, independent of the page.
 const THEME_PRESETS = [
     { name: 'Default', theme: {} },
-    { name: 'Violet', theme: { accent: '#7c3aed', surface: '#fbfaff', surfaceRaised: '#f2ecfe', text: '#2a2141', border: '#e7ddfb', borderStrong: '#d6c6f7', codeBg: '#efe7ff' } },
-    { name: 'Sunset', theme: { accent: '#ea580c', surface: '#fffaf4', surfaceRaised: '#fff1e6', text: '#41271a', border: '#f6e1cd', borderStrong: '#f0cba6', codeBg: '#ffe7d2' } },
-    { name: 'Rose', theme: { accent: '#e11d48', surface: '#fff7f9', surfaceRaised: '#ffe9ef', text: '#3f1622', border: '#f8d6df', borderStrong: '#f4b6c5', codeBg: '#ffdfe8' } },
-    { name: 'Ocean', theme: { accent: '#0284c7', surface: '#f5fbff', surfaceRaised: '#e7f3fd', text: '#0f2a3f', border: '#cfe6f6', borderStrong: '#a9d2ee', codeBg: '#dceffb' } },
-    { name: 'Slate', theme: { accent: '#22d3ee', onAccent: '#06232b', surface: '#0b1220', surfaceRaised: '#131d2f', text: '#e2e8f0', muted: '#94a3b8', border: '#24314a', borderStrong: '#3a4c6b', codeBg: '#0e1728', codeText: '#e2e8f0' } },
-    { name: 'Serif', theme: { accent: '#6d28d9', fontFamily: 'Georgia, "Times New Roman", serif', headingFont: '"Iowan Old Style", Palatino, Georgia, serif', surface: '#fdfcf8', surfaceRaised: '#f4f0e7', text: '#2b2620', codeBg: '#efe9db' } },
+    { name: 'Violet', theme: { accent: '#7c3aed', link: '#6d28d9', surface: '#fbfaff', surfaceRaised: '#f2ecfe', text: '#2a2141', border: '#e7ddfb', borderStrong: '#d6c6f7', codeBg: '#efe7ff' } },
+    { name: 'Sunset', theme: { accent: '#ea580c', link: '#c2410c', surface: '#fffaf4', surfaceRaised: '#fff1e6', text: '#41271a', border: '#f6e1cd', borderStrong: '#f0cba6', codeBg: '#ffe7d2' } },
+    { name: 'Rose', theme: { accent: '#e11d48', link: '#be123c', surface: '#fff7f9', surfaceRaised: '#ffe9ef', text: '#3f1622', border: '#f8d6df', borderStrong: '#f4b6c5', codeBg: '#ffdfe8' } },
+    { name: 'Ocean', theme: { accent: '#0284c7', link: '#0369a1', surface: '#f5fbff', surfaceRaised: '#e7f3fd', text: '#0f2a3f', border: '#cfe6f6', borderStrong: '#a9d2ee', codeBg: '#dceffb' } },
+    { name: 'Slate', theme: { accent: '#22d3ee', link: '#22d3ee', onAccent: '#06232b', surface: '#0b1220', surfaceRaised: '#131d2f', text: '#e2e8f0', muted: '#94a3b8', border: '#24314a', borderStrong: '#3a4c6b', codeBg: '#0e1728', codeText: '#e2e8f0' } },
+    { name: 'Serif', theme: { accent: '#6d28d9', link: '#6d28d9', fontFamily: 'Georgia, "Times New Roman", serif', headingFont: '"Iowan Old Style", Palatino, Georgia, serif', surface: '#fdfcf8', surfaceRaised: '#f4f0e7', text: '#2b2620', codeBg: '#efe9db' } },
 ];
 
 const FONT_PRESETS = {
@@ -58,6 +58,7 @@ const FONT_PRESETS = {
 // The color tokens exposed as pickers: [theme key, label, default shown when unset].
 const THEME_COLORS = [
     ['accent', 'Accent', '#10b981'],
+    ['link', 'Links', '#047857'],
     ['text', 'Text', '#18181b'],
     ['surface', 'Background', '#ffffff'],
     ['surfaceRaised', 'Panels', '#fafafa'],

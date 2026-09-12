@@ -44,7 +44,12 @@
      clears WCAG AA (>=4.5:1) against the default accent; override it if you set a
      dark accent. */
   --inscript-color-on-accent: #052e22;
-  --inscript-color-link-hover: #34d399;              /* emerald-400 */
+  /* Link / accent-as-text color. Distinct from the fill accent above: the bright
+     emerald reads at only ~2.5:1 on white, so text uses a darker emerald that clears
+     WCAG AA (>=4.5:1). It swaps to a bright emerald on dark below. Set theme.link to
+     make links follow your own accent. */
+  --inscript-color-link: #047857;                    /* emerald-700, ~5.4:1 on white */
+  --inscript-color-link-hover: #065f46;              /* emerald-800 */
   /* Code */
   --inscript-color-code-bg: #f4f4f5;                 /* zinc-100 */
   --inscript-color-code-border: #e4e4e7;             /* zinc-200 */
@@ -55,7 +60,7 @@
   --inscript-color-table-header-bg: #fafafa;         /* zinc-50 */
   /* Marks & selection */
   --inscript-color-mark-bg: rgb(234 179 8 / 0.2);    /* yellow-500/20 */
-  --inscript-color-mark-text: #a16207;               /* yellow-700 */
+  --inscript-color-mark-text: #854d0e;               /* yellow-800, >=4.5:1 on the mark tint */
   --inscript-color-selection: rgb(16 185 129 / 0.25);/* accent tint */
 
   /* Typography */
@@ -108,6 +113,8 @@
   --inscript-color-table-border: #27272a;            /* zinc-800 */
   --inscript-color-table-header-bg: #18181b;         /* zinc-900 */
   --inscript-color-mark-text: #fef08a;               /* yellow-200 */
+  --inscript-color-link: #34d399;                    /* emerald-400, bright on dark */
+  --inscript-color-link-hover: #6ee7b7;              /* emerald-300 */
 }
 
 .ProseMirror {
@@ -190,12 +197,12 @@
 
 .ProseMirror a[href] {
   @apply underline underline-offset-4 cursor-pointer;
-  color: var(--inscript-color-link, var(--inscript-color-accent, #10b981));
+  color: var(--inscript-color-link, #047857);
   transition: color 0.15s ease-in-out;
 }
 
 .ProseMirror a[href]:hover {
-  color: var(--inscript-color-link-hover, var(--inscript-color-accent, #34d399));
+  color: var(--inscript-color-link-hover, #065f46);
 }
 
 .ProseMirror blockquote {
@@ -464,7 +471,7 @@
 .ProseMirror .citation {
   @apply px-1 py-0.5 text-[0.9em] font-medium;
   background-color: var(--inscript-color-accent-soft);
-  color: var(--inscript-color-accent, #10b981);
+  color: var(--inscript-color-link, #047857);
   border: 1px solid var(--inscript-color-accent-soft);
   border-radius: var(--inscript-radius-sm, 0.25rem);
 }

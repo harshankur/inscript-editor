@@ -27,7 +27,7 @@ const FootnoteReferenceComponent = ({ node, editor, getPos }) => {
         <NodeViewWrapper 
             as="sup" 
             data-footnote-ref={node.attrs.id} 
-            className="cursor-pointer text-[var(--inscript-color-accent)] font-semibold px-0.5"
+            className="cursor-pointer text-[var(--inscript-color-link)] font-semibold px-0.5"
             onClick={handleClick}
         >
             [{index}]
