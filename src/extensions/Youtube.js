@@ -23,7 +23,7 @@ const YOUTUBE_ICON_PATHS = [
 function buildPlaceholderSpec(text = PLACEHOLDER_TEXT) {
     return [
         'div',
-        { class: 'absolute inset-0 flex flex-col items-center justify-center gap-2 text-zinc-400 dark:text-zinc-500' },
+        { class: 'absolute inset-0 flex flex-col items-center justify-center gap-2 text-[var(--inscript-color-muted)]' },
         ['span', { class: 'text-xs' }, text],
     ];
 }
@@ -50,7 +50,7 @@ function buildPlaceholderIcon() {
 
 function buildPlaceholderDom() {
     const wrapper = document.createElement('div');
-    wrapper.className = 'absolute inset-0 flex flex-col items-center justify-center gap-2 text-zinc-400 dark:text-zinc-500';
+    wrapper.className = 'absolute inset-0 flex flex-col items-center justify-center gap-2 text-[var(--inscript-color-muted)]';
     wrapper.appendChild(buildPlaceholderIcon());
     const label = document.createElement('span');
     label.className = 'text-xs';
@@ -132,7 +132,7 @@ export const Youtube = Node.create({
             'data-youtube-video': id || '',
             'data-width': w,
             'data-align': a,
-            class: 'youtube-embed relative aspect-video rounded-lg overflow-hidden my-4 bg-zinc-100 dark:bg-zinc-800',
+            class: 'youtube-embed relative aspect-video rounded-lg overflow-hidden my-4',
             style: `width: ${w}; margin-left: ${ml}; margin-right: ${mr};`,
         };
         if (node.attrs.label) wrapperAttrs['data-embed-label'] = node.attrs.label;
@@ -181,7 +181,7 @@ export const Youtube = Node.create({
             const videoDom = document.createElement('div');
             dom.appendChild(videoDom);
             const captionEl = document.createElement('figcaption');
-            captionEl.className = 'mt-1.5 text-center text-xs text-zinc-500 dark:text-zinc-400';
+            captionEl.className = 'mt-1.5 text-center text-xs text-[var(--inscript-color-muted)]';
             let hasCaption = false;
 
             const iframe = document.createElement('iframe');
@@ -233,7 +233,7 @@ export const Youtube = Node.create({
                 videoDom.setAttribute('data-youtube-video', id || '');
                 videoDom.setAttribute('data-width', w);
                 videoDom.setAttribute('data-align', a);
-                videoDom.className = 'youtube-embed relative aspect-video rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800';
+                videoDom.className = 'youtube-embed relative aspect-video rounded-lg overflow-hidden';
 
                 const next = !id ? 'placeholder' : (facadeEnabled && !facadeLoaded) ? 'facade' : 'iframe';
                 if (next === 'iframe' && id) iframe.src = `https://www.youtube.com/embed/${id}`;

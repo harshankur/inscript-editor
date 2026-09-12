@@ -172,6 +172,7 @@ Returns `{ editor, history, setHistory, historyIndex, setHistoryIndex, isDirty, 
 | `onAddYoutube` | `() => void` | Opens your `<YoutubeEmbedModal>`. |
 | `onHistorySelect` | `(index) => void` | Called when a version is chosen for restore in `<HistoryView>`. |
 | `restoreVersion`, `markSaved` | | From `useInscriptEditor`, exposed through the imperative ref too. |
+| `theme` | `InscriptEditorTheme` | Colors, surfaces, borders, radii, spacing and fonts for the whole editor. See [Theming](#theming). |
 
 **Imperative ref**: `ref.current.getHTML()`, `.getText()`, `.setContent(html)`, `.restoreVersion(index)`, `.markSaved()`.
 
@@ -198,6 +199,58 @@ import 'inscript-editor/styles';
 ```
 
 Dark mode follows Tailwind's `dark:` class strategy — add/remove a `dark` class on an ancestor element (e.g. `<html>`) to toggle it.
+
+### Theming
+
+Every color, surface, border, radius, spacing knob and font in the editor is a CSS custom property (`--inscript-*`) with a default that reproduces the built-in look. Restyle the whole editor with the `theme` prop: pass any subset, and each field accepts any CSS value (hex, `rgb()`, a `var()` reference, a length, a font stack):
+
+```jsx
+<InscriptEditor
+  editor={editor}
+  theme={{
+    accent: '#7c3aed',              // links, active toolbar buttons, table selection
+    surface: '#ffffff',             // editor background
+    surfaceRaised: '#f7f7f8',       // toolbar, popovers, menus
+    text: '#1a1a1a',
+    fontFamily: 'Georgia, serif',
+    headingFont: '"Playfair Display", serif',
+    fontSize: '1.2rem',
+    maxWidth: '68ch',
+    radius: '0.75rem',
+    blockGap: '1.25rem',
+  }}
+/>
+```
+
+A token you set applies in **both** light and dark (you own that value). A token you *don't* set keeps its default and still swaps automatically for dark mode. For distinct dark values, set the variables yourself under your own `.dark` selector instead of (or alongside) the prop:
+
+```css
+.dark .inscript-editor { --inscript-color-accent: #a78bfa; }
+```
+
+That works because the prop just sets the same `--inscript-*` variables inline on the editor scope, so any ancestor CSS can override them too.
+
+**Available tokens** (theme key → CSS variable):
+
+| Group | Keys |
+| --- | --- |
+| Text | `text`, `heading`, `muted` |
+| Surfaces & borders | `surface`, `surfaceRaised`, `border`, `borderStrong`, `hover`, `active` |
+| Accent & links | `accent`, `onAccent`, `link`, `linkHover` |
+| Code | `codeBg`, `codeText`, `codeBorder` |
+| Quotes | `quoteBorder`, `quoteText` |
+| Tables | `tableBorder`, `tableHeaderBg` |
+| Marks & selection | `markBg`, `markText`, `selection` |
+| Typography | `fontFamily`, `fontSize`, `lineHeight`, `headingFont`, `monoFont`, `headingWeight`, `h1Size`, `h2Size`, `h3Size` |
+| Layout & shape | `maxWidth`, `focusMaxWidth`, `blockGap`, `radius`, `radiusSm`, `minHeight`, `focusDimOpacity` |
+
+Each key `fooBar` maps to the CSS variable `--inscript-…` (e.g. `surfaceRaised` → `--inscript-color-surface-raised`, `radius` → `--inscript-radius`). Interactive `hover`/`active` overlays are semi-transparent so they read correctly on any surface color you pick. `onAccent` is the text/icon color on accent-filled buttons; its default clears WCAG AA against the default accent, so if you pick a **dark** accent set `onAccent` too (e.g. `'#fff'`).
+
+The token map is exported as `THEME_VAR_MAP` (with `buildThemeVars`) from the package root, so a host can translate its own design tokens to inscript's programmatically.
+
+Content-semantic palettes are intentionally **not** themed: syntax highlighting, admonition types (note/tip/warning/…), and the `<MiniMap>`'s content colors identify a *kind* of content, not your brand.
+
+> If your app already runs its own Tailwind v4 build, import `inscript-editor/styles/content` (just the content + token rules, no global reset) instead of `inscript-editor/styles`, and point your Tailwind `@source` at the package via the exported `contentGlob` from `inscript-editor/tailwind-content`.
 
 `<MiniMap>` is a *spatial outline*, not a shrunk photo of the text. Prose has weak
 silhouette, so instead of near-identical grey blocks it makes the picture a function of the

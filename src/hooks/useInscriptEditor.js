@@ -70,7 +70,11 @@ export function useInscriptEditor({
         editable: !isReadonly,
         editorProps: {
             attributes: {
-                class: 'prose dark:prose-invert prose-lg max-w-none focus:outline-none min-h-[calc(100vh-300px)]',
+                // Height and all content styling come from the .ProseMirror rules
+                // (token-driven, see src/styles/index.css); min-height is the
+                // --inscript-min-height token. The old `prose*` classes were dead
+                // (no @tailwindcss/typography dependency) and are dropped.
+                class: 'focus:outline-none',
                 spellcheck: String(spellcheck),
             },
         },

@@ -179,7 +179,7 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
                 <ToolbarButton onClick={onShowMetadataModal} active={showMetadataActive} title={t('manageMetadata', 'Manage Tags & Categories')} width={TOOLBAR_SIZES.CUSTOM}>
                     <div className="relative flex items-center justify-center">
                         <Tag size={18} />
-                        {hasMetadata && <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full" />}
+                        {hasMetadata && <span className="absolute -top-1 -right-1 w-2 h-2 bg-[var(--inscript-color-accent)] rounded-full" />}
                     </div>
                 </ToolbarButton>
             )
@@ -292,7 +292,7 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
         if (tool.type === 'divider') {
             return (
                 <div key={tool._key ?? idx} style={{ width: `${TOOLBAR_SIZES.DIVIDER}px` }} className="h-6 flex items-center justify-center shrink-0">
-                    <div className="w-px h-full bg-zinc-100 dark:bg-zinc-800" />
+                    <div className="w-px h-full bg-[var(--inscript-color-border)]" />
                 </div>
             );
         }
@@ -310,7 +310,7 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
 
     return (
         <>
-            <div ref={containerRef} className="px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 flex items-center gap-1 bg-zinc-50 dark:bg-zinc-900/20 w-full relative">
+            <div ref={containerRef} className="px-4 py-2 border-b border-[var(--inscript-color-border)] flex items-center gap-1 bg-[var(--inscript-color-surface-raised)] w-full relative">
                 {visibleTools.map((tool, i) => renderTool(tool, i))}
 
                 {/* Right-side cluster: overflow >> and optional settings gear */}
@@ -320,7 +320,7 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                             <button
                                 onClick={() => setShowMore(!showMore)}
                                 style={{ width: `${TOOLBAR_SIZES.BUTTON}px`, height: `${TOOLBAR_SIZES.BUTTON}px` }}
-                                className={`flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors shrink-0 ${showMore ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white' : ''}`}
+                                className={`flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)] transition-colors shrink-0 ${showMore ? 'bg-[var(--inscript-color-active)] text-[var(--inscript-color-text)]' : ''}`}
                                 title={t('moreTools', 'More tools')}
                             >
                                 <ChevronsRight size={18} />
@@ -328,7 +328,7 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                             {showMore && (
                                 <>
                                     <div className="fixed inset-0 z-40" onClick={() => setShowMore(false)} />
-                                    <div className="absolute right-0 top-full mt-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg shadow-xl p-2 z-[60] flex flex-col gap-1 min-w-[150px]">
+                                    <div className="absolute right-0 top-full mt-2 bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl p-2 z-[60] flex flex-col gap-1 min-w-[150px]">
                                         <div className="flex flex-wrap gap-1 max-w-[200px]">
                                             {overflowTools.map((tool, i) => renderTool(tool, i))}
                                         </div>
@@ -345,8 +345,8 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                             style={{ width: `${TOOLBAR_SIZES.BUTTON}px`, height: `${TOOLBAR_SIZES.BUTTON}px` }}
                             className={`flex items-center justify-center rounded transition-colors shrink-0 ${
                                 customizerOpen
-                                    ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white'
-                                    : 'text-zinc-400 dark:text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-200'
+                                    ? 'bg-[var(--inscript-color-active)] text-[var(--inscript-color-text)]'
+                                    : 'text-[var(--inscript-color-muted)] hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)]'
                             }`}
                             title={t('customizeToolbar', 'Customize toolbar')}
                         >

@@ -46,21 +46,21 @@ export const LinkSelector = ({ editor }) => {
                     <div className="fixed inset-0 z-[70]" onClick={() => setIsOpen(false)} />
                     <form
                         onSubmit={handleApply}
-                        className="absolute top-full left-0 mt-2 p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg shadow-xl z-[80] min-w-[260px] animate-in slide-in-from-top-2 fade-in flex flex-col gap-3"
+                        className="absolute top-full left-0 mt-2 p-3 bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl z-[80] min-w-[260px] animate-in slide-in-from-top-2 fade-in flex flex-col gap-3"
                     >
-                        <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{t('insertLink', 'Insert Link')}</div>
+                        <div className="text-xs font-medium text-[var(--inscript-color-muted)] uppercase tracking-wider">{t('insertLink', 'Insert Link')}</div>
                         <input
                             type="text"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
                             placeholder={t('enterUrl', 'Enter URL...')}
-                            className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded px-3 py-2 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                            className="w-full bg-[var(--inscript-color-surface)] border border-[var(--inscript-color-border)] rounded px-3 py-2 text-sm text-[var(--inscript-color-text)] focus:outline-none focus:border-[var(--inscript-color-accent)] transition-colors"
                             autoFocus
                         />
                         <div className="flex items-center gap-2">
                             <button
                                 type="submit"
-                                className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2 rounded transition-colors"
+                                className="flex-1 bg-[var(--inscript-color-accent)] hover:opacity-90 text-[var(--inscript-color-on-accent)] text-xs font-bold py-2 rounded transition-colors"
                             >
                                 {t('apply', 'Apply')}
                             </button>

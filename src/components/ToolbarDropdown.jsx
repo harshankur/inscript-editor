@@ -64,15 +64,15 @@ export const ToolbarDropdown = ({ items = [], title, activeId }) => {
                 style={{ width: `${BTN_W}px`, height: `${BTN_W}px` }}
                 className={`flex items-center justify-center rounded-l transition-colors
                     ${isAnyActive
-                        ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-inner'
-                        : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white'
+                        ? 'bg-[var(--inscript-color-active)] text-[var(--inscript-color-text)] shadow-inner'
+                        : 'text-[var(--inscript-color-muted)] hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)]'
                     }`}
             >
                 {ActiveIcon && <ActiveIcon size={18} />}
             </button>
 
             {/* Inner divider */}
-            <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-700 shrink-0" />
+            <div className="w-px h-4 bg-[var(--inscript-color-border)] shrink-0" />
 
             {/* Chevron / dropdown trigger */}
             <button
@@ -82,8 +82,8 @@ export const ToolbarDropdown = ({ items = [], title, activeId }) => {
                 style={{ width: `${CHEVRON_W}px`, height: `${BTN_W}px` }}
                 className={`flex items-center justify-center rounded-r transition-colors
                     ${open
-                        ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white'
-                        : 'text-zinc-400 dark:text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white'
+                        ? 'bg-[var(--inscript-color-active)] text-[var(--inscript-color-text)]'
+                        : 'text-[var(--inscript-color-muted)] hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)]'
                     }`}
             >
                 <ChevronDown size={10} />
@@ -93,7 +93,7 @@ export const ToolbarDropdown = ({ items = [], title, activeId }) => {
             {open && (
                 <div
                     ref={popoverRef}
-                    className="absolute left-0 top-full mt-1 z-[70] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl overflow-hidden"
+                    className="absolute left-0 top-full mt-1 z-[70] bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border)] rounded-lg shadow-xl overflow-hidden"
                     style={{ minWidth: '160px' }}
                 >
                     {items.map(item => {
@@ -105,8 +105,8 @@ export const ToolbarDropdown = ({ items = [], title, activeId }) => {
                                 onClick={() => handlePick(item)}
                                 className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors
                                     ${item.active
-                                        ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-medium'
-                                        : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white'
+                                        ? 'bg-[var(--inscript-color-active)] text-[var(--inscript-color-text)] font-medium'
+                                        : 'text-[var(--inscript-color-text)] hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)]'
                                     }`}
                             >
                                 {Icon && <Icon size={15} className="shrink-0" />}

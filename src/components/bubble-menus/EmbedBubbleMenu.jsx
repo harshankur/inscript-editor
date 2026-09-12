@@ -32,7 +32,7 @@ export const EmbedBubbleMenu = ({ editor, isReadonly, onOpenExternal }) => {
             shouldShow={({ editor }) => !isReadonly && editor.isActive('embed')}
             tippyOptions={{ duration: 100, zIndex: 9999, maxWidth: '98vw', interactive: true, placement: 'top' }}
         >
-            <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg shadow-xl flex items-center p-1 gap-1 overflow-visible custom-scrollbar">
+            <div className="bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl flex items-center p-1 gap-1 overflow-visible custom-scrollbar">
                 <SourceField
                     icon={<Globe size={14} />}
                     label={t('embedUrl', 'Embed URL')}
@@ -50,8 +50,8 @@ export const EmbedBubbleMenu = ({ editor, isReadonly, onOpenExternal }) => {
                     onApply={(v) => editor.chain().focus().updateAttributes('embed', { label: v || null }).run()}
                     inputClassName="w-28"
                 />
-                <div className="w-px h-4 bg-zinc-100 dark:bg-zinc-800 mx-0.5" />
-                <div className="flex items-center gap-0.5 bg-zinc-100/50 dark:bg-zinc-800/30 p-0.5 rounded border border-zinc-200 dark:border-zinc-800">
+                <div className="w-px h-4 bg-[var(--inscript-color-border)] mx-0.5" />
+                <div className="flex items-center gap-0.5 bg-[var(--inscript-color-surface-raised)] p-0.5 rounded border border-[var(--inscript-color-border)]">
                     <ToolbarButton
                         onClick={() => {
                             const src = editor.getAttributes('embed').src;

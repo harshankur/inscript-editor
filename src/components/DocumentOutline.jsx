@@ -52,10 +52,10 @@ export const DocumentOutline = ({ editor }) => {
 
     if (isCollapsed) {
         return (
-            <div className="flex flex-col border-l border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 w-12 shrink-0 transition-all">
-                <button 
+            <div className="flex flex-col border-l border-[var(--inscript-color-border)] bg-[var(--inscript-color-surface-raised)] w-12 shrink-0 transition-all">
+                <button
                     onClick={handleToggleCollapse}
-                    className="p-3 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 flex justify-center"
+                    className="p-3 text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)] flex justify-center"
                     title={t('expandOutline', 'Expand outline')}
                 >
                     <ListIcon size={18} />
@@ -65,12 +65,12 @@ export const DocumentOutline = ({ editor }) => {
     }
 
     return (
-        <div className="flex flex-col border-l border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 w-64 shrink-0 transition-all max-h-full overflow-hidden">
-            <div className="flex items-center justify-between p-3 border-b border-zinc-200 dark:border-zinc-800">
-                <span className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">{t('documentOutline', 'Outline')}</span>
-                <button 
+        <div className="flex flex-col border-l border-[var(--inscript-color-border)] bg-[var(--inscript-color-surface-raised)] w-64 shrink-0 transition-all max-h-full overflow-hidden">
+            <div className="flex items-center justify-between p-3 border-b border-[var(--inscript-color-border)]">
+                <span className="font-semibold text-sm text-[var(--inscript-color-text)]">{t('documentOutline', 'Outline')}</span>
+                <button
                     onClick={handleToggleCollapse}
-                    className="p-1 rounded text-zinc-500 hover:bg-zinc-200 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                    className="p-1 rounded text-[var(--inscript-color-muted)] hover:bg-[var(--inscript-color-hover)]"
                     title={t('collapseOutline', 'Collapse outline')}
                 >
                     <ChevronRight size={16} />
@@ -78,7 +78,7 @@ export const DocumentOutline = ({ editor }) => {
             </div>
             <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-1 custom-scrollbar">
                 {headings.length === 0 ? (
-                    <div className="text-sm text-zinc-500 dark:text-zinc-400 italic">
+                    <div className="text-sm text-[var(--inscript-color-muted)] italic">
                         {t('noHeadings', 'No headings yet')}
                     </div>
                 ) : (
@@ -86,7 +86,7 @@ export const DocumentOutline = ({ editor }) => {
                         <button
                             key={`${h.pos}-${i}`}
                             onClick={() => handleClick(h.pos)}
-                            className="text-left text-sm py-1 px-2 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition-colors truncate"
+                            className="text-left text-sm py-1 px-2 rounded hover:bg-[var(--inscript-color-hover)] text-[var(--inscript-color-text)] transition-colors truncate"
                             style={{ paddingLeft: `${(h.level - 1) * 0.75 + 0.5}rem` }}
                             title={h.text}
                         >

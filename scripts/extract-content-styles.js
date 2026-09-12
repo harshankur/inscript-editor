@@ -24,8 +24,16 @@ const css = readFileSync(inputPath, 'utf8');
 const root = postcss.parse(css);
 const extracted = postcss.root();
 
+// Keep the content rules (.ProseMirror*), the editor scope/container rules
+// (.inscript-editor*), and any rule that defines the theme tokens (the :root /
+// .dark blocks that set --inscript-* custom properties). Without the token rules
+// the content route would render with no colors/surfaces; without the container
+// rule it would lose max-width. Tailwind's own :root theme block (which defines
+// --color-* / --spacing, not --inscript-*) is deliberately not matched.
 root.walkRules(rule => {
-    if (rule.selector.includes('ProseMirror')) {
+    const sel = rule.selector;
+    const definesToken = rule.some(node => node.type === 'decl' && node.prop && node.prop.startsWith('--inscript-'));
+    if (sel.includes('ProseMirror') || sel.includes('inscript-editor') || definesToken) {
         extracted.append(rule.clone());
     }
 });

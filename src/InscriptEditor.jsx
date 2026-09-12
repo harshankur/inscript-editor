@@ -9,6 +9,7 @@ import { YoutubeBubbleMenu } from './components/bubble-menus/YoutubeBubbleMenu.j
 import { EmbedBubbleMenu } from './components/bubble-menus/EmbedBubbleMenu.jsx';
 import { SlashCommandMenu } from './components/SlashCommandMenu.jsx';
 import { useInscriptEditorTranslations } from './hooks/useInscriptEditorTranslations.js';
+import { buildThemeVars } from './utils/theme.js';
 
 /**
  * Top-level editor rendering component. Composes toolbar, bubble menus,
@@ -45,6 +46,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     toolbarPresetLabels,
     presetsMode,
     customizerContainer,
+    theme,
     fontFamily = '',
     fontSize = '',
     maxWidth = '',
@@ -55,6 +57,16 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     onOpenExternal,
 }, ref) {
     useInscriptEditorTranslations();
+
+    // All appearance tokens (colors, surfaces, borders, radii, spacing, fonts)
+    // resolve to --inscript-* custom properties on the .inscript-editor scope so
+    // they reach both the toolbar and the content. The legacy flat props
+    // (fontFamily/fontSize/lineHeight/headingFontFamily) still work as fallbacks.
+    const themeVars = buildThemeVars(theme, { fontFamily, fontSize, lineHeight, headingFontFamily });
+    // max-width is resolved separately: focus mode overrides it with focusMaxWidth.
+    const resolvedMaxWidth = focusMode
+        ? (theme?.focusMaxWidth || focusMaxWidth || '48rem')
+        : (theme?.maxWidth || maxWidth || undefined);
 
     useImperativeHandle(ref, () => ({
         getHTML: () => editor?.getHTML() ?? '',
@@ -68,7 +80,10 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     if (!editor) return null;
 
     return (
-        <>
+        // display:contents scope: carries the theme custom properties to the
+        // toolbar + content without introducing a layout box, so the host's
+        // surrounding flex layout is unchanged.
+        <div className="inscript-editor" style={{ display: 'contents', ...themeVars }}>
             {/* Toolbar */}
             {!isReadonly && !showDiff && !focusMode && (
                 <ResponsiveToolbar
@@ -95,7 +110,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
             )}
 
             {/* Content area */}
-            <div className="flex-1 overflow-y-auto relative bg-white dark:bg-zinc-950">
+            <div className="flex-1 overflow-y-auto relative bg-[var(--inscript-color-surface)]">
                 {showDiff ? (
                     <HistoryView
                         history={history}
@@ -110,13 +125,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                 ) : (
                     <div 
                         className={`mx-auto px-2 pt-3 pb-[57px] md:px-8 md:pt-12 md:pb-[57px] flex flex-col min-h-full inscript-editor-container w-full ${focusMode ? 'focus-mode' : ''} ${focusMode && focusDim ? 'focus-dim' : ''}`}
-                        style={{
-                            '--inscript-max-width': focusMode ? (focusMaxWidth || '48rem') : (maxWidth || undefined),
-                            '--inscript-font-family': fontFamily || undefined,
-                            '--inscript-font-size': fontSize || undefined,
-                            '--inscript-heading-font': headingFontFamily || undefined,
-                            '--inscript-line-height': lineHeight || undefined,
-                        }}
+                        style={{ '--inscript-max-width': resolvedMaxWidth }}
                     >
                         <TextBubbleMenu editor={editor} isReadonly={isReadonly} bubbleMenuConfig={bubbleMenuConfig} />
                         <TableBubbleMenu editor={editor} isReadonly={isReadonly} />
@@ -128,6 +137,6 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                     </div>
                 )}
             </div>
-        </>
+        </div>
     );
 });

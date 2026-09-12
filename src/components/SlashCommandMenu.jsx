@@ -80,22 +80,22 @@ export const SlashCommandMenu = ({ isReadonly }) => {
     return (
         <div 
             ref={menuRef}
-            className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg shadow-xl py-2 min-w-[240px] z-[9999]"
+            className="bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl py-2 min-w-[240px] z-[9999]"
             style={style}
         >
             {state.items.map((item, index) => (
                 <button
                     key={item.id}
                     className={`w-full text-left px-4 py-2 flex items-center gap-3 transition-colors ${
-                        index === selectedIndex 
-                            ? 'bg-zinc-100 dark:bg-zinc-800' 
-                            : 'hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50'
+                        index === selectedIndex
+                            ? 'bg-[var(--inscript-color-active)]'
+                            : 'hover:bg-[var(--inscript-color-hover)]'
                     }`}
                     onClick={() => state.command(item)}
                 >
                     <div>
-                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{item.title}</div>
-                        {item.subtitle && <div className="text-xs text-zinc-500 dark:text-zinc-400">{item.subtitle}</div>}
+                        <div className="text-sm font-medium text-[var(--inscript-color-text)]">{item.title}</div>
+                        {item.subtitle && <div className="text-xs text-[var(--inscript-color-muted)]">{item.subtitle}</div>}
                     </div>
                 </button>
             ))}

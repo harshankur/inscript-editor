@@ -1,6 +1,6 @@
 {
   "name": "inscript-editor",
-  "version": "0.2.10",
+  "version": "0.3.0",
   "description": "Standalone TipTap-based rich text editor extracted from Inscript.",
   "author": "Harsh Ankur <harshankur@outlook.com>",
   "license": "MIT",

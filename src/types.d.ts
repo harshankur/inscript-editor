@@ -102,6 +102,71 @@ export interface OriginalContent {
     categories: string[];
 }
 
+/**
+ * Theme tokens for the editor. Every field is optional and maps to a CSS custom
+ * property on the editor scope (see src/styles/index.css). Any CSS value is
+ * accepted (hex, rgb(), a var() reference, a length, a font stack, ...). An
+ * omitted token keeps its built-in default, which still swaps automatically
+ * between light and dark; a token you DO set applies in both modes (set it under
+ * your own `.dark` selector for distinct dark values). Content-semantic palettes
+ * (syntax highlighting, admonition types) are intentionally not themeable.
+ */
+export interface InscriptEditorTheme {
+    // Text
+    text?: string;
+    heading?: string;
+    muted?: string;
+    // Surfaces & borders
+    surface?: string;
+    surfaceRaised?: string;
+    border?: string;
+    borderStrong?: string;
+    /** Chrome hover overlay (semi-transparent reads on any surface). */
+    hover?: string;
+    /** Chrome selected/active overlay. */
+    active?: string;
+    // Accent & links
+    accent?: string;
+    /** Text/icon color on accent-filled buttons. Default clears WCAG AA against the
+     *  default accent; set it (e.g. '#fff') if you choose a dark accent. */
+    onAccent?: string;
+    link?: string;
+    linkHover?: string;
+    // Code
+    codeBg?: string;
+    codeText?: string;
+    codeBorder?: string;
+    // Quotes
+    quoteBorder?: string;
+    quoteText?: string;
+    // Tables
+    tableBorder?: string;
+    tableHeaderBg?: string;
+    // Marks & selection
+    markBg?: string;
+    markText?: string;
+    selection?: string;
+    // Typography
+    fontFamily?: string;
+    fontSize?: string;
+    lineHeight?: string;
+    headingFont?: string;
+    monoFont?: string;
+    headingWeight?: string | number;
+    h1Size?: string;
+    h2Size?: string;
+    h3Size?: string;
+    // Layout, shape & spacing
+    maxWidth?: string;
+    /** Column width in focus mode; overrides maxWidth while focusMode is on. */
+    focusMaxWidth?: string;
+    blockGap?: string;
+    radius?: string;
+    radiusSm?: string;
+    minHeight?: string;
+    focusDimOpacity?: string | number;
+}
+
 export interface InscriptEditorProps {
     editor: Editor | null;
     isReadonly?: boolean;
@@ -141,13 +206,23 @@ export interface InscriptEditorProps {
      * position:fixed). The element should be position:relative + overflow:hidden.
      */
     customizerContainer?: HTMLElement | null;
+    /**
+     * Theme tokens (colors, surfaces, borders, radii, spacing, fonts) for the whole
+     * editor. This is the recommended way to restyle; see {@link InscriptEditorTheme}.
+     * The flat props below (fontFamily, fontSize, ...) remain supported as fallbacks
+     * for the typography tokens; a value in `theme` wins over the matching flat prop.
+     */
+    theme?: InscriptEditorTheme;
+    /** Legacy: body font-family. Prefer theme.fontFamily. */
     fontFamily?: string;
-    /** Reading text size (any CSS length, e.g. '1.125rem'). Sets --inscript-font-size; headings scale
-     *  in em off it. Omitted/empty keeps the 18px default. */
+    /** Legacy: reading text size (any CSS length, e.g. '1.125rem'). Prefer theme.fontSize.
+     *  Headings scale in em off it. Omitted/empty keeps the 18px default. */
     fontSize?: string;
+    /** Legacy: content column width. Prefer theme.maxWidth. */
     maxWidth?: string;
+    /** Legacy: body line-height. Prefer theme.lineHeight. */
     lineHeight?: string;
-    /** Optional distinct heading font-family stack (--inscript-heading-font). Empty = same as body. */
+    /** Legacy: distinct heading font-family stack. Prefer theme.headingFont. Empty = same as body. */
     headingFontFamily?: string;
     /** Column width in focus mode (any CSS length). Empty = the 48rem default. */
     focusMaxWidth?: string;
@@ -161,6 +236,23 @@ export interface InscriptEditorProps {
 }
 
 export const InscriptEditor: (props: InscriptEditorProps) => ReactNode;
+
+/**
+ * Maps every theme key (except `focusMaxWidth`, which the editor resolves
+ * separately for focus mode) to its `--inscript-*` CSS custom property, so a host
+ * can translate its own design tokens to inscript's programmatically.
+ */
+export declare const THEME_VAR_MAP: Record<keyof Omit<InscriptEditorTheme, 'focusMaxWidth'>, string>;
+
+/**
+ * Build the inline style object of `--inscript-*` custom properties from a theme
+ * object plus the legacy flat props (the `theme` object wins over a legacy prop
+ * for the same token). `maxWidth` is excluded (resolved separately for focus mode).
+ */
+export declare function buildThemeVars(
+    theme?: InscriptEditorTheme,
+    legacy?: { fontFamily?: string; fontSize?: string; lineHeight?: string; headingFontFamily?: string },
+): Record<string, string>;
 
 // --- Toolbar registry & presets (single source of truth for consumer UIs) ---
 export type ToolSurface = 'toolbar' | 'bubble';

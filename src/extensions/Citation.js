@@ -46,8 +46,10 @@ export const Citation = Node.create({
         const label = HTMLAttributes['data-label'] || HTMLAttributes['data-key'] || 'Citation';
         return [
             'span',
+            // Visual styling lives in CSS (.ProseMirror .citation, token-driven) so
+            // the citation color is themeable and not serialized into saved HTML.
             mergeAttributes(HTMLAttributes, {
-                class: 'citation cursor-help bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1 py-0.5 rounded text-[0.9em] font-medium border border-emerald-500/20 select-all',
+                class: 'citation cursor-help select-all',
             }),
             `[${label}]`
         ];

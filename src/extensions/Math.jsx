@@ -63,19 +63,19 @@ const MathComponent = ({ node, updateAttributes, selected, isInline }) => {
             className={`math-node-wrapper ${isInline ? 'inline-block mx-1' : 'my-4 block'} relative cursor-pointer`}
         >
             <WrapperTag
-                className={`math-render ${selected ? 'ring-2 ring-emerald-500 rounded' : ''} ${error ? 'text-red-500' : ''}`}
+                className={`math-render ${selected ? 'ring-2 ring-[var(--inscript-color-accent)] rounded' : ''} ${error ? 'text-red-500' : ''}`}
                 dangerouslySetInnerHTML={{ __html: error ? code : html || (isInline ? 'Empty math' : 'Empty math block') }}
             />
             {selected && (
                 <div
-                    className={`absolute z-50 bg-white border border-slate-300 shadow-lg rounded p-2 flex items-center gap-2 ${
+                    className={`absolute z-50 bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] shadow-lg rounded p-2 flex items-center gap-2 ${
                         isInline ? 'top-full left-0 mt-1' : 'top-full left-1/2 -translate-x-1/2 mt-1'
                     }`}
                     style={{ minWidth: '250px' }}
                 >
                     <input
                         type="text"
-                        className="flex-1 p-1 border border-slate-200 rounded font-mono text-sm outline-none focus:border-emerald-500"
+                        className="flex-1 p-1 border border-[var(--inscript-color-border)] rounded font-mono text-sm text-[var(--inscript-color-text)] outline-none focus:border-[var(--inscript-color-accent)]"
                         placeholder="LaTeX math..."
                         value={code}
                         onChange={e => updateAttributes({ code: e.target.value })}

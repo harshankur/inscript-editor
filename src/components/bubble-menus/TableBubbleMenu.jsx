@@ -23,9 +23,9 @@ export const TableBubbleMenu = ({ editor, isReadonly }) => {
             }}
             tippyOptions={{ duration: 100, zIndex: 9999, maxWidth: '98vw', interactive: true, placement: 'bottom' }}
         >
-            <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg shadow-xl flex items-center p-1 gap-1 flex-wrap overflow-visible max-w-[90vw] custom-scrollbar">
+            <div className="bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl flex items-center p-1 gap-1 flex-wrap overflow-visible max-w-[90vw] custom-scrollbar">
                 {/* Columns Group */}
-                <div className="flex items-center gap-0.5 bg-zinc-100/50 dark:bg-zinc-800/30 p-0.5 rounded border border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center gap-0.5 bg-[var(--inscript-color-surface-raised)] p-0.5 rounded border border-[var(--inscript-color-border)]">
                     <ToolbarButton
                         onClick={() => editor.chain().focus().addColumnBefore().run()}
                         disabled={!editor.can().addColumnBefore()}
@@ -47,16 +47,16 @@ export const TableBubbleMenu = ({ editor, isReadonly }) => {
                         className="hover:bg-red-500/10 hover:text-red-500"
                     >
                         <div className="relative flex items-center justify-center">
-                            <Columns size={15} className="text-zinc-400 dark:text-zinc-500" />
+                            <Columns size={15} className="text-[var(--inscript-color-muted)]" />
                             <Trash2 size={10} className="absolute -bottom-0.5 -right-0.5 text-red-500" />
                         </div>
                     </ToolbarButton>
                 </div>
 
-                <div className="w-px h-4 bg-zinc-100 dark:bg-zinc-800 mx-0.5" />
+                <div className="w-px h-4 bg-[var(--inscript-color-border)] mx-0.5" />
 
                 {/* Rows Group */}
-                <div className="flex items-center gap-0.5 bg-zinc-100/50 dark:bg-zinc-800/30 p-0.5 rounded border border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center gap-0.5 bg-[var(--inscript-color-surface-raised)] p-0.5 rounded border border-[var(--inscript-color-border)]">
                     <ToolbarButton
                         onClick={() => editor.chain().focus().addRowBefore().run()}
                         disabled={!editor.can().addRowBefore()}
@@ -78,16 +78,16 @@ export const TableBubbleMenu = ({ editor, isReadonly }) => {
                         className="hover:bg-red-500/10 hover:text-red-500"
                     >
                         <div className="relative flex items-center justify-center">
-                            <Rows size={15} className="text-zinc-400 dark:text-zinc-500" />
+                            <Rows size={15} className="text-[var(--inscript-color-muted)]" />
                             <Trash2 size={10} className="absolute -bottom-0.5 -right-0.5 text-red-500" />
                         </div>
                     </ToolbarButton>
                 </div>
 
-                <div className="w-px h-4 bg-zinc-100 dark:bg-zinc-800 mx-0.5" />
+                <div className="w-px h-4 bg-[var(--inscript-color-border)] mx-0.5" />
 
                 {/* Cell Actions Group */}
-                <div className="flex items-center gap-0.5 bg-zinc-100/50 dark:bg-zinc-800/30 p-0.5 rounded border border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center gap-0.5 bg-[var(--inscript-color-surface-raised)] p-0.5 rounded border border-[var(--inscript-color-border)]">
                     <ToolbarButton
                         onClick={() => editor.chain().focus().mergeCells().run()}
                         disabled={!editor.can().mergeCells()}
@@ -104,10 +104,10 @@ export const TableBubbleMenu = ({ editor, isReadonly }) => {
                     </ToolbarButton>
                 </div>
 
-                <div className="w-px h-4 bg-zinc-100 dark:bg-zinc-800 mx-0.5" />
+                <div className="w-px h-4 bg-[var(--inscript-color-border)] mx-0.5" />
 
                 {/* Layout Group */}
-                <div className="flex items-center gap-0.5 bg-zinc-100/50 dark:bg-zinc-800/30 p-0.5 rounded border border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center gap-0.5 bg-[var(--inscript-color-surface-raised)] p-0.5 rounded border border-[var(--inscript-color-border)]">
                     <ToolbarButton onClick={() => setTableLayout(editor, { align: 'left' })} active={getTableNode(editor.state)?.node.attrs.align === 'left'} title={t('alignLeft', 'Align Left')}>
                         <AlignLeft size={15} />
                     </ToolbarButton>
@@ -119,20 +119,20 @@ export const TableBubbleMenu = ({ editor, isReadonly }) => {
                     </ToolbarButton>
                 </div>
 
-                <div className="w-px h-4 bg-zinc-100 dark:bg-zinc-800 mx-0.5" />
+                <div className="w-px h-4 bg-[var(--inscript-color-border)] mx-0.5" />
 
                 {/* Table Actions Group */}
-                <div className="flex items-center gap-0.5 bg-zinc-100/50 dark:bg-zinc-800/30 p-0.5 rounded border border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center gap-0.5 bg-[var(--inscript-color-surface-raised)] p-0.5 rounded border border-[var(--inscript-color-border)]">
                     <ToolbarButton
                         onClick={() => editor.chain().focus().toggleHeaderRow().run()}
                         disabled={!editor.can().toggleHeaderRow()}
                         active={isHeaderRowActive(editor)}
                         title={t('toggleHeaderRow', 'Toggle Header Row')}
                     >
-                        <div className="flex flex-col gap-0.5 items-center justify-center w-4 h-4 border border-zinc-400 dark:border-zinc-500 rounded-sm p-0.5">
-                            <div className="w-full h-1 bg-zinc-400 dark:bg-zinc-500 rounded-[1px]" />
-                            <div className="w-full h-0.5 bg-zinc-200 dark:bg-zinc-800 rounded-[1px]" />
-                            <div className="w-full h-0.5 bg-zinc-200 dark:bg-zinc-800 rounded-[1px]" />
+                        <div className="flex flex-col gap-0.5 items-center justify-center w-4 h-4 border border-[var(--inscript-color-border-strong)] rounded-sm p-0.5">
+                            <div className="w-full h-1 bg-[var(--inscript-color-border-strong)] rounded-[1px]" />
+                            <div className="w-full h-0.5 bg-[var(--inscript-color-border)] rounded-[1px]" />
+                            <div className="w-full h-0.5 bg-[var(--inscript-color-border)] rounded-[1px]" />
                         </div>
                     </ToolbarButton>
                     <ToolbarButton
@@ -141,10 +141,10 @@ export const TableBubbleMenu = ({ editor, isReadonly }) => {
                         active={isHeaderColumnActive(editor)}
                         title={t('toggleHeaderColumn', 'Toggle Header Column')}
                     >
-                        <div className="flex gap-0.5 items-center justify-center w-4 h-4 border border-zinc-400 dark:border-zinc-500 rounded-sm p-0.5">
-                            <div className="w-1 h-full bg-zinc-400 dark:bg-zinc-500 rounded-[1px]" />
-                            <div className="w-0.5 h-full bg-zinc-200 dark:bg-zinc-800 rounded-[1px]" />
-                            <div className="w-0.5 h-full bg-zinc-200 dark:bg-zinc-800 rounded-[1px]" />
+                        <div className="flex gap-0.5 items-center justify-center w-4 h-4 border border-[var(--inscript-color-border-strong)] rounded-sm p-0.5">
+                            <div className="w-1 h-full bg-[var(--inscript-color-border-strong)] rounded-[1px]" />
+                            <div className="w-0.5 h-full bg-[var(--inscript-color-border)] rounded-[1px]" />
+                            <div className="w-0.5 h-full bg-[var(--inscript-color-border)] rounded-[1px]" />
                         </div>
                     </ToolbarButton>
                     <ToolbarButton

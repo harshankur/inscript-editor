@@ -52,11 +52,11 @@ const MermaidComponent = (props) => {
     }, [code]);
 
     return (
-        <NodeViewWrapper className="mermaid-node my-4 p-4 border border-slate-200 rounded-md bg-white">
+        <NodeViewWrapper className="mermaid-node my-4 p-4 border border-[var(--inscript-color-border)] rounded-md bg-[var(--inscript-color-surface-raised)]">
             {selected && (
                 <div className="mb-4">
                     <textarea
-                        className="w-full p-2 border border-slate-300 rounded font-mono text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                        className="w-full p-2 border border-[var(--inscript-color-border-strong)] rounded font-mono text-sm text-[var(--inscript-color-text)] outline-none focus:ring-2 focus:ring-[var(--inscript-color-accent)]"
                         rows={5}
                         placeholder="Enter mermaid code here... (e.g. graph TD;\n A-->B;)"
                         value={code}
@@ -76,7 +76,7 @@ const MermaidComponent = (props) => {
                 ) : svg ? (
                     <div dangerouslySetInnerHTML={{ __html: svg }} />
                 ) : (
-                    <div className="text-slate-400 italic">Empty Mermaid diagram</div>
+                    <div className="text-[var(--inscript-color-muted)] italic">Empty Mermaid diagram</div>
                 )}
             </div>
         </NodeViewWrapper>

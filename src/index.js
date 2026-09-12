@@ -40,3 +40,5 @@ export { EmbedBubbleMenu } from './components/bubble-menus/EmbedBubbleMenu.jsx';
 export { SourceField } from './components/bubble-menus/SourceField.jsx';
 
 export { applyInscriptEditorTurndownRules } from './markdown/turndownRules.js';
+
+export { buildThemeVars, THEME_VAR_MAP } from './utils/theme.js';

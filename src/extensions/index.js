@@ -84,9 +84,11 @@ export function buildExtensions(options = {}) {
             openOnClick: false,
             linkOnPaste: options.link?.linkOnPaste ?? true,
             autolink: options.link?.autolink ?? true,
-            HTMLAttributes: {
-                class: 'text-emerald-500 underline underline-offset-4 cursor-pointer hover:text-emerald-400 transition-colors',
-            },
+            // Link styling lives in CSS (.ProseMirror a[href], token-driven) rather
+            // than as classes here, so link color is themeable AND not serialized
+            // into the saved document HTML. A host can still inject its own classes
+            // via options.link.HTMLAttributes.
+            HTMLAttributes: options.link?.HTMLAttributes ?? {},
         }),
     ];
 

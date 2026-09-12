@@ -37,8 +37,8 @@ export function SourceField({ value = '', onApply, validate, placeholder, label,
     };
 
     return (
-        <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded border ${invalid ? 'border-red-400 dark:border-red-500' : 'border-zinc-200 dark:border-zinc-800'} bg-white dark:bg-zinc-800/60`}>
-            {icon && <span className="text-zinc-400 dark:text-zinc-500 shrink-0 flex">{icon}</span>}
+        <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded border ${invalid ? 'border-red-400 dark:border-red-500' : 'border-[var(--inscript-color-border)] focus-within:border-[var(--inscript-color-accent)]'} bg-[var(--inscript-color-surface)]`}>
+            {icon && <span className="text-[var(--inscript-color-muted)] shrink-0 flex">{icon}</span>}
             <input
                 type="text"
                 value={draft}
@@ -47,7 +47,7 @@ export function SourceField({ value = '', onApply, validate, placeholder, label,
                 title={label}
                 spellCheck={false}
                 autoComplete="off"
-                className={`${inputClassName} min-w-0 bg-transparent text-xs text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400 outline-none`}
+                className={`${inputClassName} min-w-0 bg-transparent text-xs text-[var(--inscript-color-text)] placeholder:text-[var(--inscript-color-muted)] outline-none`}
                 onChange={(e) => { setDraft(e.target.value); setDirty(true); setInvalid(false); }}
                 onFocus={(e) => e.currentTarget.select()}
                 onKeyDown={(e) => {
@@ -63,7 +63,7 @@ export function SourceField({ value = '', onApply, validate, placeholder, label,
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={apply}
                     title={label}
-                    className="shrink-0 flex items-center justify-center w-5 h-5 rounded text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+                    className="shrink-0 flex items-center justify-center w-5 h-5 rounded text-[var(--inscript-color-accent)] hover:bg-[var(--inscript-color-accent-soft)]"
                 >
                     <Check size={13} />
                 </button>

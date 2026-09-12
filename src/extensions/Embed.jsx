@@ -36,13 +36,13 @@ const EmbedComponent = ({ node, extension }) => {
     let inner;
     if (!src) {
         inner = (
-            <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 p-6 text-center text-xs text-zinc-400 dark:text-zinc-500">
+            <div className="rounded-lg border border-[var(--inscript-color-border)] bg-[var(--inscript-color-surface-raised)] p-6 text-center text-xs text-[var(--inscript-color-muted)]">
                 {t('embedUnavailable', 'Embed unavailable')}
             </div>
         );
     } else if (loaded) {
         inner = (
-            <div className="relative aspect-video rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800">
+            <div className="relative aspect-video rounded-lg overflow-hidden border border-[var(--inscript-color-border)] bg-[var(--inscript-color-surface-raised)]">
                 <iframe
                     src={src}
                     title={label || 'Embedded content'}
@@ -57,21 +57,21 @@ const EmbedComponent = ({ node, extension }) => {
         );
     } else {
         inner = (
-            <div className="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 p-6 flex flex-col items-center gap-3 text-center">
-                <Globe size={22} className="text-zinc-400 dark:text-zinc-500" />
+            <div className="rounded-lg border border-[var(--inscript-color-border)] bg-[var(--inscript-color-surface-raised)] p-6 flex flex-col items-center gap-3 text-center">
+                <Globe size={22} className="text-[var(--inscript-color-muted)]" />
                 <div className="min-w-0 max-w-full">
-                    <div className="font-medium text-sm text-zinc-800 dark:text-zinc-200">{hostOf(src)}</div>
-                    <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[280px] mx-auto">{src}</div>
+                    <div className="font-medium text-sm text-[var(--inscript-color-text)]">{hostOf(src)}</div>
+                    <div className="text-xs text-[var(--inscript-color-muted)] truncate max-w-[280px] mx-auto">{src}</div>
                 </div>
                 <button
                     type="button"
                     onClick={() => setLoaded(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-100 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-[var(--inscript-color-text)] text-[var(--inscript-color-surface)] hover:opacity-90 transition-colors"
                 >
                     <Play size={13} />
                     {t('embedLoad', 'Load embedded content')}
                 </button>
-                <div className="text-[10px] text-zinc-400 dark:text-zinc-500">
+                <div className="text-[10px] text-[var(--inscript-color-muted)]">
                     {t('embedThirdParty', 'Loads third-party content from the source above')}
                 </div>
             </div>
@@ -81,7 +81,7 @@ const EmbedComponent = ({ node, extension }) => {
     return (
         <NodeViewWrapper as="figure" className="embed-node my-4">
             {inner}
-            {label && <figcaption className="mt-1.5 text-center text-xs text-zinc-500 dark:text-zinc-400">{label}</figcaption>}
+            {label && <figcaption className="mt-1.5 text-center text-xs text-[var(--inscript-color-muted)]">{label}</figcaption>}
         </NodeViewWrapper>
     );
 };

@@ -2,10 +2,121 @@
 @source "../**/*.{js,jsx}";
 @variant dark (&:where(.dark, .dark *));
 
+/* ============================================================================
+   Theme tokens
+   ----------------------------------------------------------------------------
+   Every color, surface, border, radius and spacing knob the editor exposes is a
+   CSS custom property with a default that reproduces the built-in zinc/emerald
+   look exactly, so nothing changes until a token is overridden. A host restyles
+   the whole editor by either:
+     - passing <InscriptEditor theme={{ ... }} /> (sets these inline on the
+       .inscript-editor scope), or
+     - setting the variables in its own CSS on any ancestor.
+
+   Light values live on :root; dark values on .dark (Tailwind's class strategy).
+   A token the host does NOT set still swaps automatically between light and dark.
+   A token the host DOES set applies in BOTH modes (it owns that value) - set it
+   under your own `.dark` selector if you want distinct light/dark values.
+
+   Content-semantic palettes (syntax highlighting, admonition types, wikilinks)
+   are intentionally NOT tokenized: their colors identify a kind of content, not
+   the host's brand, exactly like the MiniMap's content colors.
+   ========================================================================== */
+:root {
+  /* --- Base tokens: concrete values. Light here, dark overrides on .dark below.
+     A theme prop override is set inline on the .inscript-editor scope and wins over
+     these; an unset token keeps the default and still swaps for dark. --- */
+  /* Text */
+  --inscript-color-text: #18181b;                    /* zinc-900 */
+  --inscript-color-muted: #71717a;                   /* zinc-500 */
+  /* Surfaces & borders */
+  --inscript-color-surface: #ffffff;                 /* editor / content background */
+  --inscript-color-surface-raised: #fafafa;          /* zinc-50: toolbar, popovers, th, dl */
+  --inscript-color-border: #e4e4e7;                  /* zinc-200 */
+  --inscript-color-border-strong: #d4d4d8;           /* zinc-300 */
+  /* Interactive overlays (chrome hover / active). Semi-transparent so they read
+     correctly on ANY surface color a host chooses, in both light and dark. */
+  --inscript-color-hover: rgb(24 24 27 / 0.06);
+  --inscript-color-active: rgb(24 24 27 / 0.10);
+  /* Accent & links */
+  --inscript-color-accent: #10b981;                  /* emerald-500 */
+  /* Foreground for text/icons on an accent-filled button. Dark by default so it
+     clears WCAG AA (>=4.5:1) against the default accent; override it if you set a
+     dark accent. */
+  --inscript-color-on-accent: #052e22;
+  --inscript-color-link-hover: #34d399;              /* emerald-400 */
+  /* Code */
+  --inscript-color-code-bg: #f4f4f5;                 /* zinc-100 */
+  --inscript-color-code-border: #e4e4e7;             /* zinc-200 */
+  /* Quotes */
+  --inscript-color-quote-text: #3f3f46;              /* zinc-700 */
+  /* Tables */
+  --inscript-color-table-border: #e4e4e7;            /* zinc-200 */
+  --inscript-color-table-header-bg: #fafafa;         /* zinc-50 */
+  /* Marks & selection */
+  --inscript-color-mark-bg: rgb(234 179 8 / 0.2);    /* yellow-500/20 */
+  --inscript-color-mark-text: #a16207;               /* yellow-700 */
+  --inscript-color-selection: rgb(16 185 129 / 0.25);/* accent tint */
+
+  /* Typography */
+  --inscript-font-size: 1.125rem;                    /* 18px reading size */
+  /* --inscript-font-family is intentionally left unset so the editor inherits the
+     host's font by default (the use-sites fall back to `inherit`). A CSS-wide
+     keyword like `inherit` cannot be a custom-property value, so do not declare it
+     here; set the token, or theme.fontFamily, to override. */
+  --inscript-mono-font: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --inscript-line-height: 1.625;
+  --inscript-heading-weight: 700;
+  --inscript-h1-size: 2em;
+  --inscript-h2-size: 1.6667em;
+  --inscript-h3-size: 1.3333em;
+
+  /* Layout, shape & spacing */
+  --inscript-max-width: 72rem;
+  --inscript-block-gap: 1rem;                        /* vertical rhythm between blocks */
+  --inscript-radius: 0.5rem;                         /* rounded-lg */
+  --inscript-radius-sm: 0.25rem;                     /* rounded */
+  --inscript-min-height: 500px;
+  --inscript-focus-dim-opacity: 0.3;
+}
+
+/* --- Derived accent tints. These blend the accent inside color-mix(), which keeps
+   the var() reference live, so a scope-level or dark accent override flows through.
+   (Aliases that are a BARE var() - heading->text, link->accent, etc. - are NOT
+   declared as tokens; a bare-var custom property resolves its reference at its
+   declaration site and would ignore a scope override. Those aliases live at the
+   use-site as a var() fallback chain instead, e.g.
+   `color: var(--inscript-color-link, var(--inscript-color-accent))`.) --- */
+:root,
+.inscript-editor {
+  --inscript-color-accent-soft: color-mix(in srgb, var(--inscript-color-accent) 14%, transparent);
+  --inscript-color-accent-ring: color-mix(in srgb, var(--inscript-color-accent) 55%, transparent);
+}
+
+.dark {
+  --inscript-color-text: #f4f4f5;                    /* zinc-100 */
+  --inscript-color-muted: #a1a1aa;                   /* zinc-400 */
+  --inscript-color-surface: #09090b;                 /* zinc-950 */
+  --inscript-color-surface-raised: #18181b;          /* zinc-900 */
+  --inscript-color-border: #27272a;                  /* zinc-800 */
+  --inscript-color-border-strong: #3f3f46;           /* zinc-700 */
+  --inscript-color-hover: rgb(244 244 245 / 0.08);
+  --inscript-color-active: rgb(244 244 245 / 0.14);
+  --inscript-color-code-bg: #27272a;                 /* zinc-800 */
+  --inscript-color-code-border: #3f3f46;             /* zinc-700 */
+  --inscript-color-quote-text: #d4d4d8;              /* zinc-300 */
+  --inscript-color-table-border: #27272a;            /* zinc-800 */
+  --inscript-color-table-header-bg: #18181b;         /* zinc-900 */
+  --inscript-color-mark-text: #fef08a;               /* yellow-200 */
+}
+
 .ProseMirror {
-  @apply outline-none min-h-[500px] p-8 text-zinc-900 dark:text-zinc-100;
-  /* Reading text size. Default 1.125rem (18px) = the previous hard-coded `text-lg`, so nothing changes
-     unless a host sets the var. Headings below scale in `em` off this, so one knob resizes coherently. */
+  @apply outline-none;
+  min-height: var(--inscript-min-height, 500px);
+  padding: 2rem;
+  color: var(--inscript-color-text, #18181b);
+  /* Reading text size. Default 1.125rem (18px). Headings below scale in `em` off
+     this, so one knob resizes the whole document coherently. */
   font-size: var(--inscript-font-size, 1.125rem);
   font-family: var(--inscript-font-family, inherit);
   line-height: var(--inscript-line-height, 1.625);
@@ -17,70 +128,125 @@
 
 .ProseMirror h1,
 .ProseMirror h2,
-.ProseMirror h3 {
-  @apply font-bold text-zinc-900 dark:text-zinc-100;
-  /* Optional distinct heading family; falls back to the body font (inherit) when the host sets nothing. */
-  font-family: var(--inscript-heading-font, inherit);
+.ProseMirror h3,
+.ProseMirror h4,
+.ProseMirror h5,
+.ProseMirror h6 {
+  color: var(--inscript-color-heading, var(--inscript-color-text, #18181b));
+  font-weight: var(--inscript-heading-weight, 700);
+  /* Optional distinct heading family; falls back to the body font. */
+  font-family: var(--inscript-heading-font, var(--inscript-font-family, inherit));
 }
 
-/* Heading sizes are `em`-relative to the ProseMirror base so the reading-size knob scales the whole
-   document. At the 1.125rem (18px) default these resolve to 36 / 30 / 24px, matching the previous
-   text-4xl / text-3xl / text-2xl exactly. */
+/* Heading sizes are `em`-relative to the ProseMirror base so the reading-size knob
+   scales the whole document. At the 1.125rem (18px) default h1-h3 resolve to
+   36 / 30 / 24px, matching the previous text-4xl / text-3xl / text-2xl exactly.
+   h4-h6 are also styled (pasted/imported deep headings used to render as body
+   text under the Tailwind preflight). */
 .ProseMirror h1 {
   @apply mb-6 mt-8;
-  font-size: 2em;
+  font-size: var(--inscript-h1-size, 2em);
 }
 
 .ProseMirror h2 {
   @apply mb-4 mt-6;
-  font-size: 1.6667em;
+  font-size: var(--inscript-h2-size, 1.6667em);
 }
 
 .ProseMirror h3 {
   @apply mb-4 mt-6;
-  font-size: 1.3333em;
+  font-size: var(--inscript-h3-size, 1.3333em);
+}
+
+.ProseMirror h4 {
+  @apply mb-2 mt-4;
+  font-size: 1.15em;
+}
+
+.ProseMirror h5 {
+  @apply mb-2 mt-4;
+  font-size: 1em;
+}
+
+.ProseMirror h6 {
+  @apply mb-2 mt-4;
+  font-size: 0.9em;
+  color: var(--inscript-color-muted, #71717a);
 }
 
 .ProseMirror p {
-  @apply mb-4;
+  margin-bottom: var(--inscript-block-gap, 1rem);
 }
 
 .ProseMirror ul {
-  @apply list-disc ml-6 mb-4;
+  @apply list-disc ml-6;
+  margin-bottom: var(--inscript-block-gap, 1rem);
 }
 
 .ProseMirror ol {
-  @apply list-decimal ml-6 mb-4;
+  @apply list-decimal ml-6;
+  margin-bottom: var(--inscript-block-gap, 1rem);
+}
+
+.ProseMirror a[href] {
+  @apply underline underline-offset-4 cursor-pointer;
+  color: var(--inscript-color-link, var(--inscript-color-accent, #10b981));
+  transition: color 0.15s ease-in-out;
+}
+
+.ProseMirror a[href]:hover {
+  color: var(--inscript-color-link-hover, var(--inscript-color-accent, #34d399));
 }
 
 .ProseMirror blockquote {
-  @apply border-l-4 border-zinc-300 dark:border-zinc-700 pl-4 italic mb-4 text-zinc-700 dark:text-zinc-300;
+  @apply pl-4 italic;
+  border-left: 4px solid var(--inscript-color-quote-border, var(--inscript-color-border-strong, #d4d4d8));
+  margin-bottom: var(--inscript-block-gap, 1rem);
+  color: var(--inscript-color-quote-text, #3f3f46);
 }
 
 .ProseMirror img {
-  @apply h-auto rounded-lg my-4;
+  @apply h-auto my-4;
+  border-radius: var(--inscript-radius, 0.5rem);
 }
 
 .ProseMirror code {
-  @apply bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-1.5 py-0.5 font-mono text-sm text-zinc-900 dark:text-zinc-100;
+  @apply px-1.5 py-0.5 text-sm;
+  background-color: var(--inscript-color-code-bg, #f4f4f5);
+  border: 1px solid var(--inscript-color-code-border, #e4e4e7);
+  border-radius: var(--inscript-radius-sm, 0.25rem);
+  font-family: var(--inscript-mono-font);
+  color: var(--inscript-color-code-text, var(--inscript-color-text, #18181b));
 }
 
 .ProseMirror pre {
-  @apply bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 font-mono text-sm mb-4 overflow-x-auto text-zinc-900 dark:text-zinc-100;
+  @apply p-4 text-sm overflow-x-auto;
+  background-color: var(--inscript-color-code-bg, #f4f4f5);
+  border: 1px solid var(--inscript-color-code-border, #e4e4e7);
+  border-radius: var(--inscript-radius, 0.5rem);
+  font-family: var(--inscript-mono-font);
+  margin-bottom: var(--inscript-block-gap, 1rem);
+  color: var(--inscript-color-code-text, var(--inscript-color-text, #18181b));
 }
 
 .ProseMirror u {
-  @apply underline underline-offset-4 decoration-zinc-400;
+  @apply underline underline-offset-4;
+  text-decoration-color: var(--inscript-color-muted, #a1a1aa);
 }
 
 .ProseMirror s,
 .ProseMirror del,
 .ProseMirror strike {
-  @apply line-through decoration-zinc-500 text-zinc-500 dark:text-zinc-400;
+  @apply line-through;
+  color: var(--inscript-color-muted, #71717a);
+  text-decoration-color: var(--inscript-color-muted, #71717a);
 }
 
 .ProseMirror mark {
-  @apply bg-yellow-500/20 text-yellow-700 dark:text-yellow-200 px-0.5 rounded box-decoration-clone;
+  @apply px-0.5 box-decoration-clone;
+  background-color: var(--inscript-color-mark-bg, rgb(234 179 8 / 0.2));
+  color: var(--inscript-color-mark-text, #a16207);
+  border-radius: var(--inscript-radius-sm, 0.25rem);
 }
 
 .ProseMirror sub {
@@ -91,26 +257,36 @@
   @apply align-super text-[0.6em];
 }
 
+.ProseMirror ::selection {
+  background-color: var(--inscript-color-selection, rgb(16 185 129 / 0.25));
+}
+
 /* Tiptap Table Styles */
 .ProseMirror table {
-  @apply border-collapse table-fixed my-6 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-xs;
+  @apply border-collapse table-fixed my-6 overflow-hidden shadow-xs;
+  border: 1px solid var(--inscript-color-table-border, #e4e4e7);
+  border-radius: var(--inscript-radius, 0.5rem);
 }
 
 .ProseMirror table td,
 .ProseMirror table th {
-  @apply min-w-[1em] border border-zinc-200 dark:border-zinc-800 p-2.5 align-top box-border relative font-normal text-[0.95em] transition-colors duration-150;
+  @apply min-w-[1em] p-2.5 align-top box-border relative font-normal text-[0.95em] transition-colors duration-150;
+  border: 1px solid var(--inscript-color-table-border, #e4e4e7);
 }
 
 .ProseMirror table th {
-  @apply text-left bg-zinc-50 dark:bg-zinc-900/60 font-semibold text-zinc-900 dark:text-zinc-100;
+  @apply text-left font-semibold;
+  background-color: var(--inscript-color-table-header-bg, #fafafa);
+  color: var(--inscript-color-heading, var(--inscript-color-text, #18181b));
 }
 
 .ProseMirror table tr:hover td {
-  @apply bg-zinc-50/30 dark:bg-zinc-900/10;
+  background-color: var(--inscript-color-hover, rgb(24 24 27 / 0.06));
 }
 
 .ProseMirror table .column-resize-handle {
-  @apply absolute -right-[2px] top-0 bottom-[-2px] w-[4px] bg-emerald-500/80 pointer-events-none;
+  @apply absolute -right-[2px] top-0 bottom-[-2px] w-[4px] pointer-events-none;
+  background-color: color-mix(in srgb, var(--inscript-color-accent, #10b981) 80%, transparent);
 }
 
 .ProseMirror table.resize-cursor {
@@ -118,12 +294,13 @@
 }
 
 .ProseMirror .selectedCell {
-  @apply bg-emerald-500/15 dark:bg-emerald-500/20;
+  background-color: color-mix(in srgb, var(--inscript-color-accent, #10b981) 15%, transparent);
 }
 
 .ProseMirror .selectedCell::after {
   content: "";
-  @apply absolute inset-0 border-2 border-emerald-500 pointer-events-none z-10;
+  @apply absolute inset-0 pointer-events-none z-10;
+  border: 2px solid var(--inscript-color-accent, #10b981);
 }
 
 /* Task List Styles */
@@ -140,14 +317,19 @@
 }
 
 .ProseMirror ul[data-type="taskList"] li > label input {
-  @apply w-4 h-4 accent-emerald-500 cursor-pointer rounded border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900;
+  @apply w-4 h-4 cursor-pointer rounded;
+  accent-color: var(--inscript-color-accent, #10b981);
+  border: 1px solid var(--inscript-color-border-strong, #d4d4d8);
+  background-color: var(--inscript-color-surface-raised, #fafafa);
 }
 
 .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div {
-  @apply line-through text-zinc-500 dark:text-zinc-400 transition-colors;
+  @apply line-through transition-colors;
+  color: var(--inscript-color-muted, #71717a);
 }
 
-/* Syntax Highlighting Styles (lowlight / highlight.js) */
+/* Syntax Highlighting Styles (lowlight / highlight.js).
+   Content-semantic: these colors identify token kinds, not the host theme. */
 .ProseMirror pre code .hljs-comment,
 .ProseMirror pre code .hljs-quote {
   @apply text-zinc-500 dark:text-zinc-400 italic;
@@ -194,15 +376,17 @@
 /* Focus Mode Styles. The paragraph dimming applies only when the host also opts into `focus-dim`
    (default on) - focus mode without dimming just narrows the column and hides chrome. */
 .focus-mode.focus-dim .ProseMirror > * {
-  @apply opacity-30 transition-opacity duration-300 ease-in-out;
+  @apply transition-opacity duration-300 ease-in-out;
+  opacity: var(--inscript-focus-dim-opacity, 0.3);
 }
 
 .focus-mode.focus-dim .ProseMirror > *:hover,
 .focus-mode.focus-dim .ProseMirror > *.has-focus {
-  @apply opacity-100;
+  opacity: 1;
 }
 
-/* Admonition Styles */
+/* Admonition Styles. Content-semantic palettes (note/tip/important/warning/caution)
+   are intentionally not tokenized - the color IS the meaning. */
 .ProseMirror .admonition {
   @apply my-4 rounded-lg border-l-4 p-4 shadow-sm relative overflow-hidden;
 }
@@ -260,30 +444,54 @@
 
 /* Footnote Styles */
 .ProseMirror section[data-footnotes] {
-  @apply mt-12 pt-6 border-t border-zinc-200 dark:border-zinc-800;
+  @apply mt-12 pt-6;
+  border-top: 1px solid var(--inscript-color-border, #e4e4e7);
 }
 .ProseMirror section[data-footnotes]::before {
   content: "Footnotes";
-  @apply block mb-4 text-sm font-semibold text-zinc-500 uppercase tracking-wider;
+  @apply block mb-4 text-sm font-semibold uppercase tracking-wider;
+  color: var(--inscript-color-muted, #71717a);
+}
+
+/* YouTube embed surface. Token-driven here (rather than a serialized class on the
+   node) so it follows the host theme and is not baked into saved HTML. */
+.ProseMirror .youtube-embed {
+  background-color: var(--inscript-color-surface-raised, #fafafa);
+}
+
+/* Citation Styles. Token-driven (accent) rather than serialized classes, so the
+   color is themeable and not baked into the saved document HTML. */
+.ProseMirror .citation {
+  @apply px-1 py-0.5 text-[0.9em] font-medium;
+  background-color: var(--inscript-color-accent-soft);
+  color: var(--inscript-color-accent, #10b981);
+  border: 1px solid var(--inscript-color-accent-soft);
+  border-radius: var(--inscript-radius-sm, 0.25rem);
 }
 
 /* Abbreviation Styles */
 .ProseMirror abbr[title] {
-  @apply underline decoration-dotted cursor-help decoration-zinc-400 dark:decoration-zinc-500;
+  @apply underline decoration-dotted cursor-help;
+  text-decoration-color: var(--inscript-color-muted, #a1a1aa);
 }
 
 /* Definition List Styles */
 .ProseMirror dl {
-  @apply my-4 p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg border border-zinc-200 dark:border-zinc-800;
+  @apply my-4 p-4;
+  background-color: var(--inscript-color-surface-raised, #fafafa);
+  border: 1px solid var(--inscript-color-border, #e4e4e7);
+  border-radius: var(--inscript-radius, 0.5rem);
 }
 
 .ProseMirror dt {
-  @apply font-bold text-zinc-900 dark:text-zinc-100 mt-2 mb-1;
+  @apply font-bold mt-2 mb-1;
+  color: var(--inscript-color-heading, var(--inscript-color-text, #18181b));
 }
 .ProseMirror dl > dt:first-child {
   @apply mt-0;
 }
 
 .ProseMirror dd {
-  @apply ml-4 mb-2 text-zinc-700 dark:text-zinc-300;
+  @apply ml-4 mb-2;
+  color: var(--inscript-color-quote-text, #3f3f46);
 }

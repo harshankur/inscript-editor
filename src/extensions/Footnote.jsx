@@ -27,7 +27,7 @@ const FootnoteReferenceComponent = ({ node, editor, getPos }) => {
         <NodeViewWrapper 
             as="sup" 
             data-footnote-ref={node.attrs.id} 
-            className="cursor-pointer text-emerald-600 dark:text-emerald-400 font-semibold px-0.5"
+            className="cursor-pointer text-[var(--inscript-color-accent)] font-semibold px-0.5"
             onClick={handleClick}
         >
             [{index}]
@@ -100,7 +100,7 @@ const FootnoteDefinitionComponent = ({ node, editor, getPos }) => {
     }
 
     return (
-        <NodeViewWrapper className="flex gap-2 items-start text-sm text-zinc-600 dark:text-zinc-400 my-1" data-footnote-id={node.attrs.id}>
+        <NodeViewWrapper className="flex gap-2 items-start text-sm text-[var(--inscript-color-muted)] my-1" data-footnote-id={node.attrs.id}>
             <div className="font-semibold select-none pt-0.5">[{index}]</div>
             <NodeViewContent className="flex-1" />
         </NodeViewWrapper>

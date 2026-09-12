@@ -196,20 +196,20 @@ export const ToolbarCustomizer = ({
 
             {/* Drawer panel with slide-in transform */}
             <div
-                className={`relative w-full max-w-sm h-full bg-white dark:bg-zinc-900 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${
+                className={`relative w-full max-w-sm h-full bg-[var(--inscript-color-surface-raised)] shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${
                     isEntered && !isClosing ? 'translate-x-0' : 'translate-x-full'
                 }`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--inscript-color-border)]">
                     <div className="flex items-center gap-2">
-                        <SlidersHorizontal size={18} className="text-zinc-400" />
-                        <span className="font-semibold text-zinc-900 dark:text-white text-sm">Customize Layout</span>
+                        <SlidersHorizontal size={18} className="text-[var(--inscript-color-muted)]" />
+                        <span className="font-semibold text-[var(--inscript-color-text)] text-sm">Customize Layout</span>
                     </div>
                     <button
                         onClick={handleClose}
-                        className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors rounded p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                        className="text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)] transition-colors rounded p-1 hover:bg-[var(--inscript-color-hover)]"
                     >
                         <X size={16} />
                     </button>
@@ -217,13 +217,13 @@ export const ToolbarCustomizer = ({
 
                 {/* Tab Switcher */}
                 {currentBubbleConfig && onSaveBubble && (
-                    <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20 shrink-0">
+                    <div className="flex border-b border-[var(--inscript-color-border)] bg-[var(--inscript-color-surface-raised)] shrink-0">
                         <button
                             onClick={() => { setActiveTab('toolbar'); setDragOverIndex(null); }}
                             className={`flex-1 py-3 text-xs font-semibold text-center border-b-2 transition-all
                                 ${activeTab === 'toolbar'
-                                    ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white bg-white dark:bg-zinc-900'
-                                    : 'border-transparent text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
+                                    ? 'border-[var(--inscript-color-text)] text-[var(--inscript-color-text)] bg-[var(--inscript-color-surface-raised)]'
+                                    : 'border-transparent text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)]'
                                 }`}
                         >
                             Main Toolbar
@@ -232,8 +232,8 @@ export const ToolbarCustomizer = ({
                             onClick={() => { setActiveTab('bubble'); setDragOverIndex(null); }}
                             className={`flex-1 py-3 text-xs font-semibold text-center border-b-2 transition-all
                                 ${activeTab === 'bubble'
-                                    ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white bg-white dark:bg-zinc-900'
-                                    : 'border-transparent text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
+                                    ? 'border-[var(--inscript-color-text)] text-[var(--inscript-color-text)] bg-[var(--inscript-color-surface-raised)]'
+                                    : 'border-transparent text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)]'
                                 }`}
                         >
                             Selection Menu
@@ -244,7 +244,7 @@ export const ToolbarCustomizer = ({
                 <div className="flex-1 overflow-y-auto">
                     {/* Presets */}
                     <div className="px-5 pt-5 pb-4">
-                        <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-3">Presets</p>
+                        <p className="text-xs font-medium text-[var(--inscript-color-muted)] uppercase tracking-wider mb-3">Presets</p>
                         <div className="grid grid-cols-2 gap-2">
                             {Object.keys(activeTab === 'toolbar' ? effToolbarPresets : effBubblePresets).map(key => (
                                 <button
@@ -252,8 +252,8 @@ export const ToolbarCustomizer = ({
                                     onClick={() => applyPreset(key)}
                                     className={`px-3 py-2 rounded-lg text-sm font-medium text-left transition-all border
                                         ${getActivePreset() === key
-                                            ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-transparent'
-                                            : 'bg-zinc-50 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'
+                                            ? 'bg-[var(--inscript-color-text)] text-[var(--inscript-color-surface)] border-transparent'
+                                            : 'bg-[var(--inscript-color-surface-raised)] text-[var(--inscript-color-text)] border-[var(--inscript-color-border)] hover:border-[var(--inscript-color-border-strong)]'
                                         }`}
                                 >
                                     {effPresetLabels[key] ?? key}
@@ -262,11 +262,11 @@ export const ToolbarCustomizer = ({
                         </div>
                     </div>
 
-                    <div className="border-t border-zinc-100 dark:border-zinc-800" />
+                    <div className="border-t border-[var(--inscript-color-border)]" />
 
                     {/* Current config (drag to reorder) */}
                     <div className="px-5 pt-4 pb-2">
-                        <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-3">
+                        <p className="text-xs font-medium text-[var(--inscript-color-muted)] uppercase tracking-wider mb-3">
                             Current {activeTab === 'toolbar' ? 'toolbar' : 'selection menu'}
                         </p>
                         <div className="flex flex-col gap-1">
@@ -285,26 +285,26 @@ export const ToolbarCustomizer = ({
                                         onDrop={e => handleDrop(e, idx)}
                                         onDragEnd={handleDragEnd}
                                         className={`flex items-center gap-2 rounded-lg px-2 py-1.5 cursor-grab active:cursor-grabbing transition-all
-                                            ${isDropTarget ? 'bg-zinc-100 dark:bg-zinc-700 ring-2 ring-zinc-400 dark:ring-zinc-500' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'}
+                                            ${isDropTarget ? 'bg-[var(--inscript-color-active)] ring-2 ring-[var(--inscript-color-border-strong)]' : 'hover:bg-[var(--inscript-color-hover)]'}
                                             ${isDivider ? 'opacity-60' : ''}
                                         `}
                                     >
-                                        <GripVertical size={14} className="text-zinc-300 dark:text-zinc-600 shrink-0" />
+                                        <GripVertical size={14} className="text-[var(--inscript-color-muted)] shrink-0" />
                                         {isDivider ? (
                                             <div className="flex-1 flex items-center gap-2">
-                                                <div className="flex-1 h-px bg-zinc-300 dark:bg-zinc-600" />
-                                                <span className="text-xs text-zinc-400 dark:text-zinc-500">Divider</span>
-                                                <div className="flex-1 h-px bg-zinc-300 dark:bg-zinc-600" />
+                                                <div className="flex-1 h-px bg-[var(--inscript-color-border-strong)]" />
+                                                <span className="text-xs text-[var(--inscript-color-muted)]">Divider</span>
+                                                <div className="flex-1 h-px bg-[var(--inscript-color-border-strong)]" />
                                             </div>
                                         ) : (
                                             <>
-                                                {Icon && <Icon size={14} className="text-zinc-500 dark:text-zinc-400 shrink-0" />}
-                                                <span className="flex-1 text-sm text-zinc-700 dark:text-zinc-200">{meta?.label ?? item}</span>
+                                                {Icon && <Icon size={14} className="text-[var(--inscript-color-muted)] shrink-0" />}
+                                                <span className="flex-1 text-sm text-[var(--inscript-color-text)]">{meta?.label ?? item}</span>
                                             </>
                                         )}
                                         <button
                                             onClick={() => removeItem(idx)}
-                                            className="text-zinc-300 dark:text-zinc-600 hover:text-red-500 dark:hover:text-red-400 transition-colors rounded p-0.5 shrink-0"
+                                            className="text-[var(--inscript-color-muted)] hover:text-red-500 dark:hover:text-red-400 transition-colors rounded p-0.5 shrink-0"
                                             title="Remove"
                                         >
                                             <X size={12} />
@@ -316,7 +316,7 @@ export const ToolbarCustomizer = ({
                             {/* Add divider button */}
                             <button
                                 onClick={addDivider}
-                                className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-sm transition-colors"
+                                className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)] hover:bg-[var(--inscript-color-hover)] text-sm transition-colors"
                             >
                                 <Plus size={13} />
                                 <span>Add divider</span>
@@ -327,9 +327,9 @@ export const ToolbarCustomizer = ({
                     {/* Available tools to add */}
                     {availableTools.length > 0 && (
                         <>
-                            <div className="border-t border-zinc-100 dark:border-zinc-800 mt-2" />
+                            <div className="border-t border-[var(--inscript-color-border)] mt-2" />
                             <div className="px-5 pt-4 pb-6">
-                                <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-3">Available to add</p>
+                                <p className="text-xs font-medium text-[var(--inscript-color-muted)] uppercase tracking-wider mb-3">Available to add</p>
                                 <div className="flex flex-col gap-1">
                                     {availableTools.map(id => {
                                         const meta = TOOL_REGISTRY[id];
@@ -338,11 +338,11 @@ export const ToolbarCustomizer = ({
                                             <button
                                                 key={id}
                                                 onClick={() => addTool(id)}
-                                                className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors text-left"
+                                                className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[var(--inscript-color-hover)] text-sm text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)] transition-colors text-left"
                                             >
                                                 {Icon && <Icon size={14} className="shrink-0" />}
                                                 <span className="flex-1">{meta?.label ?? id}</span>
-                                                <Plus size={13} className="text-zinc-300 dark:text-zinc-600" />
+                                                <Plus size={13} className="text-[var(--inscript-color-muted)]" />
                                             </button>
                                         );
                                     })}
@@ -353,16 +353,16 @@ export const ToolbarCustomizer = ({
                 </div>
 
                 {/* Footer actions */}
-                <div className="px-5 py-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-2 shrink-0">
+                <div className="px-5 py-4 border-t border-[var(--inscript-color-border)] flex items-center gap-2 shrink-0">
                     <button
                         onClick={handleClose}
-                        className="flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                        className="flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--inscript-color-surface-raised)] text-[var(--inscript-color-text)] hover:bg-[var(--inscript-color-hover)] transition-colors"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSave}
-                        className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-100 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--inscript-color-text)] text-[var(--inscript-color-surface)] hover:opacity-90 transition-colors"
                     >
                         <Check size={14} />
                         Save layout

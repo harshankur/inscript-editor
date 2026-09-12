@@ -15,7 +15,7 @@ const WikilinkComponent = (props) => {
     // Missing links are usually styled slightly muted or dashed
     const className = `wikilink ${resolved.exists 
         ? 'text-indigo-600 dark:text-indigo-400 hover:underline' 
-        : 'text-zinc-500 dark:text-zinc-400 opacity-80 decoration-dashed underline'} cursor-pointer transition-colors`;
+        : 'text-[var(--inscript-color-muted)] opacity-80 decoration-dashed underline'} cursor-pointer transition-colors`;
     
     const handleClick = (e) => {
         if (resolved.onNavigate) {

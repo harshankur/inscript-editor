@@ -20,7 +20,7 @@ function buildToolMap(editor, t) {
             render: () => (
                 <button
                     onClick={() => editor.chain().focus().toggleBold().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${editor.isActive('bold') ? 'text-yellow-400 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-700 dark:text-zinc-300'}`}
+                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${editor.isActive('bold') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('bold', 'Bold')}
                 >
                     <Bold size={16} />
@@ -32,7 +32,7 @@ function buildToolMap(editor, t) {
             render: () => (
                 <button
                     onClick={() => editor.chain().focus().toggleItalic().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${editor.isActive('italic') ? 'text-yellow-400 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-700 dark:text-zinc-300'}`}
+                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${editor.isActive('italic') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('italic', 'Italic')}
                 >
                     <Italic size={16} />
@@ -44,7 +44,7 @@ function buildToolMap(editor, t) {
             render: () => (
                 <button
                     onClick={() => editor.chain().focus().toggleUnderline().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${editor.isActive('underline') ? 'text-yellow-400 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-700 dark:text-zinc-300'}`}
+                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${editor.isActive('underline') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('underline', 'Underline')}
                 >
                     <UnderlineIcon size={16} />
@@ -56,7 +56,7 @@ function buildToolMap(editor, t) {
             render: () => (
                 <button
                     onClick={() => editor.chain().focus().toggleStrike().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${editor.isActive('strike') ? 'text-yellow-400 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-700 dark:text-zinc-300'}`}
+                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${editor.isActive('strike') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('strike', 'Strikethrough')}
                 >
                     <Strikethrough size={16} />
@@ -68,7 +68,7 @@ function buildToolMap(editor, t) {
             render: () => (
                 <button
                     onClick={() => editor.chain().focus().toggleSubscript().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${editor.isActive('subscript') ? 'text-yellow-400 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-700 dark:text-zinc-300'}`}
+                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${editor.isActive('subscript') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('subscript', 'Subscript')}
                 >
                     <SubscriptIcon size={16} />
@@ -80,7 +80,7 @@ function buildToolMap(editor, t) {
             render: () => (
                 <button
                     onClick={() => editor.chain().focus().toggleSuperscript().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${editor.isActive('superscript') ? 'text-yellow-400 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-700 dark:text-zinc-300'}`}
+                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${editor.isActive('superscript') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('superscript', 'Superscript')}
                 >
                     <SuperscriptIcon size={16} />
@@ -92,7 +92,7 @@ function buildToolMap(editor, t) {
             render: () => (
                 <button
                     onClick={() => editor.chain().focus().setAbbreviation().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${editor.isActive('abbreviation') ? 'text-yellow-400 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-700 dark:text-zinc-300'}`}
+                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${editor.isActive('abbreviation') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('abbreviation', 'Abbreviation')}
                 >
                     <TextSelect size={16} />
@@ -140,7 +140,7 @@ function buildToolMap(editor, t) {
             render: () => (
                 <button
                     onClick={() => editor.chain().focus().toggleCode().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${editor.isActive('code') ? 'text-yellow-400 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-700 dark:text-zinc-300'}`}
+                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${editor.isActive('code') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('inlineCode', 'Inline Code')}
                 >
                     <Code size={16} />
@@ -152,7 +152,7 @@ function buildToolMap(editor, t) {
             render: () => (
                 <button
                     onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
-                    className="w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-300"
+                    className="w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors text-[var(--inscript-color-muted)]"
                     title={t('clearFormat', 'Clear Formatting')}
                 >
                     <RemoveFormatting size={16} />
@@ -164,7 +164,7 @@ function buildToolMap(editor, t) {
             render: () => (
                 <button
                     onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${editor.isActive('codeBlock') ? 'text-yellow-400 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-700 dark:text-zinc-300'}`}
+                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${editor.isActive('codeBlock') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('codeBlock', 'Code Block')}
                 >
                     <Code size={16} />
@@ -176,7 +176,7 @@ function buildToolMap(editor, t) {
             render: () => (
                 <button
                     onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${editor.isActive('blockquote') ? 'text-yellow-400 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-700 dark:text-zinc-300'}`}
+                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${editor.isActive('blockquote') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('quote', 'Quote')}
                 >
                     <Quote size={16} />
@@ -205,10 +205,10 @@ export const TextBubbleMenu = ({ editor, isReadonly, bubbleMenuConfig }) => {
             }}
             tippyOptions={{ duration: 100, zIndex: 9999, maxWidth: '98vw', interactive: true }}
         >
-            <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg shadow-xl flex items-center p-1 gap-1 flex-wrap overflow-visible max-w-[90vw] custom-scrollbar">
+            <div className="bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl flex items-center p-1 gap-1 flex-wrap overflow-visible max-w-[90vw] custom-scrollbar">
                 {activeConfig.map((entry, idx) => {
                     if (entry === DIVIDER) {
-                        return <div key={`div-${idx}`} className="w-px h-4 bg-zinc-100/50 dark:bg-zinc-800/50 mx-1 shrink-0" />;
+                        return <div key={`div-${idx}`} className="w-px h-4 bg-[var(--inscript-color-border)] mx-1 shrink-0" />;
                     }
                     const tool = toolMap[entry];
                     if (!tool) return null;
