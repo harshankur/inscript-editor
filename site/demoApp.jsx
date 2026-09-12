@@ -3,7 +3,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import '../dist/styles/inscript-editor.css';
 import './demo.css';
-import { ListTree, Map as MapIcon, X } from 'lucide-react';
+import { ListTree, Map as MapIcon, Palette, X } from 'lucide-react';
 import {
     useInscriptEditor, InscriptEditor, MiniMap, DocumentOutline, extractYoutubeId,
     DEFAULT_TOOLBAR_CONFIG, DEFAULT_BUBBLE_CONFIG,
@@ -26,18 +26,100 @@ try {
 // by default. The library components keep their own chrome, so demo.css hides their
 // internal headers and lets them fill the panel body.
 const PANELS = {
-    outline: { icon: ListTree, title: 'Outline', render: (editor) => <DocumentOutline editor={editor} /> },
-    minimap: { icon: MapIcon, title: 'Minimap', render: (editor) => <MiniMap editor={editor} /> },
+    outline: { icon: ListTree, title: 'Outline' },
+    minimap: { icon: MapIcon, title: 'Minimap' },
+    theme: { icon: Palette, title: 'Theme' },
 };
 
-function DemoSidebar({ editor }) {
-    // Default collapsed (rail only); ?tab=outline|minimap opens one (used for screenshots).
+// Full-palette presets: each sets background, panels, text, borders and code so the
+// whole editor re-skins, not just the accent. A value you set wins in BOTH light and
+// dark mode (you own it), so the light presets stay light even with the page's dark
+// toggle on; the "Slate" preset shows you can drive a full dark look from the prop
+// alone, independent of the page.
+const THEME_PRESETS = [
+    { name: 'Default', theme: {} },
+    { name: 'Violet', theme: { accent: '#7c3aed', surface: '#fbfaff', surfaceRaised: '#f2ecfe', text: '#2a2141', border: '#e7ddfb', borderStrong: '#d6c6f7', codeBg: '#efe7ff' } },
+    { name: 'Sunset', theme: { accent: '#ea580c', surface: '#fffaf4', surfaceRaised: '#fff1e6', text: '#41271a', border: '#f6e1cd', borderStrong: '#f0cba6', codeBg: '#ffe7d2' } },
+    { name: 'Rose', theme: { accent: '#e11d48', surface: '#fff7f9', surfaceRaised: '#ffe9ef', text: '#3f1622', border: '#f8d6df', borderStrong: '#f4b6c5', codeBg: '#ffdfe8' } },
+    { name: 'Ocean', theme: { accent: '#0284c7', surface: '#f5fbff', surfaceRaised: '#e7f3fd', text: '#0f2a3f', border: '#cfe6f6', borderStrong: '#a9d2ee', codeBg: '#dceffb' } },
+    { name: 'Slate', theme: { accent: '#22d3ee', onAccent: '#06232b', surface: '#0b1220', surfaceRaised: '#131d2f', text: '#e2e8f0', muted: '#94a3b8', border: '#24314a', borderStrong: '#3a4c6b', codeBg: '#0e1728', codeText: '#e2e8f0' } },
+    { name: 'Serif', theme: { accent: '#6d28d9', fontFamily: 'Georgia, "Times New Roman", serif', headingFont: '"Iowan Old Style", Palatino, Georgia, serif', surface: '#fdfcf8', surfaceRaised: '#f4f0e7', text: '#2b2620', codeBg: '#efe9db' } },
+];
+
+const FONT_PRESETS = {
+    System: '',
+    Serif: 'Georgia, "Times New Roman", serif',
+    Mono: 'ui-monospace, Menlo, Consolas, monospace',
+    Rounded: '"SF Pro Rounded", "Nunito", "Segoe UI", system-ui, sans-serif',
+};
+
+// Live editor of the `theme` prop. Presets replace the whole theme; the individual
+// controls merge into it, so you can pick a preset and then nudge one token.
+// The color tokens exposed as pickers: [theme key, label, default shown when unset].
+const THEME_COLORS = [
+    ['accent', 'Accent', '#10b981'],
+    ['text', 'Text', '#18181b'],
+    ['surface', 'Background', '#ffffff'],
+    ['surfaceRaised', 'Panels', '#fafafa'],
+];
+
+function ThemeControls({ theme, setTheme }) {
+    const radiusPx = parseInt(theme.radius, 10) || 8;
+    const set = (patch) => setTheme((t) => ({ ...t, ...patch }));
+    return (
+        <div className="demo-theme">
+            <p className="demo-theme-hint">Every control drives the editor's <code>theme</code> prop live. A value you set applies in both light and dark.</p>
+            <div className="demo-theme-presets">
+                {THEME_PRESETS.map((p) => (
+                    <button key={p.name} type="button" className="demo-theme-preset" onClick={() => setTheme(p.theme)}>
+                        <span className="demo-theme-dot" style={{ background: p.theme.accent || '#10b981' }} />
+                        {p.name}
+                    </button>
+                ))}
+            </div>
+            {THEME_COLORS.map(([key, label, dflt]) => (
+                <label key={key} className="demo-theme-field">
+                    <span>{label}</span>
+                    <input type="color" value={theme[key] || dflt} onChange={(e) => set({ [key]: e.target.value })} />
+                </label>
+            ))}
+            <label className="demo-theme-field">
+                <span>Font</span>
+                <select value={theme.fontFamily || ''} onChange={(e) => set({ fontFamily: e.target.value || undefined })}>
+                    {Object.entries(FONT_PRESETS).map(([name, val]) => <option key={name} value={val}>{name}</option>)}
+                </select>
+            </label>
+            <label className="demo-theme-field">
+                <span>Radius</span>
+                <input type="range" min="0" max="20" value={radiusPx} onChange={(e) => set({ radius: `${e.target.value}px` })} />
+                <em>{radiusPx}px</em>
+            </label>
+            <button type="button" className="demo-theme-reset" onClick={() => setTheme({})}>Reset to default</button>
+        </div>
+    );
+}
+
+function DemoSidebar({ editor, theme, setTheme, showOutline = true, showMiniMap = true }) {
+    // Build the visible panel set: outline/minimap are gated by the host flags, the
+    // theme editor is always available.
+    const panels = {};
+    if (showOutline) panels.outline = PANELS.outline;
+    if (showMiniMap) panels.minimap = PANELS.minimap;
+    panels.theme = PANELS.theme;
+
+    // Default collapsed (rail only); ?tab=outline|minimap|theme opens one (used for screenshots).
     const [view, setView] = React.useState(() => {
-        try { const p = new URLSearchParams(location.search).get('tab'); return p === 'minimap' || p === 'outline' ? p : null; }
+        try { const p = new URLSearchParams(location.search).get('tab'); return panels[p] ? p : null; }
         catch { return null; }
     });
     const toggle = (v) => setView((cur) => (cur === v ? null : v));
-    const active = view && PANELS[view];
+    const active = view && panels[view];
+    const renderBody = () => {
+        if (view === 'outline') return <DocumentOutline editor={editor} />;
+        if (view === 'minimap') return <MiniMap editor={editor} />;
+        if (view === 'theme') return <ThemeControls theme={theme} setTheme={setTheme} />;
+        return null;
+    };
     return (
         <>
             {active && (
@@ -47,11 +129,13 @@ function DemoSidebar({ editor }) {
                         <span>{active.title}</span>
                         <button onClick={() => setView(null)} title="Close" aria-label="Close panel"><X size={15} /></button>
                     </header>
-                    <div className="demo-panel-body">{active.render(editor)}</div>
+                    {/* The outline/minimap keep their own chrome (demo.css hides their inner header);
+                        the theme panel is plain markup, so it opts out of that hiding via .is-plain. */}
+                    <div className={`demo-panel-body ${view === 'theme' ? 'is-plain' : ''}`}>{renderBody()}</div>
                 </aside>
             )}
             <div className="demo-rail im-demo-aside" role="toolbar" aria-orientation="vertical" aria-label="Editor panels">
-                {Object.entries(PANELS).map(([id, p]) => (
+                {Object.entries(panels).map(([id, p]) => (
                     <button
                         key={id}
                         type="button"
@@ -131,6 +215,8 @@ export function Demo({ focusMode = false, showMiniMap = true, showOutline = true
     // Host-owned toolbar/bubble config — providing onChange is what reveals the settings gear.
     const [toolbarConfig, setToolbarConfig] = React.useState(DEFAULT_TOOLBAR_CONFIG);
     const [bubbleConfig, setBubbleConfig] = React.useState(DEFAULT_BUBBLE_CONFIG);
+    // Live theme object driven by the Theme panel; empty = the built-in look.
+    const [theme, setTheme] = React.useState({});
 
     React.useEffect(() => { if (editor) editor.commands.setContent(SAMPLE); }, [editor]);
 
@@ -173,6 +259,7 @@ export function Demo({ focusMode = false, showMiniMap = true, showOutline = true
                     editor={editor}
                     {...api}
                     focusMode={focusMode}
+                    theme={theme}
                     onShowMediaLibrary={onShowMediaLibrary}
                     onAddYoutube={onAddYoutube}
                     toolbarConfig={enableCustomizer ? toolbarConfig : undefined}
@@ -182,8 +269,8 @@ export function Demo({ focusMode = false, showMiniMap = true, showOutline = true
                     customizerContainer={container}
                 />
             </div>
-            {/* A single right-hand sidebar holding the outline and the minimap, one open at a time. */}
-            {!focusMode && (showOutline || showMiniMap) && <DemoSidebar editor={editor} />}
+            {/* A single right-hand sidebar: outline, minimap and the live theme editor, one open at a time. */}
+            {!focusMode && <DemoSidebar editor={editor} theme={theme} setTheme={setTheme} showOutline={showOutline} showMiniMap={showMiniMap} />}
         </div>
     );
 }
