@@ -1,28 +1,15 @@
 import en from './en.json';
-import de from './de.json';
-import fr from './fr.json';
-import es from './es.json';
-import pt from './pt.json';
-import it from './it.json';
-import ja from './ja.json';
-import zh from './zh.json';
-import zhCN from './zh-CN.json';
-import ko from './ko.json';
-import ru from './ru.json';
-import af from './af.json';
-import ne from './ne.json';
-import hi from './hi.json';
-import bn from './bn.json';
-import ta from './ta.json';
-import te from './te.json';
-import ml from './ml.json';
-import kn from './kn.json';
 
 export const INSCRIPT_EDITOR_NAMESPACE = 'inscript-editor';
 
-/** Lang code -> full bundle of every string inscript-editor ships. */
+/**
+ * Lang code -> full bundle of every string inscript-editor ships. Only English is
+ * bundled: it is the single source of truth (and the built-in `defaultValue` on every
+ * t() call), so adding a string never requires translating it into other languages.
+ * Ship additional languages from your own app via the `overrides` option below.
+ */
 export const inscriptEditorTranslations = {
-    en, de, fr, es, pt, it, ja, zh, 'zh-CN': zhCN, ko, ru, af, ne, hi, bn, ta, te, ml, kn,
+    en,
 };
 
 function isPlainObject(value) {

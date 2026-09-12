@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>inscript-editor: a standalone TipTap rich-text editor for React</title>
-    <meta name="description" content="A batteries-included, TipTap v3 rich-text editor for React: images, tables, YouTube, math, diagrams, version history, a spatial-outline minimap, focus mode, and i18n in 19 languages." />
+    <meta name="description" content="A batteries-included, TipTap v3 rich-text editor for React: images, tables, YouTube, math, diagrams, version history, a spatial-outline minimap, focus mode, theming, and full i18n support." />
     <meta property="og:title" content="inscript-editor" />
     <meta property="og:description" content="A standalone TipTap v3 rich-text editor for React. Batteries included." />
     <meta property="og:type" content="website" />
@@ -43,7 +43,7 @@
         <div class="hero wrap">
             <span class="badge"><span class="dot"></span> Extracted from Inscript · MIT licensed</span>
             <h1>The rich-text editor,<br /><span class="grad">batteries included.</span></h1>
-            <p class="lede">A standalone <strong>TipTap v3</strong> editor for React with everything a real writing app needs: images, tables, YouTube, math, diagrams, version history, a followable minimap, and i18n in 19 languages. Drop it in and ship.</p>
+            <p class="lede">A standalone <strong>TipTap v3</strong> editor for React with everything a real writing app needs: images, tables, YouTube, math, diagrams, version history, a followable minimap, full theming, and i18n support. Drop it in and ship.</p>
             <div class="hero-cta">
                 <a class="btn btn-primary" href="#demo">Try the live demo</a>
                 <a class="btn btn-ghost" href="https://github.com/harshankur/inscript-editor" target="_blank" rel="noopener">
@@ -121,49 +121,23 @@
                     <h2>Try it: this is the real thing</h2>
                     <p>The panel below is a running instance of the package. Type, select text for the bubble menu, press “/” for commands, drag the minimap, or click the gear to rearrange the toolbar.</p>
                 </div>
-                <div class="demo-controls">
-                    <label class="lang-pick">
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
-                        <span>Editor language</span>
-                        <select id="lang-select" aria-label="Editor language">
-                            <option value="en">English</option>
-                            <option value="de">Deutsch</option>
-                            <option value="fr">Français</option>
-                            <option value="es">Español</option>
-                            <option value="pt">Português</option>
-                            <option value="it">Italiano</option>
-                            <option value="ru">Русский</option>
-                            <option value="af">Afrikaans</option>
-                            <option value="ja">日本語</option>
-                            <option value="ko">한국어</option>
-                            <option value="zh">中文</option>
-                            <option value="zh-CN">简体中文</option>
-                            <option value="hi">हिन्दी</option>
-                            <option value="bn">বাংলা</option>
-                            <option value="ne">नेपाली</option>
-                            <option value="ta">தமிழ்</option>
-                            <option value="te">తెలుగు</option>
-                            <option value="ml">മലയാളം</option>
-                            <option value="kn">ಕನ್ನಡ</option>
-                        </select>
-                    </label>
-                    <span class="lang-hint">All 19 ship in the box. Switch it and watch the toolbar tooltips, menus and panels change. <a href="#localize">How to wire it up ↓</a></span>
-                </div>
                 <div class="demo-window"><div id="demo-root"></div></div>
-                <p class="demo-note">Nothing you type is saved or sent anywhere; it lives only in this browser tab. Hover the toolbar icons after switching language to see the translated tooltips.</p>
+                <p class="demo-note">Nothing you type is saved or sent anywhere; it lives only in this browser tab. Open the palette in the right rail to re-theme the editor live.</p>
 
                 <details id="localize" class="localize">
                     <summary>How localization works, and how to change it in your app</summary>
-                    <p>The editor's own strings live under a dedicated <code>inscript-editor</code> i18next namespace and auto-register into your instance on mount, so it just works. Override or restrict languages explicitly:</p>
+                    <p>The editor's own strings live under a dedicated <code>inscript-editor</code> i18next namespace. English ships in the box and auto-registers into your instance on mount, so it works with zero setup. English is the single source of truth; add any language, or reword the defaults, from your own app with one call:</p>
                     <pre class="codeblock"><span class="k">import</span> i18n <span class="k">from</span> <span style="color:var(--brand-strong)">'i18next'</span>;
 <span class="k">import</span> { registerInscriptEditorTranslations }
   <span class="k">from</span> <span style="color:var(--brand-strong)">'inscript-editor/locales'</span>;
 
 registerInscriptEditorTranslations(i18n, {
-  languages: [<span style="color:var(--brand-strong)">'en'</span>, <span style="color:var(--brand-strong)">'de'</span>, <span style="color:var(--brand-strong)">'fr'</span>],   <span class="c">// register a subset</span>
-  overrides: { en: { insertImage: <span style="color:var(--brand-strong)">'Add image'</span> } },
+  overrides: {
+    de: { undo: <span style="color:var(--brand-strong)">'Rückgängig'</span>, redo: <span style="color:var(--brand-strong)">'Wiederholen'</span> },   <span class="c">// add a language</span>
+    en: { insertImage: <span style="color:var(--brand-strong)">'Add image'</span> },              <span class="c">// reword a default</span>
+  },
 });
-i18n.changeLanguage(<span style="color:var(--brand-strong)">'de'</span>);   <span class="c">// switch, live</span></pre>
+i18n.changeLanguage(<span style="color:var(--brand-strong)">'de'</span>);</pre>
                     <p style="margin-bottom:0;">No i18next at all? Every string carries an English default, so the editor still renders correctly. <a href="https://github.com/harshankur/inscript-editor#internationalization" target="_blank" rel="noopener">Full i18n docs →</a></p>
                 </details>
             </div>

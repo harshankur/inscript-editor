@@ -1,17 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import i18n from 'i18next';
 import { Demo } from './demoApp.jsx';
-
-// ── Live editor language (switches the whole demo: tooltips, menus, panels) ──
-const langSelect = document.getElementById('lang-select');
-if (langSelect) {
-    const sync = () => { langSelect.value = i18n.resolvedLanguage || i18n.language || 'en'; };
-    i18n.on('initialized', sync);
-    i18n.on('languageChanged', sync);
-    sync();
-    langSelect.addEventListener('change', () => i18n.changeLanguage(langSelect.value));
-}
 
 // ── Theme (persisted; the same `dark` class drives the page and the editor) ──
 const root = document.documentElement;
@@ -43,7 +32,7 @@ const FEATURES = [
     ['Slash commands', 'Type “/” for a searchable command menu; bring your own registry or extend the defaults.', '<path d="M9 20 15 4"/><rect x="3" y="4" width="18" height="16" rx="2"/>'],
     ['Version history & diff', 'A client-side history stack with a visual/text/source diff view and one-click restore.', '<path d="M3 3v6h6M3 9a9 9 0 1 0 3-6.7L3 5"/><path d="M12 7v5l3 3"/>'],
     ['Followable minimap', 'A spatial outline with readable heading labels, real image thumbnails and a draggable, fit-to-panel viewport.', '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/><path d="M6 8h5M6 12h5M6 16h3"/>'],
-    ['i18n in 19 languages', 'Toolbar and modal strings ship translated, auto-registered into your i18next, and it works even with no i18next at all.', '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/>'],
+    ['i18n-ready', 'Every string carries an English default and auto-registers into your i18next, so it works out of the box. Add any language from your own app with a one-call override.', '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/>'],
 ];
 const grid = document.getElementById('feature-grid');
 if (grid) {

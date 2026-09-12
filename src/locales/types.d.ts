@@ -2,7 +2,8 @@ export type InscriptEditorLocaleBundle = Record<string, string>;
 
 export const INSCRIPT_EDITOR_NAMESPACE: 'inscript-editor';
 
-/** Lang code -> full bundle of every string inscript-editor ships (en, de, fr, es, pt, it, ja, zh, zh-CN, ko, ru, af, ne, hi, bn, ta, te, ml, kn). */
+/** Lang code -> full bundle of every string inscript-editor ships. Only English (`en`)
+ *  is bundled; add other languages from your own app via the `overrides` option. */
 export const inscriptEditorTranslations: Record<string, InscriptEditorLocaleBundle>;
 
 export interface RegisterInscriptEditorTranslationsOptions {

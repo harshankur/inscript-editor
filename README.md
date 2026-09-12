@@ -14,7 +14,7 @@ A standalone, TipTap-based rich text editor for React. Extracted from [Inscript]
 - **YouTube embeds** by URL or search, with strict ID validation and a placeholder for legacy/corrupt content instead of a broken embed.
 - **Version history** with a visual/text/source diff view and one-click restore.
 - **Responsive toolbar** that collapses overflowing tools into a "More" menu based on measured width.
-- **Built-in i18n** in 19 languages, safe to use even if you never touch i18next.
+- **i18n-ready**: English out of the box (safe even if you never touch i18next), and add any language from your own app with one call.
 - Ships as ESM + CJS, with hand-written TypeScript types.
 
 ## Installation
@@ -108,27 +108,26 @@ function PostEditor({ filename }) {
 
 ## Internationalization
 
-The editor's own strings (toolbar tooltips, modal copy, etc.) are translated into 19 languages out of the box: `en, de, fr, es, pt, it, ja, zh, zh-CN, ko, ru, af, ne, hi, bn, ta, te, ml, kn`. They live under a dedicated `inscript-editor` i18next namespace, separate from your app's own translations.
+The editor's own strings (toolbar tooltips, modal copy, etc.) ship in **English**, under a dedicated `inscript-editor` i18next namespace separate from your app's own translations. English is the single source of truth (it is also the built-in `defaultValue` on every string), so adding a feature never means translating it into a dozen languages. Bring any other language yourself, from your own app.
 
-**Zero-config**: if your app already initializes i18next and renders `<InscriptEditor>` (or any of the individually-exported modals/bubble-menus), the library auto-registers its bundled languages into your active i18next instance on mount. Nothing else to do.
+**Zero-config**: if your app already initializes i18next and renders `<InscriptEditor>` (or any of the individually-exported modals/bubble-menus), the library auto-registers English into your active i18next instance on mount. Nothing else to do.
 
 **No i18next at all?** Every string carries an English `defaultValue`, so the editor renders correctly in English even if your app never sets up i18next.
 
-**Overriding or extending strings**, from the `inscript-editor/locales` subpath:
+**Adding a language, or rewording the defaults**, from the `inscript-editor/locales` subpath:
 
 ```js
 import i18n from 'i18next';
 import { registerInscriptEditorTranslations } from 'inscript-editor/locales';
 
 registerInscriptEditorTranslations(i18n, {
-    languages: ['en', 'de', 'fr'],       // only register a subset (drops the rest)
     overrides: {
-        en: { insertImage: 'Add Image' },  // partially override strings for a shipped language
-        pt: { insertLink: 'Link' },        // ...or override for any other shipped language
-        'pt-BR': { insertLink: 'Link' },   // ...or register a language the library doesn't ship at all
+        de: { undo: 'Rückgängig', redo: 'Wiederholen' },  // add a language (any keys from en.json)
+        en: { insertImage: 'Add Image' },                 // ...or reword an English default
     },
-    overwrite: false,                     // default: resources you registered first always win
+    overwrite: false,                                     // default: resources you registered first always win
 });
+i18n.changeLanguage('de');
 ```
 
 Call this *before* mounting the editor if you want your overrides to apply from the first render — the library's own auto-registration uses `overwrite: false`, so anything you've already registered under the `inscript-editor` namespace is left alone.

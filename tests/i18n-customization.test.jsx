@@ -41,11 +41,11 @@ describe('registerInscriptEditorTranslations', () => {
         expect(instance.getFixedT('en', INSCRIPT_EDITOR_NAMESPACE)('redo')).toBe('Redo');
     });
 
-    it('honors a `languages` whitelist, dropping every other shipped language', () => {
+    it('registers only shipped languages; a `languages` entry that is not shipped is not conjured', () => {
         const instance = freshInstance();
-        registerInscriptEditorTranslations(instance, { languages: ['en', 'de'] });
+        registerInscriptEditorTranslations(instance, { languages: ['en', 'fr'] });
         expect(instance.getFixedT('en', INSCRIPT_EDITOR_NAMESPACE)('undo')).toBe('Undo');
-        expect(instance.getFixedT('de', INSCRIPT_EDITOR_NAMESPACE)('undo')).toBe('Rückgängig');
+        // Only English is bundled, so 'fr' cannot come from the whitelist (bring it via `overrides`).
         expect(instance.hasResourceBundle('fr', INSCRIPT_EDITOR_NAMESPACE)).toBe(false);
     });
 
@@ -73,9 +73,7 @@ describe('registerInscriptEditorTranslations', () => {
 });
 
 describe('inscriptEditorTranslations', () => {
-    it('exposes all 19 shipped bundles keyed by language code', () => {
-        expect(Object.keys(inscriptEditorTranslations).sort()).toEqual(
-            ['af', 'bn', 'de', 'en', 'es', 'fr', 'hi', 'it', 'ja', 'kn', 'ko', 'ml', 'ne', 'pt', 'ru', 'ta', 'te', 'zh', 'zh-CN'].sort(),
-        );
+    it('ships only the English bundle', () => {
+        expect(Object.keys(inscriptEditorTranslations)).toEqual(['en']);
     });
 });
