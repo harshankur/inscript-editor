@@ -204,8 +204,27 @@ export const SAMPLE = `
 `;
 
 export function Demo({ focusMode = false, showMiniMap = true, showOutline = true, enableCustomizer = true }) {
-    const api = useInscriptEditor({ contentKey: 'inscript-editor-demo', title: 'The Fjords of Western Norway' });
+    // Host insert handlers, provided ONCE via editorOptions so they drive both the toolbar
+    // buttons AND the "/" menu (whose Image/YouTube entries appear only when the handler is
+    // present). They read the editor through a ref since they're defined before it exists.
+    const editorRef = React.useRef(null);
+    const onShowMediaLibrary = React.useCallback(() => {
+        const url = window.prompt('Image URL');
+        if (url && editorRef.current) editorRef.current.chain().focus().setImage({ src: url }).run();
+    }, []);
+    const onAddYoutube = React.useCallback(() => {
+        const url = window.prompt('YouTube URL or video ID');
+        const id = url && extractYoutubeId(url);
+        if (id && editorRef.current) editorRef.current.chain().focus().setYoutubeVideo({ 'data-youtube-video': id }).run();
+    }, []);
+
+    const api = useInscriptEditor({
+        contentKey: 'inscript-editor-demo',
+        title: 'The Fjords of Western Norway',
+        editorOptions: { onShowMediaLibrary, onAddYoutube },
+    });
     const { editor } = api;
+    editorRef.current = editor;
 
     // The customizer drawer scopes itself to this element (position: relative; overflow:
     // hidden) instead of covering the viewport. Track it in state so it's set once mounted.
@@ -243,16 +262,6 @@ export function Demo({ focusMode = false, showMiniMap = true, showOutline = true
         if (pos != null) setTimeout(() => editor.chain().focus().setNodeSelection(pos).run(), 350);
     }, [editor]);
 
-    const onShowMediaLibrary = () => {
-        const url = window.prompt('Image URL');
-        if (url && editor) editor.chain().focus().setImage({ src: url }).run();
-    };
-    const onAddYoutube = () => {
-        const url = window.prompt('YouTube URL or video ID');
-        const id = url && extractYoutubeId(url);
-        if (id && editor) editor.chain().focus().setYoutubeVideo({ 'data-youtube-video': id }).run();
-    };
-
     return (
         <div className="im-demo" ref={panelRef}>
             <div className="im-demo-main">
@@ -261,8 +270,6 @@ export function Demo({ focusMode = false, showMiniMap = true, showOutline = true
                     {...api}
                     focusMode={focusMode}
                     theme={theme}
-                    onShowMediaLibrary={onShowMediaLibrary}
-                    onAddYoutube={onAddYoutube}
                     toolbarConfig={enableCustomizer ? toolbarConfig : undefined}
                     onToolbarConfigChange={enableCustomizer ? setToolbarConfig : undefined}
                     bubbleMenuConfig={bubbleConfig}
