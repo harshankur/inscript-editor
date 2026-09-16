@@ -25,6 +25,7 @@ import { TaskItem } from '@tiptap/extension-task-item';
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
 import { createLowlight, common } from 'lowlight';
 import { SlashCommand } from './SlashCommand.js';
+import { HostBridge } from './HostBridge.js';
 import { FocusModeBlock } from './FocusMode.js';
 import { Admonition } from './Admonition.jsx';
 import { FootnoteReference, FootnoteDefinition, FootnotesSection } from './Footnote.jsx';
@@ -153,6 +154,10 @@ export function buildExtensions(options = {}) {
             })
         );
     }
+
+    // Always present: carries the host handler ref (in its options) so <InscriptEditor>
+    // (toolbar/bubble) can read the same handlers the slash items do. See HostBridge.js.
+    extensions.push(HostBridge.configure({ handlersRef: options.hostHandlersRef }));
 
     return extensions;
 }

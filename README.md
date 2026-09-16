@@ -152,6 +152,7 @@ i18n.addResourceBundle('en', 'inscript-editor', { insertImage: 'Add Image' }, tr
 | `categories` | `string[]` | `[]` | Live categories, same live-ref treatment as `title`. |
 | `isReadonly` | `boolean` | `false` | Disables editing without recreating the editor. |
 | `onContentChange` | `(entry) => void` | `null` | Called ~1s after edits settle, with `{ html, title, tags, categories, timestamp }`. |
+| `editorOptions` | `EditorBuildOptions` | `{}` | Per-editor feature toggles plus the host handlers `onAddCitation` / `onAddWikilink` / `onAddAbbreviation` / `onShowMediaLibrary` / `onAddYoutube`. Pass each host handler **once** here and it drives both the slash menu and the toolbar/bubble buttons (the matching `<InscriptEditor>` props are optional per-call overrides). |
 
 Returns `{ editor, history, setHistory, historyIndex, setHistoryIndex, isDirty, setIsDirty, canUndo, canRedo, restoreVersion, markSaved, titleRef, historyRef, historyDebounceRef, isSyncingRef, isLoadingRef }`.
 
@@ -169,7 +170,7 @@ Returns `{ editor, history, setHistory, historyIndex, setHistoryIndex, isDirty, 
 | `onShowMetadataModal`, `hasMetadata`, `showMetadataActive` | | Tags/categories entry point — bring your own modal. |
 | `onShowMediaLibrary` | `() => void` | Opens your `<ImageSelectorModal>`. |
 | `onAddYoutube` | `() => void` | Opens your `<YoutubeEmbedModal>`. |
-| `onAddCitation`, `onAddWikilink`, `onAddAbbreviation` | `() => void` | Optional host handlers for the Citation / Wikilink / Abbreviation buttons. Provide one to open your own modal and call the matching editor command (`insertCitation` / `insertWikilink` / `setAbbreviation`); when omitted, a built-in native prompt is used. |
+| `onAddCitation`, `onAddWikilink`, `onAddAbbreviation` | `() => void` | Optional **per-call overrides** of the matching `editorOptions` handlers for the Citation / Wikilink / Abbreviation toolbar/bubble buttons. Prefer supplying each handler **once** via `useInscriptEditor({ editorOptions })` (see the `editorOptions` row above) so it also drives the slash menu; a prop here wins when both are set. When neither is given, a built-in native prompt is used. |
 | `onHistorySelect` | `(index) => void` | Called when a version is chosen for restore in `<HistoryView>`. |
 | `restoreVersion`, `markSaved` | | From `useInscriptEditor`, exposed through the imperative ref too. |
 | `theme` | `InscriptEditorTheme` | Colors, surfaces, borders, radii, spacing and fonts for the whole editor. See [Theming](#theming). |

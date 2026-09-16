@@ -10,6 +10,7 @@ import { EmbedBubbleMenu } from './components/bubble-menus/EmbedBubbleMenu.jsx';
 import { SlashCommandMenu } from './components/SlashCommandMenu.jsx';
 import { useInscriptEditorTranslations } from './hooks/useInscriptEditorTranslations.js';
 import { buildThemeVars } from './utils/theme.js';
+import { getHostHandlers } from './extensions/HostBridge.js';
 
 /**
  * Top-level editor rendering component. Composes toolbar, bubble menus,
@@ -82,6 +83,17 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
 
     if (!editor) return null;
 
+    // Host handlers resolve as `prop ?? editorOptions`: the editorOptions values
+    // (the single source of truth, shared with the slash menu) reach us through the
+    // HostBridge extension, and an explicit <InscriptEditor> prop overrides them per
+    // call. So a host can pass each handler once, in editorOptions.
+    const bridge = getHostHandlers(editor);
+    const resolvedOnShowMediaLibrary = onShowMediaLibrary ?? bridge.onShowMediaLibrary;
+    const resolvedOnAddYoutube = onAddYoutube ?? bridge.onAddYoutube;
+    const resolvedOnAddCitation = onAddCitation ?? bridge.onAddCitation;
+    const resolvedOnAddWikilink = onAddWikilink ?? bridge.onAddWikilink;
+    const resolvedOnAddAbbreviation = onAddAbbreviation ?? bridge.onAddAbbreviation;
+
     return (
         // display:contents scope: carries the theme custom properties to the
         // toolbar + content without introducing a layout box, so the host's
@@ -98,11 +110,11 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                     onShowMetadataModal={onShowMetadataModal}
                     hasMetadata={hasMetadata}
                     showMetadataActive={showMetadataActive}
-                    onShowMediaLibrary={onShowMediaLibrary}
-                    onAddYoutube={onAddYoutube}
-                    onAddCitation={onAddCitation}
-                    onAddWikilink={onAddWikilink}
-                    onAddAbbreviation={onAddAbbreviation}
+                    onShowMediaLibrary={resolvedOnShowMediaLibrary}
+                    onAddYoutube={resolvedOnAddYoutube}
+                    onAddCitation={resolvedOnAddCitation}
+                    onAddWikilink={resolvedOnAddWikilink}
+                    onAddAbbreviation={resolvedOnAddAbbreviation}
                     toolbarConfig={toolbarConfig}
                     onToolbarConfigChange={onToolbarConfigChange}
                     bubbleMenuConfig={bubbleMenuConfig}
@@ -133,7 +145,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                         className={`mx-auto px-2 pt-3 pb-[57px] md:px-8 md:pt-12 md:pb-[57px] flex flex-col min-h-full inscript-editor-container w-full ${focusMode ? 'focus-mode' : ''} ${focusMode && focusDim ? 'focus-dim' : ''}`}
                         style={{ '--inscript-max-width': resolvedMaxWidth }}
                     >
-                        <TextBubbleMenu editor={editor} isReadonly={isReadonly} bubbleMenuConfig={bubbleMenuConfig} onAddAbbreviation={onAddAbbreviation} />
+                        <TextBubbleMenu editor={editor} isReadonly={isReadonly} bubbleMenuConfig={bubbleMenuConfig} onAddAbbreviation={resolvedOnAddAbbreviation} />
                         <TableBubbleMenu editor={editor} isReadonly={isReadonly} />
                         <ImageBubbleMenu editor={editor} isReadonly={isReadonly} />
                         <YoutubeBubbleMenu editor={editor} isReadonly={isReadonly} onOpenExternal={onOpenExternal} />

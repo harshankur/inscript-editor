@@ -35,6 +35,27 @@ export function useInscriptEditor({
     useEffect(() => { tagsRef.current = tags; }, [tags]);
     useEffect(() => { categoriesRef.current = categories; }, [categories]);
 
+    // Host-owned insert handlers (onAddCitation/onAddYoutube/onShowMediaLibrary/
+    // onAddWikilink/onAddAbbreviation), passed once via editorOptions and shared with both
+    // the slash menu (built at editor construction) and the toolbar/bubble (read at render
+    // via the HostBridge extension), so callback identity never recreates the editor.
+    //
+    // Assigned DURING render, not in a post-commit effect: useEditor creates the editor
+    // synchronously on the first render (immediatelyRender defaults to true), so the ref
+    // must already hold the handlers before <InscriptEditor> reads them on that same first
+    // render. An effect would leave the first paint wired to the prompt fallback until a
+    // later re-render. This is the "latest value ref" pattern (safe: it is not read to
+    // produce this render's own output, only by the child during its render and by handlers
+    // on user interaction).
+    const hostHandlersRef = useRef({});
+    hostHandlersRef.current = {
+        onAddCitation: editorOptions.onAddCitation,
+        onAddYoutube: editorOptions.onAddYoutube,
+        onShowMediaLibrary: editorOptions.onShowMediaLibrary,
+        onAddWikilink: editorOptions.onAddWikilink,
+        onAddAbbreviation: editorOptions.onAddAbbreviation,
+    };
+
     // --- History state ---
     const [history, setHistory] = useState([]);
     const [historyIndex, setHistoryIndex] = useState(-1);
@@ -65,7 +86,7 @@ export function useInscriptEditor({
 
     // --- TipTap editor ---
     const editor = useEditor({
-        extensions: buildExtensions(editorOptions),
+        extensions: buildExtensions({ ...editorOptions, hostHandlersRef }),
         content: '',
         editable: !isReadonly,
         editorProps: {

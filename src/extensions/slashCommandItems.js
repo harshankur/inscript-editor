@@ -1,3 +1,8 @@
+// Read a host handler live from the ref bridge (options.hostHandlersRef, refreshed
+// every render by useInscriptEditor), falling back to a plain editorOptions value.
+// This lets the slash menu and <InscriptEditor> share one set of handlers.
+const handler = (options, name) => options.hostHandlersRef?.current?.[name] ?? options[name];
+
 export const getDefaultSlashItems = (t, options = {}) => [
     {
         id: 'h1',
@@ -131,10 +136,20 @@ export const getDefaultSlashItems = (t, options = {}) => [
             keywords: ['citation', 'reference', 'bibliography', 'key'],
             group: 'text',
             command: ({ editor, range }) => {
-                const key = prompt('Enter Citation Key (e.g. author2026):', '');
+                // Let a host own citation entry via editorOptions.onAddCitation (its own
+                // modal + an .insertCitation() call), mirroring the image/youtube slash
+                // items. Otherwise fall back to native prompts (shared i18n keys with the
+                // toolbar's citation button).
+                const onAddCitation = handler(options, 'onAddCitation');
+                if (onAddCitation) {
+                    editor.chain().focus().deleteRange(range).run();
+                    onAddCitation();
+                    return;
+                }
+                const key = window.prompt(t('citationKeyPrompt', 'Enter citation key (e.g. author2026):'), '');
                 if (key) {
-                    const label = prompt('Enter Inline Label (e.g. Author, 2026):', key);
-                    const title = prompt('Enter Bibliography Entry detail (e.g. Full publication citation):', '');
+                    const label = window.prompt(t('citationLabelPrompt', 'Enter inline label (e.g. Author, 2026):'), key);
+                    const title = window.prompt(t('citationTitlePrompt', 'Enter bibliography entry details:'), '');
                     editor.chain().focus().deleteRange(range).insertCitation({ key, label: label || key, title: title || '' }).run();
                 } else {
                     editor.chain().focus().deleteRange(range).run();
@@ -204,7 +219,7 @@ export const getDefaultSlashItems = (t, options = {}) => [
         group: 'media',
         command: ({ editor, range }) => {
             editor.chain().focus().deleteRange(range).run();
-            options.onShowMediaLibrary();
+            handler(options, 'onShowMediaLibrary')();
         }
     }] : []),
     ...(options.onAddYoutube ? [{
@@ -215,7 +230,7 @@ export const getDefaultSlashItems = (t, options = {}) => [
         group: 'media',
         command: ({ editor, range }) => {
             editor.chain().focus().deleteRange(range).run();
-            options.onAddYoutube();
+            handler(options, 'onAddYoutube')();
         }
     }] : []),
     {

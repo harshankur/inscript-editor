@@ -40,6 +40,18 @@ export interface EditorBuildOptions {
     slashCommand?: boolean;
     /** Custom slash-command registry entries (replaces the default set when provided). */
     slashCommands?: unknown[];
+    /** Host handlers for host-owned insert flows, the single source of truth for them.
+     *  Pass each once here and it reaches BOTH the slash menu (built into the editor
+     *  extensions) and the toolbar/bubble buttons (via `<InscriptEditor>`), so you never
+     *  wire the same handler twice. onShowMediaLibrary/onAddYoutube also reveal the
+     *  Image/YouTube slash entries; onAddCitation/onAddWikilink/onAddAbbreviation open your
+     *  own modal instead of the built-in prompt. The matching `<InscriptEditor>` props are
+     *  optional per-call overrides. */
+    onShowMediaLibrary?: () => void;
+    onAddYoutube?: () => void;
+    onAddCitation?: () => void;
+    onAddWikilink?: () => void;
+    onAddAbbreviation?: () => void;
     [key: string]: unknown;
 }
 
@@ -183,18 +195,21 @@ export interface InscriptEditorProps {
     onShowMetadataModal?: () => void;
     hasMetadata?: boolean;
     showMetadataActive?: boolean;
+    /** Optional per-call override of `editorOptions.onShowMediaLibrary`. Prefer editorOptions
+     *  (it also drives the slash Image entry); this prop wins when both are set. */
     onShowMediaLibrary?: () => void;
+    /** Optional per-call override of `editorOptions.onAddYoutube`. Prefer editorOptions
+     *  (it also drives the slash YouTube entry); this prop wins when both are set. */
     onAddYoutube?: () => void;
-    /** Host handler for the Citation toolbar button. Provide it to open your own modal
-     *  (and call `editor.commands.insertCitation({ key, label, title })`). When omitted,
-     *  a built-in native prompt is used. */
+    /** Optional per-call override of `editorOptions.onAddCitation` for the Citation
+     *  toolbar/bubble button. Prefer passing the handler once via editorOptions (it also
+     *  covers the slash menu); this prop wins when both are set. */
     onAddCitation?: () => void;
-    /** Host handler for the Wikilink toolbar button (needs the opt-in Wikilink extension).
-     *  When omitted, a built-in native prompt is used. */
+    /** Optional per-call override of `editorOptions.onAddWikilink` (needs the opt-in
+     *  Wikilink extension). Prefer editorOptions; this prop wins when both are set. */
     onAddWikilink?: () => void;
-    /** Host handler for the Abbreviation toolbar/bubble button. Provide it to collect the
-     *  expansion via your own modal (and call `editor.commands.setAbbreviation(title)`).
-     *  When omitted, a built-in native prompt is used. */
+    /** Optional per-call override of `editorOptions.onAddAbbreviation` for the Abbreviation
+     *  toolbar/bubble button. Prefer editorOptions; this prop wins when both are set. */
     onAddAbbreviation?: () => void;
     onHistorySelect?: (index: number) => void;
     restoreVersion?: (index: number) => void;

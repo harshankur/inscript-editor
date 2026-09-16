@@ -5,6 +5,22 @@ All notable changes to `inscript-editor` are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (pre-1.0: minor versions may
 carry small breaking changes, called out below).
 
+## [0.3.2] - 2026-09-16
+
+### Added
+- Slash-menu Citation can open a host modal instead of the built-in prompt, via
+  `editorOptions.onAddCitation`; its fallback prompts now use the same i18n keys as the
+  toolbar's Citation button.
+
+### Changed
+- Host handlers (`onAddCitation` / `onAddWikilink` / `onAddAbbreviation` /
+  `onShowMediaLibrary` / `onAddYoutube`) are now supplied **once** via
+  `useInscriptEditor({ editorOptions })` and reach both the slash menu and the
+  toolbar/bubble buttons, instead of being wired in two places. The matching
+  `<InscriptEditor>` props remain optional per-call overrides (non-breaking). Internally a
+  live handler ref is shared through a small always-registered `HostBridge` extension, so
+  changing a callback never recreates the editor.
+
 ## [0.3.1] - 2026-09-13
 
 ### Added
@@ -111,6 +127,7 @@ carry small breaking changes, called out below).
 
 - First tagged release of the standalone `inscript-editor` package extracted from Inscript.
 
+[0.3.2]: https://github.com/harshankur/inscript-editor/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/harshankur/inscript-editor/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/harshankur/inscript-editor/compare/v0.2.10...v0.3.0
 [0.2.10]: https://github.com/harshankur/inscript-editor/compare/v0.2.9...v0.2.10
