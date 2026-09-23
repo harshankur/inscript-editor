@@ -117,6 +117,51 @@
   --inscript-color-link-hover: #6ee7b7;              /* emerald-300 */
 }
 
+
+/* ProseMirror/Tiptap base rules, shipped here rather than relying on Tiptap's runtime `injectCSS`.
+   Tiptap injects them as ONE <style> shared by every editor on the page, and an editor's unmount removes
+   it whenever no editor DOM is present at that instant - which happens when one instance replaces
+   another (React StrictMode's double mount, or a host re-creating its editor on an options change). The
+   surviving editor then silently loses them: text whitespace collapses (ProseMirror warns it expects
+   `white-space: pre-wrap`) and the separator image ProseMirror adds after an inline atom that ends a
+   paragraph (a citation, inline math, a source comment) picks up Tailwind's `img { display: block }`
+   preflight and opens a tall gap. Mirrors Tiptap 3's injected style; the gap cursor uses currentColor
+   rather than black so it stays visible in a dark theme. */
+.ProseMirror {
+  position: relative;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  white-space: break-spaces;
+  -webkit-font-variant-ligatures: none;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0;
+}
+.ProseMirror [contenteditable="false"] { white-space: normal; }
+.ProseMirror [contenteditable="false"] [contenteditable="true"] { white-space: pre-wrap; }
+.ProseMirror pre { white-space: pre-wrap; }
+img.ProseMirror-separator {
+  display: inline !important;
+  border: none !important;
+  margin: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.ProseMirror-gapcursor { display: none; pointer-events: none; position: absolute; margin: 0; }
+.ProseMirror-gapcursor:after {
+  content: "";
+  display: block;
+  position: absolute;
+  top: -2px;
+  width: 20px;
+  border-top: 1px solid currentColor;
+  animation: ProseMirror-cursor-blink 1.1s steps(2, start) infinite;
+}
+@keyframes ProseMirror-cursor-blink { to { visibility: hidden; } }
+.ProseMirror-hideselection *::selection { background: transparent; }
+.ProseMirror-hideselection *::-moz-selection { background: transparent; }
+.ProseMirror-hideselection * { caret-color: transparent; }
+.ProseMirror-focused .ProseMirror-gapcursor { display: block; }
+
 .ProseMirror {
   @apply outline-none;
   min-height: var(--inscript-min-height, 500px);

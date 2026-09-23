@@ -16,6 +16,13 @@ carry small breaking changes, called out below).
   hover; the text is only ever set as text or an attribute, never markup. On by default; opt out with
   `htmlComment: false`. The turndown rules write it back as a real `<!-- ... -->` comment.
 
+### Fixed
+- The editor lost ProseMirror's base styles whenever one editor instance replaced another (React
+  StrictMode's double mount, or a host re-creating its editor): Tiptap's injected `<style>` is shared and
+  an unmounting editor removes it. Text whitespace then collapsed, and a paragraph ending in an inline
+  node (a citation, inline math, a source comment) grew a tall gap from Tailwind's `img { display: block }`
+  reaching ProseMirror's separator image. The base rules now ship in the stylesheet, so they can't vanish.
+
 ## [0.3.2] - 2026-09-16
 
 ### Added
