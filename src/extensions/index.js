@@ -35,6 +35,7 @@ import { Wikilink } from './Wikilink.jsx';
 import { Mermaid } from './Mermaid.jsx';
 import { MathInline, MathBlock } from './Math.jsx';
 import { Citation } from './Citation.js';
+import { HtmlComment } from './HtmlComment.js';
 import { Embed } from './Embed.jsx';
 import { getDefaultSlashItems } from './slashCommandItems.js';
 import i18next from 'i18next';
@@ -46,6 +47,7 @@ export { FontSize } from './FontSize.js';
 export { CustomTable } from './CustomTable.js';
 export { CustomImage } from './CustomImage.js';
 export { Citation } from './Citation.js';
+export { HtmlComment } from './HtmlComment.js';
 export { Embed } from './Embed.jsx';
 
 /**
@@ -132,6 +134,12 @@ export function buildExtensions(options = {}) {
 
     if (options.citation !== false) {
         extensions.push(Citation);
+    }
+
+    // Source comments (`<!-- ... -->`): on by default, since dropping one silently loses the
+    // author's hidden note (and turning it into text would reveal it).
+    if (options.htmlComment !== false) {
+        extensions.push(HtmlComment);
     }
 
     // Generic third-party embeds. On by default — this is what turns a

@@ -5,6 +5,17 @@ All notable changes to `inscript-editor` are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (pre-1.0: minor versions may
 carry small breaking changes, called out below).
 
+## [0.3.3] - 2026-09-24
+
+### Added
+- `htmlComment` node: source comments (`<!-- ... -->`) are kept as hidden, deletable inline atoms
+  instead of being dropped when HTML is loaded, so a Markdown/HTML round trip no longer loses the
+  author's notes. It reads and writes officeParser's `sourceAttributes` shape, an empty
+  `<span data-html-comment="…">`, so `getHTML()` hands back exactly what the parser reads (pair with
+  officeParser 8.1+). In the editor it shows as a small muted `<!-- … -->` chip with the full text on
+  hover; the text is only ever set as text or an attribute, never markup. On by default; opt out with
+  `htmlComment: false`. The turndown rules write it back as a real `<!-- ... -->` comment.
+
 ## [0.3.2] - 2026-09-16
 
 ### Added

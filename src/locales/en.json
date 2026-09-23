@@ -28,6 +28,7 @@
   "bulletList": "Bullet List",
   "bulletListSubtitle": "Create a simple bulleted list",
   "citation": "Citation",
+  "htmlComment": "Hidden comment",
   "citationSubtitle": "Insert a citation reference",
   "citationKeyPrompt": "Enter citation key (e.g. author2026):",
   "citationLabelPrompt": "Enter inline label (e.g. Author, 2026):",

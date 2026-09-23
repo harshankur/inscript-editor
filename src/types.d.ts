@@ -26,6 +26,8 @@ export interface EditorBuildOptions {
     mermaid?: boolean;
     math?: boolean;
     citation?: boolean;
+    /** Keep `<!-- ... -->` source comments as hidden, deletable nodes (on by default). */
+    htmlComment?: boolean;
     /** Generic third-party embeds (on by default). `false` disables; an object configures trust. */
     embed?: boolean | { isTrusted?: (src: string) => boolean; trustedEmbedHosts?: string[] };
     /** Host-supplied embed trust (alternative to the object form of `embed`). */
@@ -315,6 +317,8 @@ export const FontSize: import('@tiptap/core').Mark;
 export const CustomTable: import('@tiptap/core').Node;
 export const CustomImage: import('@tiptap/core').Node;
 export const Citation: import('@tiptap/core').Node;
+/** `<!-- ... -->` source comments as hidden, deletable inline atoms (`<span data-html-comment>`). */
+export const HtmlComment: import('@tiptap/core').Node;
 export const Embed: import('@tiptap/core').Node;
 
 // --- Table utils ---
