@@ -1,5 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import './track.js';
 import { Demo } from './demoApp.jsx';
 
 // ── Theme (persisted; the same `dark` class drives the page and the editor) ──
