@@ -1,7 +1,10 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import './track.js';
+import { trackPageView } from './track.js';
 import { Demo } from './demoApp.jsx';
+
+// Count this homepage view (fire-and-forget; no-op on localhost).
+trackPageView();
 
 // ── Theme (persisted; the same `dark` class drives the page and the editor) ──
 const root = document.documentElement;
