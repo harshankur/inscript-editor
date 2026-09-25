@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEditor } from '@tiptap/react';
 import { buildExtensions } from '../extensions/index.js';
+import { viewDom } from '../utils/editorView.js';
 
 /**
  * Core editor hook for Inscript. Manages TipTap editor instance, client-side
@@ -108,7 +109,8 @@ export function useInscriptEditor({
     // Live-toggle spellcheck on the editor DOM so the host's setting flips without recreating the
     // editor (which would lose the undo stack and cursor).
     useEffect(() => {
-        if (editor?.view?.dom) editor.view.dom.setAttribute('spellcheck', String(spellcheck));
+        const dom = viewDom(editor);
+        if (dom) dom.setAttribute('spellcheck', String(spellcheck));
     }, [editor, spellcheck]);
 
     // The commit itself — pushes a new history entry (and fires onContentChange)

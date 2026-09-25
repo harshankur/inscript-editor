@@ -2,15 +2,23 @@ import React, { useEffect, useState } from 'react';
 import { extractHeadings } from '../utils/headingExtraction.js';
 import { ChevronRight, List as ListIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { hasView } from '../utils/editorView.js';
+
+const STORAGE_KEY = 'inscript-outline-collapsed';
+// Storage can throw (sandboxed iframes, blocked site data, some privacy modes): the
+// collapsed state is a convenience, so fall back to "expanded" and never crash.
+const readCollapsed = () => {
+    try { return localStorage.getItem(STORAGE_KEY) === 'true'; } catch { return false; }
+};
+const writeCollapsed = (value) => {
+    try { localStorage.setItem(STORAGE_KEY, String(value)); } catch { /* ignore */ }
+};
 
 export const DocumentOutline = ({ editor }) => {
     const { t } = useTranslation('inscript-editor');
     const [headings, setHeadings] = useState([]);
     
-    const [isCollapsed, setIsCollapsed] = useState(() => {
-        const stored = localStorage.getItem('inscript-outline-collapsed');
-        return stored === 'true';
-    });
+    const [isCollapsed, setIsCollapsed] = useState(readCollapsed);
 
     useEffect(() => {
         if (!editor) return;
@@ -18,23 +26,28 @@ export const DocumentOutline = ({ editor }) => {
         const updateHeadings = () => {
             setHeadings(extractHeadings(editor));
         };
+        // Any doc change, not only 'update': TipTap skips 'update' for content set with
+        // emitUpdate: false (a version restore, a quiet load), and those change the headings too.
+        const onTransaction = ({ transaction }) => {
+            if (transaction.docChanged) updateHeadings();
+        };
 
-        editor.on('update', updateHeadings);
+        editor.on('transaction', onTransaction);
         updateHeadings();
 
         return () => {
-            editor.off('update', updateHeadings);
+            editor.off('transaction', onTransaction);
         };
     }, [editor]);
 
     const handleToggleCollapse = () => {
         const next = !isCollapsed;
         setIsCollapsed(next);
-        localStorage.setItem('inscript-outline-collapsed', String(next));
+        writeCollapsed(next);
     };
 
     const handleClick = (pos) => {
-        if (!editor) return;
+        if (!hasView(editor)) return;
         // Place the caret at the heading, then scroll the heading itself to the TOP of the viewport.
         // The old `.scrollIntoView()` (ProseMirror's minimum-scroll) put a heading at the top when it
         // was above the view but at the bottom when it was below - inconsistent. Scroll the node's DOM
@@ -42,7 +55,8 @@ export const DocumentOutline = ({ editor }) => {
         // `focus()` defaults to its own minimum-scroll (which is the inconsistent behavior); disable it
         // so ours is the only scroll, then align the heading's DOM node to the TOP.
         editor.chain().setTextSelection(pos).focus(null, { scrollIntoView: false }).run();
-        const dom = editor.view.nodeDOM(pos);
+        let dom = null;
+        try { dom = editor.view.nodeDOM(pos); } catch { /* stale position after an edit */ }
         if (dom && typeof dom.scrollIntoView === 'function') {
             dom.scrollIntoView({ block: 'start', behavior: 'smooth' });
         }

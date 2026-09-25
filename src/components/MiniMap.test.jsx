@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import { MiniMap, miniMapScale, miniMapViewport } from './MiniMap.jsx';
 import { createEditor } from '../../tests/helpers/createEditor.js';
 
@@ -115,5 +115,40 @@ describe('MiniMap component', () => {
         render(<MiniMap editor={editor} />);
         expect(screen.queryByText('Minimap')).not.toBeInTheDocument();
         expect(screen.getByTitle('Expand minimap')).toBeInTheDocument();
+    });
+
+    // In TipTap v3 `editor.view` is a throwing Proxy whenever no view is mounted, so the
+    // minimap must guard on isDestroyed (a host swapping editors per document hits this).
+    it('does not throw for an unmounted (not destroyed) editor', () => {
+        editor.commands.setContent('<h1>Hi</h1>');
+        editor.unmount();
+        expect(() => render(<MiniMap editor={editor} />)).not.toThrow();
+    });
+
+    it('does not throw for a destroyed editor, including in its deferred measure', () => {
+        const ed = createEditor();
+        ed.commands.setContent('<h1>Hi</h1>');
+        ed.destroy();
+        vi.useFakeTimers();
+        try {
+            expect(() => render(<MiniMap editor={ed} />)).not.toThrow();
+            expect(() => act(() => { vi.advanceTimersByTime(500); })).not.toThrow();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('re-measures after content set with emitUpdate: false (a version restore)', () => {
+        vi.useFakeTimers();
+        try {
+            editor.commands.setContent('<h1>Old heading</h1>');
+            render(<MiniMap editor={editor} />);
+            expect(screen.getByText('Old heading')).toBeInTheDocument();
+            act(() => { editor.commands.setContent('<h1>New heading</h1>', { emitUpdate: false }); });
+            act(() => { vi.advanceTimersByTime(200); });
+            expect(screen.getByText('New heading')).toBeInTheDocument();
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });

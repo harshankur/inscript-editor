@@ -5,6 +5,20 @@ All notable changes to `inscript-editor` are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (pre-1.0: minor versions may
 carry small breaking changes, called out below).
 
+## [Unreleased]
+
+### Fixed
+- `<MiniMap>` no longer throws "The editor view is not available" for an editor that is unmounted
+  or destroyed (a host that swaps editors per document hit this, and it could blank the page). In
+  TipTap v3 `editor.view` is a Proxy that throws whenever no view is mounted, so `!editor.view` never
+  guarded anything; every view read (MiniMap, DocumentOutline, the spellcheck toggle) now checks
+  `editor.isDestroyed`, including inside deferred callbacks, and MiniMap re-measures when an editor
+  is mounted later.
+- `<DocumentOutline>` and `<MiniMap>` refresh after any document change, including content set with
+  `emitUpdate: false` (a version restore), instead of only on TipTap's `update` event.
+- `<DocumentOutline>` no longer crashes where storage access throws (sandboxed iframes, blocked site
+  data, some privacy modes); its collapsed state falls back to expanded, as MiniMap's already did.
+
 ## [0.3.3] - 2026-09-24
 
 ### Added

@@ -1,6 +1,6 @@
 import React from 'react';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import { DocumentOutline } from './DocumentOutline.jsx';
 import { createEditor } from '../../tests/helpers/createEditor.js';
 
@@ -51,5 +51,33 @@ describe('DocumentOutline component', () => {
         render(<DocumentOutline editor={editor} />);
         expect(screen.queryByText('Outline')).not.toBeInTheDocument();
         expect(screen.getByTitle('Expand outline')).toBeInTheDocument();
+    });
+
+    it('refreshes after content set with emitUpdate: false (a version restore)', () => {
+        editor.commands.setContent('<h1>Old heading</h1>');
+        const { container } = render(<DocumentOutline editor={editor} />);
+        expect(container.textContent).toContain('Old heading');
+        act(() => { editor.commands.setContent('<h1>New heading</h1>', { emitUpdate: false }); });
+        expect(container.textContent).toContain('New heading');
+        expect(container.textContent).not.toContain('Old heading');
+    });
+
+    it('does not crash when storage access throws (sandboxed iframe, blocked storage)', () => {
+        global.localStorage = {
+            getItem: () => { throw new Error('SecurityError'); },
+            setItem: () => { throw new Error('SecurityError'); },
+        };
+        editor.commands.setContent('<h1>Hi</h1>');
+        expect(() => render(<DocumentOutline editor={editor} />)).not.toThrow();
+        // Toggling still works in memory even though it can't be persisted.
+        fireEvent.click(screen.getByTitle('Collapse outline'));
+        expect(screen.getByTitle('Expand outline')).toBeInTheDocument();
+    });
+
+    it('ignores a heading click once the editor has no view', () => {
+        editor.commands.setContent('<h1>Hi</h1>');
+        render(<DocumentOutline editor={editor} />);
+        editor.unmount();
+        expect(() => fireEvent.click(screen.getByText('Hi'))).not.toThrow();
     });
 });

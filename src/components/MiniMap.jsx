@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { ChevronRight, Map as MapIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { hasView, viewDom } from '../utils/editorView.js';
 
 // ── What this is ────────────────────────────────────────────────────────────
 // A "spatial outline", not a photo of the text. Prose has weak silhouette (most
@@ -348,27 +349,44 @@ export const MiniMap = ({ editor, width, className = '', showHeadingText = true 
     const measureTimer = useRef(null);
 
     // 1. Measure the real document geometry (debounced on edits; immediate on mount).
+    // hasView is re-checked on every call: the rAF, the debounce and the observer can all
+    // fire after the editor was unmounted or destroyed (a host swapping editors per document).
     const measure = useCallback(() => {
-        if (!editor || !editor.state || !editor.view) return;
+        if (!hasView(editor)) return;
         setMeta(measureBlocks(editor));
     }, [editor]);
 
     useEffect(() => {
         if (!editor) return;
-        measure();
-        const raf = requestAnimationFrame(measure);
+        let ro = null;
         const debounced = () => {
             if (measureTimer.current) clearTimeout(measureTimer.current);
             measureTimer.current = setTimeout(measure, 120);
         };
-        editor.on('update', debounced);
-        const ro = new ResizeObserver(debounced);
-        ro.observe(editor.view.dom);
+        const observe = () => {
+            if (ro) ro.disconnect();
+            ro = null;
+            const dom = viewDom(editor);
+            if (!dom) return;
+            ro = new ResizeObserver(debounced);
+            ro.observe(dom);
+        };
+        // Any doc change, not only 'update': TipTap skips 'update' for content set with
+        // emitUpdate: false (a version restore, a quiet load), and those change the doc too.
+        const onTransaction = ({ transaction }) => { if (transaction.docChanged) debounced(); };
+        // An editor mounted (or re-mounted) after we subscribed: observe its new view.
+        const onMount = () => { observe(); measure(); };
+        measure();
+        const raf = requestAnimationFrame(measure);
+        observe();
+        editor.on('transaction', onTransaction);
+        editor.on('mount', onMount);
         return () => {
             cancelAnimationFrame(raf);
             if (measureTimer.current) clearTimeout(measureTimer.current);
-            editor.off('update', debounced);
-            ro.disconnect();
+            editor.off('transaction', onTransaction);
+            editor.off('mount', onMount);
+            if (ro) ro.disconnect();
         };
     }, [editor, measure]);
 
@@ -444,8 +462,8 @@ export const MiniMap = ({ editor, width, className = '', showHeadingText = true 
 
     // 3. Track editor scroll → viewport indicator (fraction of the whole doc).
     useEffect(() => {
-        if (!editor || isCollapsed) return;
-        const pmEl = editor.view.dom;
+        const pmEl = isCollapsed ? null : viewDom(editor);
+        if (!pmEl) return;
         const scrollContainer = pmEl.closest('.overflow-y-auto') || pmEl.parentElement;
         scrollContainerRef.current = scrollContainer;
         if (!scrollContainer) return;
@@ -495,8 +513,9 @@ export const MiniMap = ({ editor, width, className = '', showHeadingText = true 
     };
     const jumpToHeading = (pos, e) => {
         e.stopPropagation();
-        if (pos == null || !editor?.view) return;
-        const dom = editor.view.nodeDOM(pos);
+        if (pos == null || !hasView(editor)) return;
+        let dom = null;
+        try { dom = editor.view.nodeDOM(pos); } catch { /* stale position after an edit */ }
         const el = dom && dom.nodeType === 1 ? dom : (dom && dom.parentElement);
         if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
     };
