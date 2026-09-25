@@ -273,7 +273,7 @@ export function useInscriptEditor({
     };
 
     // Record title/tags/categories edits even when the editor content is untouched.
-    // Skip the initial mount and any change that coincides with a document switch —
+    // Skip the initial mount and any change that coincides with a document switch:
     // that is a load, not an edit.
     // Compare tags/categories by value: the `[]` defaults (and fresh arrays from a
     // consumer) change reference every render, which would otherwise re-run this

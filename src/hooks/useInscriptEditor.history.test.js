@@ -1,3 +1,4 @@
+import { createElement, StrictMode } from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useInscriptEditor } from './useInscriptEditor.js';
@@ -333,5 +334,25 @@ describe('useInscriptEditor version history', () => {
             expect(result.current.editor.getHTML()).toBe('<p>B</p>');
             expect(result.current.history.map(e => [e.kind, e.html])).toEqual([['opened', '<p>B</p>']]);
         });
+    });
+
+    it('holds up under React StrictMode (double-invoked effects)', () => {
+        const wrapper = ({ children }) => createElement(StrictMode, null, children);
+        const onContentChange = vi.fn();
+        const { result, rerender } = renderHook(
+            props => useInscriptEditor({ documentKey: 'd', onContentChange, ...props }),
+            { wrapper, initialProps: { contentKey: 'k1', initialContent: '<p>Start</p>' } },
+        );
+        expect(kinds(result)).toEqual(['opened']);
+        type(result.current.editor, 'x');
+        idle();
+        const html = result.current.editor.getHTML();
+        rerender({ contentKey: 'k2', initialContent: '<p>Start</p>' });
+        expect(result.current.editor.getHTML()).toBe(html);
+        idle(3000);
+        expect(kinds(result)).toEqual(['opened', 'edited']);
+        expect(onContentChange).toHaveBeenCalledTimes(1);
+        rerender({ contentKey: 'k2', documentKey: 'e' });
+        expect(result.current.history).toEqual([]);
     });
 });
