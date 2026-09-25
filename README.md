@@ -110,8 +110,13 @@ Two ways to do it right:
 const { loadContent } = api;
 loadContent(file.html, { title: file.title, kind: 'opened' });           // a document is opened
 loadContent(changedHtml, { keepHistory: true });                         // same document, changed elsewhere
-loadContent(file.html, { history: savedStack, historyIndex: savedIdx }); // restore a persisted stack
+loadContent(savedStack[savedIdx].html, { history: savedStack, historyIndex: savedIdx }); // reopen a persisted stack
 ```
+
+Reopening a persisted stack adds no version when you load its active entry's HTML (or HTML that
+parses to the same document, such as a file whose Markdown renders it), so the pointer and redo
+stay where the user left them. Different content is recorded as "Changed outside the app".
+
 
 `loadContent` seeds the baseline, clears the dirty flag, never calls `onContentChange`, drops a
 pending edit (so a keystroke just before a document switch can't land in the next document) and

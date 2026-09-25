@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useEditor } from '@tiptap/react';
+import { createDocument, getHTMLFromFragment } from '@tiptap/core';
 import { EditorState } from '@tiptap/pm/state';
 import { buildExtensions } from '../extensions/index.js';
 import { hasView, viewDom } from '../utils/editorView.js';
@@ -21,6 +22,22 @@ function setContentQuiet(editor, html) {
         .run();
     const { state } = editor;
     editor.view.updateState(EditorState.create({ doc: state.doc, selection: state.selection, plugins: state.plugins }));
+}
+
+/**
+ * Do two HTML strings hold the same document for this schema? Both go through the same parse
+ * and serialize, so HTML that differs only in how it was written (a Markdown renderer's newlines
+ * between blocks, attribute order or defaults from an older editor or TipTap release) compares
+ * equal. Anything unparseable compares unequal.
+ */
+function sameDocumentHtml(schema, a, b) {
+    if (typeof a !== 'string' || typeof b !== 'string') return false;
+    try {
+        const serialize = html => getHTMLFromFragment(createDocument(html, schema).content, schema);
+        return serialize(a) === serialize(b);
+    } catch {
+        return false;
+    }
 }
 
 /**
@@ -388,7 +405,17 @@ export function useInscriptEditor({
             baseIndex = historyIndexRef.current;
         }
         const head = base[baseIndex];
-        if (head && head.html === normalized && sameMetadata(head, meta)) {
+        // The active entry's own document is not a change, whatever the editor now serializes it
+        // to: loading `stack[i].html` of a persisted stack must not add a version (the editor adds
+        // a trailing <p></p> after a closing blockquote, a Markdown renderer leaves newlines, an
+        // older release ordered attributes differently). The stored entry is kept as it is;
+        // lastSyncedHtmlRef holds the normalized HTML, so later commits still compare correctly.
+        const sameContent = !!head && (
+            head.html === normalized
+            || head.html === html
+            || sameDocumentHtml(editor.schema, head.html, html)
+        );
+        if (sameContent && sameMetadata(head, meta)) {
             applyHistory(base, baseIndex);
         } else {
             const resolvedKind = HISTORY_KINDS.includes(kind) ? kind : (base.length ? 'external' : 'opened');

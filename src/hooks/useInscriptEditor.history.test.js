@@ -83,6 +83,58 @@ describe('useInscriptEditor version history', () => {
             expect(result.current.editor.getHTML()).toBe('<p>Doc B</p>');
         });
 
+        // Reopening a persisted stack by loading its active entry is the same document, whatever
+        // the editor now serializes that entry to (Inscript review of 0.4.0, F1).
+        const stored = (id, kind, html) => ({ id, kind, html, title: 'T', tags: [], categories: [], timestamp: '2026-01-01T00:00:00.000Z' });
+
+        it('reopens an entry the editor re-serializes (a trailing <p></p> after a blockquote) without a new version', () => {
+            const { result } = renderHook(() => useInscriptEditor({ documentKey: 'a.md' }));
+            const stack = [stored('v1', 'opened', '<h1>Hi</h1><blockquote><p>quote</p></blockquote>')];
+            act(() => { result.current.loadContent(stack[0].html, { title: 'T', history: stack, historyIndex: 0 }); });
+            expect(kinds(result)).toEqual(['opened']);
+            expect(result.current.history[0].html).toBe(stack[0].html); // kept as stored
+        });
+
+        it('reopens a Markdown-rendered baseline at its pointer, keeping redo', () => {
+            const { result } = renderHook(() => useInscriptEditor({ documentKey: 'a.md' }));
+            const stack = [
+                stored('v1', 'opened', '<h1>Bergen</h1>\n<p>A harbour city.</p>\n'),
+                stored('v2', 'edited', '<h1>Bergen</h1><p>A harbour city. Edited.</p>'),
+            ];
+            act(() => { result.current.loadContent(stack[0].html, { title: 'T', history: stack, historyIndex: 0 }); });
+            expect(result.current.history).toHaveLength(2);
+            expect(result.current.historyIndex).toBe(0);
+            expect(result.current.canRedo).toBe(true);
+        });
+
+        it('reopens a stack written by an older editor (same document, different HTML) without a new version', () => {
+            const { result } = renderHook(() => useInscriptEditor({ documentKey: 'a.md' }));
+            // Stored with other attribute order and extra whitespace; the file on disk is the editor's HTML.
+            const stack = [stored('v1', 'opened', '<p>One</p>\n\n<p><a target="_blank" href="https://x.test" rel="noopener noreferrer nofollow">link</a></p>')];
+            act(() => { result.current.loadContent('<p>One</p><p><a href="https://x.test">link</a></p>', { title: 'T', history: stack, historyIndex: 0 }); });
+            expect(kinds(result)).toEqual(['opened']);
+        });
+
+        it('after reopening, idling records nothing and the next edit compares against the editor', () => {
+            const onContentChange = vi.fn();
+            const { result } = renderHook(() => useInscriptEditor({ documentKey: 'a.md', onContentChange }));
+            const stack = [stored('v1', 'opened', '<h1>Hi</h1>\n<p>x</p>\n')];
+            act(() => { result.current.loadContent(stack[0].html, { title: 'T', history: stack, historyIndex: 0 }); });
+            idle(2000);
+            expect(result.current.history).toHaveLength(1);
+            expect(onContentChange).not.toHaveBeenCalled();
+            type(result.current.editor, '!');
+            idle();
+            expect(kinds(result)).toEqual(['opened', 'edited']);
+        });
+
+        it('still records a real outside change to a persisted stack', () => {
+            const { result } = renderHook(() => useInscriptEditor({ documentKey: 'a.md' }));
+            const stack = [stored('v1', 'opened', '<p>Old</p>')];
+            act(() => { result.current.loadContent('<p>New on disk</p>', { title: 'T', history: stack, historyIndex: 0 }); });
+            expect(kinds(result)).toEqual(['opened', 'external']);
+        });
+
         it('restores a persisted stack, validated (R10)', () => {
             const { result } = renderHook(() => useInscriptEditor({ contentKey: 'a' }));
             const saved = [

@@ -37,7 +37,9 @@ export interface LoadContentOptions {
      *  elsewhere; append an entry and keep the earlier ones. */
     keepHistory?: boolean;
     /** A persisted stack for this document (validated: bad entries are dropped, ids fixed, the
-     *  cap applied). The loaded content is appended unless it matches the active entry. */
+     *  cap applied). The loaded content is appended as a new version only if it is a different
+     *  document from the active entry: loading the active entry's own HTML, or HTML the editor
+     *  parses to the same document, reopens the stack as it was. */
     history?: HistoryEntry[];
     /** The persisted stack's active entry (default: the last). */
     historyIndex?: number;

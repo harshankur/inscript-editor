@@ -21,7 +21,10 @@ behaviour changes are listed under **Changed**.
   longer lands in the next document), and stores the editor's normalized HTML so a load never
   records a phantom version. `keepHistory: true` appends an `external` entry for a document changed
   elsewhere; `history` restores a persisted stack (validated, so a corrupt file can't break the
-  editor).
+  editor). Reopening a stack by loading its active entry, or HTML that parses to the same document,
+  adds no version, even when the editor now serializes it differently (a trailing `<p></p>` after a
+  blockquote, a Markdown renderer's newlines, an older release's attribute order), so the pointer
+  and redo stay where the user left them.
 - `undo()` and `redo()` on the hook. Undo commits pending typing first, so it can be redone.
 - `documentKey` option: names the document, so history resets only when it changes, and
   recreating the editor (a `contentKey` or `editorOptions` change) keeps the document's content and
