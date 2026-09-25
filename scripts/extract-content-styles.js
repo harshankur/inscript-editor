@@ -38,6 +38,21 @@ root.walkRules(rule => {
     }
 });
 
+// @keyframes are at-rules, which walkRules never visits (and their `to {}` steps don't match
+// the selector filter), so an extracted `animation` would point at nothing: the gap cursor
+// didn't blink on the content route. Copy every @keyframes an extracted rule animates with,
+// plus any inscript/ProseMirror one.
+const animated = new Set();
+extracted.walkDecls(/^animation(-name)?$/, decl => {
+    for (const token of decl.value.split(/[\s,]+/)) if (token) animated.add(token);
+});
+root.walkAtRules(/^(-webkit-)?keyframes$/, atRule => {
+    const name = atRule.params.trim();
+    if (animated.has(name) || /^(ProseMirror|inscript)-/.test(name)) {
+        extracted.append(atRule.clone());
+    }
+});
+
 if (extracted.nodes.length === 0) {
     throw new Error('extract-content-styles: no .ProseMirror rules found in ' + inputPath);
 }

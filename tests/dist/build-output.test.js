@@ -73,6 +73,17 @@ maybeDescribe('dist build output', () => {
         expect(css).toContain('.ProseMirror');
     });
 
+    it('the content-only stylesheet ships every @keyframes its rules animate with', () => {
+        const css = fs.readFileSync(path.join(DIST_DIR, 'styles', 'content.css'), 'utf-8');
+        expect(css).toContain('@keyframes ProseMirror-cursor-blink');
+        const defined = new Set([...css.matchAll(/@keyframes\s+([\w-]+)/g)].map(m => m[1]));
+        // The minifier may reorder the shorthand, so the name can be any token of the value.
+        for (const [, value] of css.matchAll(/animation(?:-name)?\s*:\s*([^;}]+)/g)) {
+            const tokens = value.trim().split(/[\s,]+/);
+            expect(tokens.some(token => defined.has(token)), `content.css animates with undefined @keyframes: ${value}`).toBe(true);
+        }
+    });
+
     it('the ./locales subpath export resolves and provides the registration API', async () => {
         const mod = await import('../../src/locales/index.js');
         expect(typeof mod.registerInscriptEditorTranslations).toBe('function');

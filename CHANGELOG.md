@@ -37,6 +37,8 @@ carry small breaking changes, called out below).
   resolved once, at creation), and filtering matches the current language. The default items also
   carry `titleKey`/`subtitleKey`. Host-supplied `slashCommands` with plain strings work as before;
   an item without `keywords` no longer breaks filtering.
+- `inscript-editor/styles/content` now includes `@keyframes ProseMirror-cursor-blink`, so the gap
+  cursor blinks for hosts on the content-only stylesheet (the extractor skipped at-rules).
 - `<MiniMap>` no longer throws "The editor view is not available" for an editor that is unmounted
   or destroyed (a host that swaps editors per document hit this, and it could blank the page). In
   TipTap v3 `editor.view` is a Proxy that throws whenever no view is mounted, so `!editor.view` never
