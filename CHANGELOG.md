@@ -14,6 +14,14 @@ carry small breaking changes, called out below).
   hosts needed before. `<DocumentOutline>` also takes `width` and `className`, like `<MiniMap>`.
 
 ### Fixed
+- Real `<!-- ... -->` comments in loaded HTML are now kept as source-comment nodes. 0.3.3 only read
+  officeParser's `<span data-html-comment>` shape, and ProseMirror never sees comment nodes, so the
+  comments that marked, markdown-it and most HTML carry still vanished on load. A comment-aware
+  parser now covers initial content, `setContent`, `insertContent` and paste.
+- GFM-rendered task lists (marked, markdown-it, GitHub: `<li><input type="checkbox"> …`, tight or
+  loose) load as checklists instead of plain bullet lists that lost the checkbox. Together with the
+  new task-item turndown rule, a checklist now survives a Markdown round trip. `getHTML()` output
+  is unchanged.
 - **Markdown round trips no longer lose editor nodes.** `applyInscriptEditorTurndownRules` now
   works with a real TurndownService, which decides an element is "blank" before consulting any
   rule, so the 0.3.3 source-comment rule never ran and comments were dropped on save. Empty nodes
@@ -39,9 +47,10 @@ carry small breaking changes, called out below).
 ## [0.3.3] - 2026-09-24
 
 ### Added
-- `htmlComment` node: source comments (`<!-- ... -->`) are kept as hidden, deletable inline atoms
-  instead of being dropped when HTML is loaded, so a Markdown/HTML round trip no longer loses the
-  author's notes. It reads and writes officeParser's `sourceAttributes` shape, an empty
+- `htmlComment` node: source comments are kept as hidden, deletable inline atoms instead of being
+  dropped when HTML is loaded, so a Markdown/HTML round trip no longer loses the author's notes.
+  (Only officeParser's span shape below was read in this release; real `<!-- ... -->` comment nodes
+  are read from 0.4.0.) It reads and writes officeParser's `sourceAttributes` shape, an empty
   `<span data-html-comment="…">`, so `getHTML()` hands back exactly what the parser reads (pair with
   officeParser 8.1+). In the editor it shows as a small muted `<!-- … -->` chip with the full text on
   hover; the text is only ever set as text or an attribute, never markup. On by default; opt out with

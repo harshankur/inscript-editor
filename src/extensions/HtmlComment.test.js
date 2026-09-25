@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { createEditor } from '../../tests/helpers/createEditor.js';
+import { DOMParser } from '@tiptap/pm/model';
 import TurndownService from 'turndown';
 import { gfm } from 'turndown-plugin-gfm';
 import { applyInscriptEditorTurndownRules } from '../markdown/turndownRules.js';
@@ -51,6 +52,40 @@ describe('HtmlComment extension (source <!-- --> comments)', () => {
         expect(chip.title).toBe(payload.trim());
         expect(host.querySelector('img, script')).toBeNull(); // the payload never became elements
         host.remove();
+    });
+
+    it('reads a real <!-- --> comment node as a source comment (setContent and initial content)', () => {
+        editor = createEditor({ content: '<p>a <!-- note --> b</p>' });
+        expect(commentsOf(editor)).toEqual([' note ']);
+        editor.commands.setContent('<p>x</p><!-- between --><p>y</p>');
+        expect(commentsOf(editor)).toEqual([' between ']);
+        expect(editor.getHTML()).toContain('<span data-html-comment=" between "></span>');
+    });
+
+    it('reads real comments in inserted and pasted HTML too, as text only', () => {
+        editor = createEditor({ content: '<p>start</p>' });
+        editor.commands.insertContent('<p>ins <!-- inserted --> ert</p>');
+        expect(commentsOf(editor)).toEqual([' inserted ']);
+        editor.commands.setContent('<p>a <!-- <img src=x onerror=alert(1)> --> b</p>');
+        expect(commentsOf(editor)).toEqual([' <img src=x onerror=alert(1)> ']);
+        expect(editor.view.dom.querySelector('img')).toBeNull();
+    });
+
+    it('never mutates the DOM it is given', () => {
+        editor = createEditor();
+        const host = document.createElement('div');
+        host.innerHTML = '<p>a <!-- keep me --> b</p>';
+        // Straight through the schema's cached parser, the one every TipTap parse path uses.
+        const doc = DOMParser.fromSchema(editor.schema).parse(host);
+        expect(host.innerHTML).toBe('<p>a <!-- keep me --> b</p>');
+        const found = [];
+        doc.descendants(n => { if (n.type.name === 'htmlComment') found.push(n.attrs.text); });
+        expect(found).toEqual([' keep me ']);
+    });
+
+    it('drops real comments as before when the extension is off', () => {
+        editor = createEditor({ content: '<p>a <!-- note --> b</p>' }, { htmlComment: false });
+        expect(editor.getHTML()).toBe('<p>a  b</p>'.replace('  ', ' '));
     });
 
     it('can be turned off with htmlComment: false', () => {

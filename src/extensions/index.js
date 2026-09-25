@@ -20,8 +20,7 @@ import { CustomImage } from './CustomImage.js';
 import { CustomTable } from './CustomTable.js';
 import { FontSize } from './FontSize.js';
 import { Youtube } from './Youtube.js';
-import { TaskList } from '@tiptap/extension-task-list';
-import { TaskItem } from '@tiptap/extension-task-item';
+import { InscriptTaskList, InscriptTaskItem } from './TaskLists.js';
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
 import { createLowlight, common } from 'lowlight';
 import { SlashCommand } from './SlashCommand.js';
@@ -96,9 +95,10 @@ export function buildExtensions(options = {}) {
     ];
 
     if (options.taskList !== false) {
+        // TipTap's task list and item, also reading GFM-rendered task lists (see TaskLists.js).
         extensions.push(
-            TaskList,
-            TaskItem.configure({ nested: true })
+            InscriptTaskList,
+            InscriptTaskItem.configure({ nested: true })
         );
     }
 
