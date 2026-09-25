@@ -212,6 +212,8 @@ export function Demo({ focusMode = false, showMiniMap = true, showOutline = true
 
     const api = useInscriptEditor({
         contentKey: 'inscript-editor-demo',
+        // Created with the sample, which becomes the "Opened" version in the history panel.
+        initialContent: SAMPLE,
         title: 'The Fjords of Western Norway',
         editorOptions: { onShowMediaLibrary, onAddYoutube },
     });
@@ -229,8 +231,6 @@ export function Demo({ focusMode = false, showMiniMap = true, showOutline = true
     const [bubbleConfig, setBubbleConfig] = React.useState(DEFAULT_BUBBLE_CONFIG);
     // Live theme object driven by the Theme panel; empty = the built-in look.
     const [theme, setTheme] = React.useState({});
-
-    React.useEffect(() => { if (editor) editor.commands.setContent(SAMPLE); }, [editor]);
 
     // In focus mode, drop the caret into a paragraph so one block reads at full opacity
     // and the rest dim — the real focus-mode look (otherwise, with no selection, every

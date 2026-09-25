@@ -90,7 +90,7 @@
                     <div class="shot"><div class="shot-bar"><i></i><i></i><i></i></div><img src="./screenshots/shot-focus.png" alt="Focus mode: a narrowed column with everything but the active paragraph dimmed" loading="lazy" /></div>
                     <div class="txt">
                         <h3>Focus mode &amp; version history</h3>
-                        <p>Dim everything but the sentence you're writing for distraction-free drafting, with host-controlled column width, font and dimming. Keep a client-side history stack with a visual/text/source diff and one-click restore.</p>
+                        <p>Dim everything but the sentence you're writing for distraction-free drafting, with host-controlled column width, font and dimming. Keep an append-only version history with undo, redo and one-click restore, compared in a visual/text/source diff; every change, restores included, reaches your save handler.</p>
                         <ul>
                             <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> One active block, the rest recede</li>
                             <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Diff view with restore</li>
@@ -165,12 +165,13 @@ npm install react react-dom @tiptap/core \
                         <p style="font-weight:600;margin:0 0 10px;">2. Use</p>
                         <pre class="codeblock"><span class="k">import</span> { useInscriptEditor, InscriptEditor }
   <span class="k">from</span> <span style="color:var(--brand-strong)">'inscript-editor'</span>;
-<span class="k">import</span> <span style="color:var(--brand-strong)">'inscript-editor/styles'</span>;
+<span class="k">import</span> <span style="color:var(--brand-strong)">'inscript-editor/styles'</span>; <span class="c">// own Tailwind? '…/styles/content'</span>
 
-<span class="k">function</span> Post() {
+<span class="k">function</span> Post({ post }) {
   <span class="k">const</span> api = useInscriptEditor({
-    contentKey: filename,
-    onContentChange: (e) =&gt; save(e),
+    contentKey: post.id,
+    initialContent: post.html,
+    onContentChange: (entry) =&gt; save(entry),
   });
   <span class="k">return</span> &lt;InscriptEditor {...api} /&gt;;
 }</pre>
@@ -179,7 +180,7 @@ npm install react react-dom @tiptap/core \
 
                 <div class="recipe">
                     <p class="recipe-title">Recipe: an outline &amp; minimap rail</p>
-                    <p class="recipe-sub">The <code>DocumentOutline</code> and <code>MiniMap</code> are separate exports, so compose them however you like. Here's the rail from the demo above: a slim strip of icon buttons that opens one panel at a time (and collapses to just the rail).</p>
+                    <p class="recipe-sub">The <code>DocumentOutline</code> and <code>MiniMap</code> are separate exports, so compose them however you like. Here's the rail from the demo above: a slim strip of icon buttons that opens one panel at a time (and collapses to just the rail). <code>chrome={false}</code> drops their own header and border so they sit inside your panel.</p>
                     <pre class="codeblock"><span class="k">import</span> { useState } <span class="k">from</span> <span style="color:var(--brand-strong)">'react'</span>;
 <span class="k">import</span> { DocumentOutline, MiniMap } <span class="k">from</span> <span style="color:var(--brand-strong)">'inscript-editor'</span>;
 <span class="k">import</span> { ListTree, Map } <span class="k">from</span> <span style="color:var(--brand-strong)">'lucide-react'</span>;
@@ -189,8 +190,8 @@ npm install react react-dom @tiptap/core \
   <span class="k">const</span> toggle = (v) =&gt; setView((c) =&gt; (c === v ? <span style="color:var(--brand-strong)">null</span> : v));
   <span class="k">return</span> (
     &lt;&gt;
-      {view === <span style="color:var(--brand-strong)">'outline'</span> &amp;&amp; &lt;aside className=<span style="color:var(--brand-strong)">"panel"</span>&gt;&lt;DocumentOutline editor={editor} /&gt;&lt;/aside&gt;}
-      {view === <span style="color:var(--brand-strong)">'minimap'</span> &amp;&amp; &lt;aside className=<span style="color:var(--brand-strong)">"panel"</span>&gt;&lt;MiniMap editor={editor} /&gt;&lt;/aside&gt;}
+      {view === <span style="color:var(--brand-strong)">'outline'</span> &amp;&amp; &lt;aside className=<span style="color:var(--brand-strong)">"panel"</span>&gt;&lt;DocumentOutline editor={editor} chrome={<span style="color:var(--brand-strong)">false</span>} /&gt;&lt;/aside&gt;}
+      {view === <span style="color:var(--brand-strong)">'minimap'</span> &amp;&amp; &lt;aside className=<span style="color:var(--brand-strong)">"panel"</span>&gt;&lt;MiniMap editor={editor} chrome={<span style="color:var(--brand-strong)">false</span>} /&gt;&lt;/aside&gt;}
       &lt;div className=<span style="color:var(--brand-strong)">"rail"</span>&gt;
         &lt;button onClick={() =&gt; toggle(<span style="color:var(--brand-strong)">'outline'</span>)}&gt;&lt;ListTree size={16} /&gt;&lt;/button&gt;
         &lt;button onClick={() =&gt; toggle(<span style="color:var(--brand-strong)">'minimap'</span>)}&gt;&lt;Map size={16} /&gt;&lt;/button&gt;
