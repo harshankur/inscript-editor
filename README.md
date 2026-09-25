@@ -120,7 +120,9 @@ or the ref handle's `setContent` to open a document: those record an edit.
 
 Pass **`documentKey`** (the document's id) when the editor can be recreated without the document
 changing (a `contentKey` or `editorOptions` change): history then belongs to the document and
-survives the recreation, content and pending edits included.
+survives the recreation, content and pending edits included. A `documentKey` change resets the
+history when it renders, so load the new document **after** that render (in an effect keyed on the
+document, deferred as below), not in the same event handler that switches the key.
 
 > **Calling `loadContent` from `useEffect`?** Nodes rendered by React (embeds, admonitions,
 > footnotes, math, mermaid, wikilinks) mount through `flushSync`, which React refuses (and logs
