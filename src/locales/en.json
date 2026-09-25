@@ -144,6 +144,8 @@
   "videoUrlPlaceholder": "https://youtube.com/watch?v=...",
   "videoWidth": "Video width {{width}}",
   "viewsSuffix": "{{views}} views",
+  "wikilinkCreate": "Create {{target}}",
+  "wikilinkGoTo": "Go to {{target}}",
   "wikilinkPrompt": "Enter wiki page name:",
   "youtubeSubtitle": "Embed a YouTube video",
   "youtubeVideoUnavailable": "Video unavailable",

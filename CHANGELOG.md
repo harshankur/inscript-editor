@@ -8,6 +8,9 @@ carry small breaking changes, called out below).
 ## [Unreleased]
 
 ### Added
+- `editor.commands.refreshWikilinks()` re-runs the wikilink resolver for every link (for when a
+  target page is created or removed after the links rendered). It changes neither the document
+  nor the undo stack.
 - `chrome` and `collapsible` props on `<DocumentOutline>` and `<MiniMap>`. `chrome={false}` renders
   just the content (no header, border or fixed width) to host it inside your own panel, and ignores
   the stored collapsed state, replacing the `!important` CSS overrides and `localStorage` clearing
@@ -39,6 +42,9 @@ carry small breaking changes, called out below).
   an item without `keywords` no longer breaks filtering.
 - `inscript-editor/styles/content` now includes `@keyframes ProseMirror-cursor-blink`, so the gap
   cursor blinks for hosts on the content-only stylesheet (the extractor skipped at-rules).
+- Wikilink tooltips ("Go to …" / "Create …") are translatable (`wikilinkGoTo`, `wikilinkCreate`),
+  existing links use the themeable link tokens instead of hard-coded indigo, and a resolver that
+  throws is treated as a missing page instead of breaking the node view.
 - `<MiniMap>` no longer throws "The editor view is not available" for an editor that is unmounted
   or destroyed (a host that swaps editors per document hit this, and it could blank the page). In
   TipTap v3 `editor.view` is a Proxy that throws whenever no view is mounted, so `!editor.view` never

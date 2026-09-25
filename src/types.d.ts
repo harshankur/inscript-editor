@@ -35,6 +35,8 @@ export interface EditorBuildOptions {
     trustedEmbedHosts?: string[];
     /** YouTube node options, e.g. `{ facade: true }` for thumbnail-then-load. */
     youtube?: { facade?: boolean };
+    /** Opt-in wikilinks. `resolver` runs when a link renders; when the host's pages change
+     *  (a target gets created), call `editor.commands.refreshWikilinks()` to re-resolve them. */
     wikilink?: { enabled?: boolean; resolver?: (page: string) => WikilinkResolution | null };
     /** Link behavior: turn typed/pasted URLs into links (both default true). */
     link?: { autolink?: boolean; linkOnPaste?: boolean };
