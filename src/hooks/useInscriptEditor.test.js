@@ -50,7 +50,8 @@ describe('useInscriptEditor', () => {
         expect(result.current.historyIndex).toBe(0);
         expect(result.current.isDirty).toBe(true);
         expect(onContentChange).toHaveBeenCalledTimes(1);
-        expect(onContentChange).toHaveBeenCalledWith(result.current.history[0]);
+        expect(onContentChange).toHaveBeenCalledWith(result.current.history[0], { reason: 'edit' });
+        expect(result.current.history[0]).toMatchObject({ kind: 'edited', id: expect.any(String) });
     });
 
     it('coalesces rapid edits within the debounce window into a single push', () => {
@@ -106,7 +107,7 @@ describe('useInscriptEditor', () => {
         expect(result.current.history[0].title).toBe('New Heading');
         expect(result.current.isDirty).toBe(true);
         expect(onContentChange).toHaveBeenCalledTimes(1);
-        expect(onContentChange).toHaveBeenCalledWith(result.current.history[0]);
+        expect(onContentChange).toHaveBeenCalledWith(result.current.history[0], { reason: 'edit' });
     });
 
     it('records a tags-only change (no content edit)', () => {
@@ -153,7 +154,9 @@ describe('useInscriptEditor', () => {
         expect(onContentChange).toHaveBeenCalledTimes(1);
     });
 
-    it('truncates forward history after undo before pushing a new entry', () => {
+    // Replaces "truncates forward history after undo": versions are append-only now, so an
+    // edit made after an undo keeps the undone version instead of deleting it.
+    it('keeps the undone version when editing after an undo (append-only)', () => {
         const { result } = renderHook(() => useInscriptEditor({ contentKey: 'a.md' }));
 
         typeText(result.current.editor, 'a');
@@ -161,6 +164,7 @@ describe('useInscriptEditor', () => {
         typeText(result.current.editor, 'b');
         act(() => { vi.advanceTimersByTime(1000); });
         expect(result.current.history).toHaveLength(2);
+        const [first, second] = result.current.history;
 
         act(() => { result.current.restoreVersion(0); });
         expect(result.current.historyIndex).toBe(0);
@@ -168,24 +172,34 @@ describe('useInscriptEditor', () => {
         typeText(result.current.editor, 'c');
         act(() => { vi.advanceTimersByTime(1000); });
 
-        expect(result.current.history).toHaveLength(2);
-        expect(result.current.historyIndex).toBe(1);
+        expect(result.current.history).toHaveLength(3);
+        expect(result.current.history[1]).toBe(second);
+        expect(result.current.history[2]).toMatchObject({ kind: 'edited', html: '<p>ac</p>', parentId: first.id });
+        expect(result.current.historyIndex).toBe(2);
+        expect(result.current.canRedo).toBe(false);
     });
 
-    it('restoreVersion sets content without triggering a history push', () => {
+    // Replaces "restoreVersion sets content without triggering a history push": a pointer move
+    // still pushes no entry, but the host now hears about it (so it can save it).
+    it('restoreVersion (a pointer move) pushes no entry but notifies the host once and marks dirty', () => {
         const onContentChange = vi.fn();
         const { result } = renderHook(() => useInscriptEditor({ contentKey: 'a.md', onContentChange }));
 
         typeText(result.current.editor, 'a');
         act(() => { vi.advanceTimersByTime(1000); });
+        typeText(result.current.editor, 'b');
+        act(() => { vi.advanceTimersByTime(1000); });
+        act(() => { result.current.markSaved(); });
         onContentChange.mockClear();
 
         act(() => { result.current.restoreVersion(0); });
-        act(() => { vi.advanceTimersByTime(1000); });
+        act(() => { vi.advanceTimersByTime(2000); });
 
-        expect(result.current.history).toHaveLength(1);
-        expect(onContentChange).not.toHaveBeenCalled();
+        expect(result.current.history).toHaveLength(2);
         expect(result.current.editor.getHTML()).toBe('<p>a</p>');
+        expect(onContentChange).toHaveBeenCalledTimes(1);
+        expect(onContentChange).toHaveBeenCalledWith(result.current.history[0], { reason: 'undo' });
+        expect(result.current.isDirty).toBe(true);
     });
 
     it('restoreVersion is a no-op for an out-of-range index', () => {

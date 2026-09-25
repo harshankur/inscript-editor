@@ -55,10 +55,17 @@ export { Embed } from './Embed.jsx';
  * exactly the same schema as the one rendered in the app.
  */
 export function buildExtensions(options = {}) {
+    // useInscriptEditor passes a ref to the latest editorOptions: function-valued options are
+    // read through it at call time, so a host passing a new function each render neither
+    // recreates the editor nor leaves the editor calling a stale one.
+    const live = options.liveOptionsRef || null;
     const extensions = [
         FocusModeBlock,
         StarterKit.configure({
-            history: false,
+            // Keystroke undo (Cmd/Ctrl+Z) is StarterKit's UndoRedo, left on: it undoes typing
+            // within the current version, while the toolbar's Undo/Redo step through saved versions.
+            // (The `history: false` that used to sit here was a TipTap v2 key that v3 ignores.)
+            // useInscriptEditor resets it on every load and version jump so it never crosses one.
             link: false,
             codeBlock: false,
             // StarterKit v3 bundles Underline; we register our own below, so
@@ -120,7 +127,12 @@ export function buildExtensions(options = {}) {
 
     if (options.wikilink?.enabled) {
         extensions.push(Wikilink.configure({
-            resolver: options.wikilink.resolver || null
+            resolver: live
+                ? target => {
+                    const resolve = live.current?.wikilink?.resolver;
+                    return typeof resolve === 'function' ? resolve(target) : null;
+                }
+                : (options.wikilink.resolver || null),
         }));
     }
 
@@ -147,7 +159,13 @@ export function buildExtensions(options = {}) {
     // Trust is supplied by the host (never read from the document).
     if (options.embed !== false) {
         extensions.push(Embed.configure({
-            isTrusted: options.embed?.isTrusted ?? options.isEmbedTrusted ?? null,
+            isTrusted: live
+                ? src => {
+                    const current = live.current || {};
+                    const trust = current.embed?.isTrusted ?? current.isEmbedTrusted;
+                    return typeof trust === 'function' ? trust(src) : false;
+                }
+                : (options.embed?.isTrusted ?? options.isEmbedTrusted ?? null),
             trustedEmbedHosts: options.embed?.trustedEmbedHosts ?? options.trustedEmbedHosts ?? [],
         }));
     }
@@ -156,9 +174,12 @@ export function buildExtensions(options = {}) {
     // offers the host-provided items or the defaults.
     if (options.slashCommand !== false) {
         const t = (k, f) => i18next.t(k, { defaultValue: f, ns: 'inscript-editor' });
+        const items = options.slashCommands ?? getDefaultSlashItems(t, options);
         extensions.push(
             SlashCommand.configure({
-                items: options.slashCommands ?? getDefaultSlashItems(t, options)
+                items,
+                // Host-supplied items are read live, so their command closures never go stale.
+                resolveItems: live && options.slashCommands ? () => live.current?.slashCommands ?? items : null,
             })
         );
     }

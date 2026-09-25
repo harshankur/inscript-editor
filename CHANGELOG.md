@@ -7,7 +7,26 @@ carry small breaking changes, called out below).
 
 ## [Unreleased]
 
+Version history, reworked. Documents opened with existing content showed an empty history, the
+first edit was labelled "Original", and the opened document could not be reached again. The
+behaviour changes are listed under **Changed**.
+
 ### Added
+- `loadContent(html, { title, tags, categories, kind, keepHistory, history })` on the hook: the way
+  to load a document. It becomes the baseline version ("Opened"), clears the dirty flag, never
+  calls `onContentChange`, drops any pending edit (a keystroke just before a document switch no
+  longer lands in the next document), and stores the editor's normalized HTML so a load never
+  records a phantom version. `keepHistory: true` appends an `external` entry for a document changed
+  elsewhere; `history` restores a persisted stack (validated, so a corrupt file can't break the
+  editor).
+- `undo()` and `redo()` on the hook. Undo commits pending typing first, so it can be redone.
+- `documentKey` option: names the document, so history resets only when it changes, and
+  recreating the editor (a `contentKey` or `editorOptions` change) keeps the document's content and
+  history, a pending edit included. Without it, `contentKey` behaves exactly as before.
+- History entries carry a stable `id` and a `kind` (`opened`, `imported`, `edited`, `restored`,
+  `external`), plus `restoredFrom` / `parentId` links. They stay plain JSON.
+- A cap: `maxHistory` (default 200 versions) and `maxHistoryBytes` (default about 20 MB of HTML).
+  The oldest versions go first; the baseline and the active version never do.
 - `editor.commands.refreshWikilinks()` re-runs the wikilink resolver for every link (for when a
   target page is created or removed after the links rendered). It changes neither the document
   nor the undo stack.
@@ -16,7 +35,32 @@ carry small breaking changes, called out below).
   the stored collapsed state, replacing the `!important` CSS overrides and `localStorage` clearing
   hosts needed before. `<DocumentOutline>` also takes `width` and `className`, like `<MiniMap>`.
 
+### Changed
+- **Versions are append-only.** Editing after an undo, or after restoring an older version, used to
+  delete every newer version silently. The edit is now added at the end (recording where it
+  branched from), and nothing but the cap ever removes a version.
+- **Undo, redo and restores notify the host.** `onContentChange(entry, { reason })` now fires for
+  `'undo'`, `'redo'` and `'restore'` as well as `'edit'`, and marks the document dirty, so a host that
+  saves from it saves those too (an undo used to stay unsaved). Single-argument handlers keep working.
+- `restoreVersion(index, { reason: 'restore' })` appends a `restored` entry instead of moving the
+  pointer; without a reason it moves the pointer as before (what hosts wire undo/redo to).
+- `editorOptions` changes now apply: their serializable part is part of the editor's identity, so
+  changing it recreates the editor (keeping the document). Function-valued options (the wikilink
+  resolver, embed trust, custom slash items) are read live, so a new function identity never
+  recreates it, and `buildExtensions` no longer runs on every render. The docs had always said
+  changes recreate the editor; they didn't.
+- `setHistory` / `setHistoryIndex` are deprecated in favour of `loadContent`; they still work, now
+  update the history synchronously, and give entries ids.
+- Keystroke undo (Cmd/Ctrl+Z) now starts fresh on every load and version jump, so it can't undo
+  the load itself or pull the previous document's text into this one. (It was never disabled:
+  StarterKit's old `history: false` key is ignored by TipTap v3, so it has been on all along; the
+  dead key is removed.)
+
 ### Fixed
+- Undoing a title-only change, then restoring the title as documented, recorded a spurious version
+  that replaced the redo step whenever the stored HTML was not byte-identical to the editor's
+  (a host seeding `''` against the editor's `<p></p>`). Commits now compare against the HTML the
+  editor held at the last history sync.
 - Real `<!-- ... -->` comments in loaded HTML are now kept as source-comment nodes. 0.3.3 only read
   officeParser's `<span data-html-comment>` shape, and ProseMirror never sees comment nodes, so the
   comments that marked, markdown-it and most HTML carry still vanished on load. A comment-aware

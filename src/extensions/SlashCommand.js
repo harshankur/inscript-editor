@@ -28,7 +28,8 @@ export const SlashCommand = Extension.create({
                     props.command({ editor, range });
                 },
                 items: ({ query, editor }) => {
-                    const items = editor.extensionManager.extensions.find(e => e.name === 'slashCommand').options.items || [];
+                    const { options } = editor.extensionManager.extensions.find(e => e.name === 'slashCommand');
+                    const items = (typeof options.resolveItems === 'function' ? options.resolveItems() : options.items) || [];
                     // `title` is read here, at query time, so filtering matches the current language.
                     const q = query.toLowerCase();
                     return items.filter(item =>
@@ -61,6 +62,8 @@ export const SlashCommand = Extension.create({
                 }
             },
             items: [],
+            /** Optional `() => items`, read at query time instead of `items` (live host items). */
+            resolveItems: null,
         };
     },
 

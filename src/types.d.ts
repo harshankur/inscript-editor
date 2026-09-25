@@ -1,13 +1,52 @@
 import type { ReactNode, Ref } from 'react';
 import type { Editor } from '@tiptap/core';
 
+/** What produced a version. `opened`/`imported` are baselines (the document as loaded). */
+export type HistoryKind = 'opened' | 'imported' | 'edited' | 'restored' | 'external';
+
+/** One version. Plain JSON, so a host can persist a document's stack (see LoadContentOptions.history). */
 export interface HistoryEntry {
+    /** Stable and unique within the stack. Always set by the hook; optional for hand-made entries. */
+    id?: string;
+    /** Always set by the hook. Entries without one (hand-made, pre-0.4) get position-based labels. */
+    kind?: HistoryKind;
     html: string;
     title: string;
     tags: string[];
     categories: string[];
     timestamp: string;
+    /** On a `restored` entry: the id of the version it restored. */
+    restoredFrom?: string;
+    /** On an `edited` entry made after an undo: the id of the version it branched from. */
+    parentId?: string;
+    /** @deprecated Never set by the library; use `kind`. */
     isOriginal?: boolean;
+}
+
+/** Why onContentChange fired. */
+export type ContentChangeReason = 'edit' | 'undo' | 'redo' | 'restore';
+
+export interface LoadContentOptions {
+    /** The document's metadata (default: the hook's current title/tags/categories). */
+    title?: string;
+    tags?: string[];
+    categories?: string[];
+    /** Default 'opened' ('external' with keepHistory or a persisted stack). */
+    kind?: 'opened' | 'imported' | 'external';
+    /** false (default): a new document, history resets. true: the same document changed
+     *  elsewhere; append an entry and keep the earlier ones. */
+    keepHistory?: boolean;
+    /** A persisted stack for this document (validated: bad entries are dropped, ids fixed, the
+     *  cap applied). The loaded content is appended unless it matches the active entry. */
+    history?: HistoryEntry[];
+    /** The persisted stack's active entry (default: the last). */
+    historyIndex?: number;
+}
+
+export interface RestoreVersionOptions {
+    /** 'restore' appends a `restored` entry (the history panel). 'undo'/'redo' move the pointer.
+     *  Omitted: moves the pointer (pre-0.4 behaviour), reason reported by direction. */
+    reason?: 'undo' | 'redo' | 'restore';
 }
 
 export interface WikilinkResolution {
@@ -60,8 +99,13 @@ export interface EditorBuildOptions {
 }
 
 export interface UseInscriptEditorOptions {
-    /** Changing this value recreates the editor (pass a filename or document id). */
+    /** Changing this value recreates the editor. Without a `documentKey` it also names the
+     *  document, so history resets when it changes (pass a filename or document id). */
     contentKey?: string;
+    /** Names the document. When set, history resets only when this changes (or on
+     *  `loadContent` without keepHistory), and recreating the editor (`contentKey`, an
+     *  `editorOptions` change) keeps the document's content and history. */
+    documentKey?: string | number;
     /** Live title prop; read inside the debounced onUpdate closure without recreating the editor. */
     title?: string;
     /** Live tags prop; read inside the debounced onUpdate closure. */
@@ -70,26 +114,43 @@ export interface UseInscriptEditorOptions {
     categories?: string[];
     /** Disables editing when true. */
     isReadonly?: boolean;
-    /** Called with the new history entry after the 1000ms debounce settles. */
-    onContentChange?: ((entry: HistoryEntry) => void) | null;
-    /** Feature toggles/callbacks passed to buildExtensions (changing this recreates the editor). */
+    /** Called for every change the user causes: an edit (after the 1000ms debounce), an undo,
+     *  a redo or a restore, with the entry now active and the reason. Never called for a load.
+     *  Save from here and every change, restores included, gets saved. */
+    onContentChange?: ((entry: HistoryEntry, info: { reason: ContentChangeReason }) => void) | null;
+    /** Feature toggles/callbacks passed to buildExtensions. They apply at construction: a change
+     *  to their serializable part recreates the editor (keeping the document); functions are
+     *  read live, so a new function identity changes nothing but the function called. */
     editorOptions?: EditorBuildOptions;
     /** Browser spellcheck underlines in the editor (default true). Applied live, no editor recreation. */
     spellcheck?: boolean;
+    /** Most versions kept (default 200). The oldest go first; the baseline and the active entry never do. */
+    maxHistory?: number;
+    /** Most HTML kept across versions, measured in characters (default about 20 MB). */
+    maxHistoryBytes?: number;
 }
 
 export interface UseInscriptEditorResult {
     editor: Editor | null;
     history: HistoryEntry[];
-    setHistory: (history: HistoryEntry[]) => void;
+    /** @deprecated Use `loadContent` to seed a document's baseline. */
+    setHistory: (history: HistoryEntry[] | ((prev: HistoryEntry[]) => HistoryEntry[])) => void;
     historyIndex: number;
-    setHistoryIndex: (index: number) => void;
+    /** @deprecated Use `loadContent`, `undo`, `redo` or `restoreVersion`. */
+    setHistoryIndex: (index: number | ((prev: number) => number)) => void;
     isDirty: boolean;
     setIsDirty: (dirty: boolean) => void;
     canUndo: boolean;
     canRedo: boolean;
-    /** Restores editor content to a history entry without emitting an onUpdate/history push. */
-    restoreVersion: (index: number) => void;
+    /** Load a document: becomes the baseline version, clears dirty, never calls onContentChange,
+     *  drops a pending edit, and keystroke undo can't cross it. Returns false with no live editor. */
+    loadContent: (html: string, options?: LoadContentOptions) => boolean;
+    /** Step back one version (pending typing is committed first, so it can be redone). */
+    undo: () => boolean;
+    /** Step forward one version. */
+    redo: () => boolean;
+    /** Put a version back in the editor; see RestoreVersionOptions. Notifies the host. */
+    restoreVersion: (index: number, options?: RestoreVersionOptions) => boolean;
     /** Clears the dirty flag after a successful save. */
     markSaved: () => void;
     /** Refs exposed for consumers that need to coordinate with server-sync/save flows directly. */
