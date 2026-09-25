@@ -5,7 +5,7 @@ All notable changes to `inscript-editor` are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (pre-1.0: minor versions may
 carry small breaking changes, called out below).
 
-## [Unreleased]
+## [0.4.0] - 2026-09-25
 
 Version history, reworked. Documents opened with existing content showed an empty history, the
 first edit was labelled "Original", and the opened document could not be reached again. The
@@ -266,6 +266,8 @@ behaviour changes are listed under **Changed**.
 
 - First tagged release of the standalone `inscript-editor` package extracted from Inscript.
 
+[0.4.0]: https://github.com/harshankur/inscript-editor/compare/v0.3.3...v0.4.0
+[0.3.3]: https://github.com/harshankur/inscript-editor/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/harshankur/inscript-editor/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/harshankur/inscript-editor/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/harshankur/inscript-editor/compare/v0.2.10...v0.3.0
