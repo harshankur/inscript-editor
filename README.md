@@ -420,11 +420,23 @@ const panelRef = useRef(null);
 ## Development
 
 ```bash
-npm run build   # one-off build (dist/inscript-editor.{es,cjs}.js + dist/styles)
-npm run dev      # watch mode
-npm test         # vitest
-npm run coverage # vitest with coverage report
+npm run build     # one-off build (dist/inscript-editor.{es,cjs}.js + dist/styles, content.css included)
+npm run dev       # watch mode: rebuilds all of dist/, styles/content.css included, on every change
+npm test          # vitest
+npm run test:dist # build, then check the built output (also exercises watch-mode rebuilds)
+npm run coverage  # vitest with coverage report
+npm run clean     # empty dist/ (prepublishOnly does this before its build)
 ```
+
+### Developing against a host app
+
+To try unpublished changes in an app, point it at this checkout's `dist/` (a bundler alias,
+`npm link`, or a `file:` dependency) and run `npm run dev` here. Builds never empty `dist/` and
+write every file atomically, so the host never reads a missing or half-written bundle mid-rebuild,
+and `styles/content.css` stays current for hosts on the
+[content-only route](#already-using-tailwind-dont-import-the-full-bundle) (point their `@source`
+at the same `dist/`). The host still reloads after a rebuild: a library bundle that exports
+constants next to components can't be Fast Refreshed.
 
 ## Testing
 

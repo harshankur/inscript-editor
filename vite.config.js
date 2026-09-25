@@ -1,10 +1,16 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { inscriptDist } from './scripts/vite-plugin-dist.js';
 
 export default defineConfig({
-    plugins: [react()],
+    // inscriptDist writes every output atomically and emits styles/content.css on every build
+    // and watch rebuild, so hosts linked to dist/ never read it missing or half-written.
+    plugins: [react(), inscriptDist()],
     build: {
+        // Overwrite in place instead of emptying dist/ first (which left hosts linked to it with
+        // no bundle or stylesheet for the whole build). `npm run clean` empties it for a publish.
+        emptyOutDir: false,
         lib: {
             entry: path.resolve(__dirname, 'src/index.js'),
             formats: ['es', 'cjs'],

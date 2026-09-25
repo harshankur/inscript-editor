@@ -55,13 +55,14 @@
     "i18n"
   ],
   "scripts": {
-    "build": "vite build && node scripts/extract-content-styles.js",
+    "build": "vite build",
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "dev": "vite build --watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "test:dist": "npm run build && vitest run tests/dist",
-    "prepublishOnly": "npm run build && npm test"
+    "prepublishOnly": "npm run clean && npm run build && npm test"
   },
   "peerDependencies": {
     "@tiptap/core": "^3.20.4",

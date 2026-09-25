@@ -117,6 +117,13 @@ behaviour changes are listed under **Changed**.
   an item without `keywords` no longer breaks filtering.
 - `inscript-editor/styles/content` now includes `@keyframes ProseMirror-cursor-blink`, so the gap
   cursor blinks for hosts on the content-only stylesheet (the extractor skipped at-rules).
+- Hosts linked to this checkout's `dist/` (for trying unpublished changes) no longer break while it
+  rebuilds. Every build emptied `dist/` first, so the bundle and stylesheets were missing for the
+  whole build, and `npm run dev` (`vite build --watch`) never produced `styles/content.css` at all
+  (a separate script made it, which only `npm run build` ran). The build now makes `content.css`
+  itself, on every build and watch rebuild, writes every file atomically, and never empties
+  `dist/` (`npm run clean`, run by `prepublishOnly`, does that before a publish). The published
+  files are byte-identical.
 - Wikilink tooltips ("Go to …" / "Create …") are translatable (`wikilinkGoTo`, `wikilinkCreate`),
   existing links use the themeable link tokens instead of hard-coded indigo, and a resolver that
   throws is treated as a missing page instead of breaking the node view.
