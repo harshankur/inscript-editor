@@ -30,8 +30,7 @@ function Harness({ hook }) {
                 canRedo={canRedo}
                 onHistoryUndo={() => restoreVersion(historyIndex - 1)}
                 onHistoryRedo={() => restoreVersion(historyIndex + 1)}
-                onHistorySelect={(index) => { restoreVersion(index); setShowDiff(false); }}
-                originalContent={{ html: history[0]?.html || '', title: '', tags: [], categories: [] }}
+                onHistorySelect={(index) => { restoreVersion(index, { reason: 'restore' }); setShowDiff(false); }}
                 restoreVersion={restoreVersion}
                 markSaved={markSaved}
             />
@@ -130,11 +129,9 @@ describe('full editor integration', () => {
             hookRef = hook;
             return <Harness hook={hook} />;
         }
-        const { rerender } = render(<Capture />);
+        const { rerender, container } = render(<Capture />);
 
-        act(() => { hookRef.editor.commands.insertContent('first'); });
-        act(() => { vi.advanceTimersByTime(1000); });
-        rerender(<Capture />);
+        act(() => { hookRef.loadContent('<p>first</p>'); });
         act(() => { hookRef.editor.commands.insertContent(' second'); });
         act(() => { vi.advanceTimersByTime(1000); });
         rerender(<Capture />);
@@ -142,12 +139,40 @@ describe('full editor integration', () => {
         fireEvent.click(screen.getByText('Toggle Diff'));
         rerender(<Capture />);
 
-        // history[0] (the first-ever push) renders as "Original", not "Version 0".
-        fireEvent.click(screen.getByText('Original'));
+        // No originalContent is passed: the reference defaults to the loaded baseline.
+        expect(container.querySelector('[data-history-preview="reference"]').textContent).toBe('first');
+
+        fireEvent.click(screen.getByText('Opened'));
         fireEvent.click(screen.getByText('Restore Version'));
         rerender(<Capture />);
 
         expect(hookRef.editor.getHTML()).toBe('<p>first</p>');
+        expect(hookRef.history.map(e => e.kind)).toEqual(['opened', 'edited', 'restored']);
+    });
+
+    it('spreading the hook result wires Undo, Redo and the panel Restore with no handlers', () => {
+        let hookRef;
+        const onContentChange = vi.fn();
+        function Capture() {
+            const hook = useInscriptEditor({ contentKey: 'a.md', onContentChange });
+            hookRef = hook;
+            return <InscriptEditor {...hook} />;
+        }
+        const { rerender } = render(<Capture />);
+        act(() => { hookRef.loadContent('<p>A</p>'); });
+        rerender(<Capture />);
+        expect(screen.getByTitle('Undo')).toBeDisabled();
+        act(() => { hookRef.editor.commands.insertContent('B'); });
+        act(() => { vi.advanceTimersByTime(1000); });
+        rerender(<Capture />);
+
+        fireEvent.click(screen.getByTitle('Undo'));
+        rerender(<Capture />);
+        expect(hookRef.editor.getHTML()).toBe('<p>A</p>');
+        fireEvent.click(screen.getByTitle('Redo'));
+        rerender(<Capture />);
+        expect(hookRef.editor.getHTML()).toBe('<p>AB</p>');
+        expect(onContentChange.mock.calls.map(([, info]) => info.reason)).toEqual(['edit', 'undo', 'redo']);
     });
 
     it('markSaved clears the dirty flag surfaced by the hook', () => {

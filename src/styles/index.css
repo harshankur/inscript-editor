@@ -535,6 +535,30 @@ img.ProseMirror-separator {
   border-radius: var(--inscript-radius-sm, 0.25rem);
 }
 
+/* History panel previews: a static copy of a version, styled by the content rules above (it carries
+   the .ProseMirror class) but sized by the panel, not like the editing surface. */
+.ProseMirror.inscript-history-preview {
+  min-height: 0;
+  padding: 0;
+}
+/* An embed in a preview is never loaded; this placeholder names its source instead. */
+.ProseMirror .inscript-preview-embed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--inscript-color-muted, #71717a);
+  background-color: var(--inscript-color-surface-raised, #f4f4f5);
+  border: 1px dashed var(--inscript-color-border-strong, #d4d4d8);
+  border-radius: var(--inscript-radius-sm, 0.25rem);
+}
+.ProseMirror .youtube-embed > .inscript-preview-embed {
+  position: absolute;
+  inset: 0;
+}
+
 /* Abbreviation Styles */
 .ProseMirror abbr[title] {
   @apply underline decoration-dotted cursor-help;

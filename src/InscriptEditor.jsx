@@ -12,11 +12,17 @@ import { useInscriptEditorTranslations } from './hooks/useInscriptEditorTranslat
 import { buildThemeVars } from './utils/theme.js';
 import { getHostHandlers } from './extensions/HostBridge.js';
 
+const EMPTY_ORIGINAL = { html: '', title: '', tags: [], categories: [] };
+
 /**
  * Top-level editor rendering component. Composes toolbar, bubble menus,
  * EditorContent, and HistoryView into a single element.
  *
- * Exposes an imperative ref handle: { getHTML, getText, setContent, restoreVersion, markSaved }.
+ * Spread the hook's result into it (`<InscriptEditor {...api} />`) and the toolbar's Undo/Redo
+ * and the history panel's Restore work with no further wiring; any `onHistory*` prop overrides.
+ *
+ * Exposes an imperative ref handle: { getHTML, getText, setContent, loadContent, undo, redo,
+ * restoreVersion, markSaved }.
  */
 export const InscriptEditor = forwardRef(function InscriptEditor({
     editor,
@@ -25,7 +31,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     focusMode = false,
     history = [],
     historyIndex = -1,
-    originalContent = { html: '', title: '', tags: [], categories: [] },
+    originalContent,
     canUndo = false,
     canRedo = false,
     onHistoryUndo,
@@ -40,6 +46,9 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     onAddAbbreviation,
     onHistorySelect,
     restoreVersion,
+    loadContent,
+    undo,
+    redo,
     markSaved,
     toolbarConfig,
     onToolbarConfigChange,
@@ -75,13 +84,27 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     useImperativeHandle(ref, () => ({
         getHTML: () => editor?.getHTML() ?? '',
         getText: () => editor?.getText() ?? '',
+        // Records an edit (a version, onContentChange). To open a document, use loadContent.
         setContent: (html) => editor?.commands.setContent(html),
-        restoreVersion: (index) => restoreVersion?.(index),
+        loadContent: (html, options) => loadContent?.(html, options) ?? false,
+        undo: () => undo?.() ?? false,
+        redo: () => redo?.() ?? false,
+        restoreVersion: (index, options) => (options === undefined ? restoreVersion?.(index) : restoreVersion?.(index, options)),
         markSaved: () => markSaved?.(),
         toggleFocusMode: () => { /* host app manages this prop usually, but we could provide a local override if we tracked it locally */ },
-    }), [editor, restoreVersion, markSaved]);
+    }), [editor, restoreVersion, loadContent, undo, redo, markSaved]);
 
     if (!editor) return null;
+
+    // The diff reference defaults to the first version (the document as opened), so hosts
+    // don't have to pass originalContent to get a meaningful comparison.
+    const original = originalContent ?? history[0] ?? EMPTY_ORIGINAL;
+    // History actions default to the hook's own (spread in with the rest of its result); a host
+    // handler, when given, takes over. The panel's Restore appends a 'restored' version.
+    const handleUndo = onHistoryUndo ?? undo;
+    const handleRedo = onHistoryRedo ?? redo;
+    const handleHistorySelect = onHistorySelect
+        ?? (restoreVersion ? (index) => restoreVersion(index, { reason: 'restore' }) : undefined);
 
     // Host handlers resolve as `prop ?? editorOptions`: the editorOptions values
     // (the single source of truth, shared with the slash menu) reach us through the
@@ -103,8 +126,8 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
             {!isReadonly && !showDiff && !focusMode && (
                 <ResponsiveToolbar
                     editor={editor}
-                    onHistoryUndo={onHistoryUndo}
-                    onHistoryRedo={onHistoryRedo}
+                    onHistoryUndo={handleUndo}
+                    onHistoryRedo={handleRedo}
                     canUndo={canUndo}
                     canRedo={canRedo}
                     onShowMetadataModal={onShowMetadataModal}
@@ -132,13 +155,12 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                 {showDiff ? (
                     <HistoryView
                         history={history}
-                        originalHtml={originalContent.html}
-                        originalTitle={originalContent.title}
-                        originalTags={originalContent.tags}
-                        originalCategories={originalContent.categories}
-                        current={editor.getHTML()}
+                        originalHtml={original.html ?? ''}
+                        originalTitle={original.title ?? ''}
+                        originalTags={original.tags ?? []}
+                        originalCategories={original.categories ?? []}
                         currentIndex={historyIndex}
-                        onSelect={onHistorySelect}
+                        onSelect={handleHistorySelect}
                     />
                 ) : (
                     <div 

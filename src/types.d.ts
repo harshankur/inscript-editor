@@ -166,12 +166,20 @@ export function useInscriptEditor(options?: UseInscriptEditorOptions): UseInscri
 export interface InscriptEditorRefHandle {
     getHTML: () => string;
     getText: () => string;
+    /** Sets content AS AN EDIT (it records a version and calls onContentChange). To open a
+     *  document, use `loadContent`. */
     setContent: (html: string) => void;
-    restoreVersion: (index: number) => void;
+    /** See UseInscriptEditorResult.loadContent (needs the hook's `loadContent` passed in). */
+    loadContent: (html: string, options?: LoadContentOptions) => boolean;
+    undo: () => boolean;
+    redo: () => boolean;
+    restoreVersion: (index: number, options?: RestoreVersionOptions) => void;
     markSaved: () => void;
     toggleFocusMode: () => void;
 }
 
+/** The diff reference. Its `html` is rendered as markup, so it must be editor-serialized HTML
+ *  (from getHTML() or a history entry), never untrusted input. */
 export interface OriginalContent {
     html: string;
     title: string;
@@ -252,10 +260,13 @@ export interface InscriptEditorProps {
     focusMode?: boolean;
     history?: HistoryEntry[];
     historyIndex?: number;
+    /** The diff view's reference. Defaults to the first version (the document as opened). */
     originalContent?: OriginalContent;
     canUndo?: boolean;
     canRedo?: boolean;
+    /** Toolbar Undo. Defaults to the hook's `undo` (spread the hook result in). */
     onHistoryUndo?: () => void;
+    /** Toolbar Redo. Defaults to the hook's `redo`. */
     onHistoryRedo?: () => void;
     onShowMetadataModal?: () => void;
     hasMetadata?: boolean;
@@ -276,8 +287,15 @@ export interface InscriptEditorProps {
     /** Optional per-call override of `editorOptions.onAddAbbreviation` for the Abbreviation
      *  toolbar/bubble button. Prefer editorOptions; this prop wins when both are set. */
     onAddAbbreviation?: () => void;
-    onHistorySelect?: (index: number) => void;
-    restoreVersion?: (index: number) => void;
+    /** The history panel's Restore. Defaults to `restoreVersion(index, { reason: 'restore' })`,
+     *  which appends a `restored` version. */
+    onHistorySelect?: (index: number, entry: HistoryEntry) => void;
+    restoreVersion?: (index: number, options?: RestoreVersionOptions) => boolean | void;
+    /** From the hook; powers the ref handle's loadContent. */
+    loadContent?: (html: string, options?: LoadContentOptions) => boolean;
+    /** From the hook; the default toolbar Undo/Redo. */
+    undo?: () => boolean;
+    redo?: () => boolean;
     markSaved?: () => void;
     toolbarConfig?: string[];
     onToolbarConfigChange?: (newConfig: string[]) => void;
@@ -515,15 +533,19 @@ export const YoutubeEmbedModal: (props: {
     onSearch?: (query: string) => Promise<YoutubeSearchResult[]>;
 }) => ReactNode;
 
+/** The version history panel. Previews are inert (embeds become placeholders, nothing runs). */
 export const HistoryView: (props: {
     history: HistoryEntry[];
-    originalHtml: string;
-    originalTitle: string;
+    /** The reference, rendered as markup: editor-serialized HTML only. Defaults to history[0]. */
+    originalHtml?: string;
+    originalTitle?: string;
     originalTags?: string[];
     originalCategories?: string[];
-    current: string;
+    /** @deprecated Unused. */
+    current?: string;
     currentIndex: number;
-    onSelect: (index: number) => void;
+    /** Restore clicked for a version other than the active one. */
+    onSelect?: (index: number, entry: HistoryEntry) => void;
 }) => ReactNode;
 
 /** Shared by DocumentOutline and MiniMap for hosting them inside your own panel. */

@@ -25,6 +25,13 @@ behaviour changes are listed under **Changed**.
   history, a pending edit included. Without it, `contentKey` behaves exactly as before.
 - History entries carry a stable `id` and a `kind` (`opened`, `imported`, `edited`, `restored`,
   `external`), plus `restoredFrom` / `parentId` links. They stay plain JSON.
+- The history panel: an explicit empty state, relative timestamps ("2 minutes ago") with the full
+  date to the second on hover, labels from each version's kind ("Opened", "Version 2", "Restored
+  from Version 1", "Changed outside the app"), and no empty Title/Tags/Categories rows for hosts
+  that keep metadata out of history.
+- Spread the hook's result into `<InscriptEditor>` and the toolbar's Undo/Redo and the panel's
+  Restore work with no handlers (`onHistoryUndo` / `onHistoryRedo` / `onHistorySelect` still
+  override). The ref handle gains `loadContent`, `undo` and `redo`.
 - A cap: `maxHistory` (default 200 versions) and `maxHistoryBytes` (default about 20 MB of HTML).
   The oldest versions go first; the baseline and the active version never do.
 - `editor.commands.refreshWikilinks()` re-runs the wikilink resolver for every link (for when a
@@ -57,6 +64,16 @@ behaviour changes are listed under **Changed**.
   dead key is removed.)
 
 ### Fixed
+- History previews are inert. The YouTube node serializes a live iframe, so opening the history
+  panel contacted youtube.com even for hosts using the click-to-load facade; embeds now show a
+  placeholder naming their source, and scripts, event handlers and script URLs are stripped.
+  Previews are also styled by the editor's content rules instead of dead `prose` classes, so a
+  version looks like the document.
+- The history panel's reference pane is no longer blank by default: `originalContent` defaults to
+  the first version (the document as opened) instead of an empty document.
+- The history panel no longer shows "Selected Version (1)" over an empty list: the selection follows
+  the active version and stays inside the list, and Restore is disabled with nothing to restore or
+  for the version already active. `onHistorySelect` also receives the entry.
 - Undoing a title-only change, then restoring the title as documented, recorded a spurious version
   that replaced the redo step whenever the stored HTML was not byte-identical to the editor's
   (a host seeding `''` against the editor's `<p></p>`). Commits now compare against the HTML the

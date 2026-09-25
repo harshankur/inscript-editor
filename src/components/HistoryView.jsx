@@ -3,13 +3,61 @@ import { useTranslation } from 'react-i18next';
 import * as Diff from 'diff';
 import { Redo } from 'lucide-react';
 import { getTextContent } from '../utils/getTextContent.js';
+import { inertPreviewHtml } from '../utils/previewHtml.js';
 import { useInscriptEditorTranslations } from '../hooks/useInscriptEditorTranslations.js';
 
-export const HistoryView = ({ history, originalHtml, originalTitle: originalTitleProp, originalTags = [], originalCategories = [], current, currentIndex, onSelect }) => {
+const BASELINE_KINDS = new Set(['opened', 'imported']);
+
+const RELATIVE_UNITS = [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60], ['second', 1]];
+
+/** "2 minutes ago" style, in the UI language; "now" under ten seconds. */
+function relativeTime(date, now, language) {
+    let format;
+    try { format = new Intl.RelativeTimeFormat(language || undefined, { numeric: 'auto' }); }
+    catch { format = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' }); }
+    const diff = Math.round((date.getTime() - now) / 1000);
+    if (Math.abs(diff) < 10) return format.format(0, 'second');
+    for (const [unit, seconds] of RELATIVE_UNITS) {
+        if (Math.abs(diff) >= seconds) return format.format(Math.round(diff / seconds), unit);
+    }
+    return format.format(0, 'second');
+}
+
+/**
+ * The version history panel: the list of versions, and the selected one compared with the
+ * reference (by default the first version, the document as opened).
+ *
+ * Previews are inert (embeds become placeholders, nothing runs) and styled by the editor's own
+ * content rules, so a version looks like the document. `originalHtml` is rendered as markup, so
+ * it must be editor-serialized HTML (from getHTML() or a history entry).
+ */
+export const HistoryView = ({
+    history = [],
+    originalHtml,
+    originalTitle: originalTitleProp,
+    originalTags: originalTagsProp,
+    originalCategories: originalCategoriesProp,
+    currentIndex = -1,
+    onSelect,
+}) => {
     useInscriptEditorTranslations();
     const { t, i18n } = useTranslation('inscript-editor');
-    const [selectedIdx, setSelectedIdx] = useState(currentIndex);
+    const hasEntries = history.length > 0;
+    const clampIndex = (index) => (hasEntries ? Math.min(Math.max(index, 0), history.length - 1) : -1);
+    const [selectedIdx, setSelectedIdx] = useState(() => clampIndex(currentIndex));
     const [mode, setMode] = useState('visual'); // 'visual' | 'source' | 'text'
+    const [now, setNow] = useState(() => Date.now());
+
+    // Follow the active version when it (or the list) changes, e.g. after an undo while open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => { setSelectedIdx(clampIndex(currentIndex)); }, [currentIndex, history]);
+    // Keep the relative timestamps current while the panel is open.
+    useEffect(() => {
+        const id = setInterval(() => setNow(Date.now()), 30000);
+        return () => clearInterval(id);
+    }, []);
+    // Clamped at render too, so a shrunken list never shows a selection outside it.
+    const selected = clampIndex(selectedIdx);
 
     // Sync Scrolling Refs
     const leftRef = useRef(null);
@@ -22,7 +70,7 @@ export const HistoryView = ({ history, originalHtml, originalTitle: originalTitl
         if (activeVersionRef.current) {
             activeVersionRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         }
-    }, [selectedIdx]);
+    }, [selected]);
 
     const handleScroll = (source) => (e) => {
         if (isScrolling.current) return;
@@ -37,27 +85,67 @@ export const HistoryView = ({ history, originalHtml, originalTitle: originalTitl
         setTimeout(() => { isScrolling.current = false; }, 50);
     };
 
-    const selectedState = history[selectedIdx] || {};
+    // The reference defaults to the first version (the document as opened).
+    const baseline = history[0] || {};
+    const refHtml = originalHtml ?? baseline.html ?? '';
+    const refTitle = originalTitleProp ?? baseline.title ?? '';
+    const refTags = originalTagsProp ?? baseline.tags ?? [];
+    const refCategories = originalCategoriesProp ?? baseline.categories ?? [];
+
+    const selectedState = history[selected] || {};
     const compareHtml = selectedState.html || '';
+
+    // Hosts that keep metadata out of history get no empty Title/Tags/Categories rows.
+    const tracksMetadata = [{ title: refTitle, tags: refTags, categories: refCategories }, ...history]
+        .some(e => (typeof e.title === 'string' && e.title.trim()) || e.tags?.length || e.categories?.length);
+
+    // Labels follow each entry's kind, not its position. Entries without a kind (hand-made or
+    // pre-0.4) keep the old position-based labels.
+    const numbered = BASELINE_KINDS.has(history[0]?.kind) || (history[0] && !history[0].kind);
+    const labelFor = (idx, depth = 0) => {
+        const entry = history[idx];
+        if (!entry) return '';
+        switch (entry.kind) {
+            case 'opened': return t('historyOpened', 'Opened');
+            case 'imported': return t('historyImported', 'Imported');
+            case 'external': return t('historyChangedOutside', 'Changed outside the app');
+            case 'restored': {
+                const source = history.findIndex(e => e.id && e.id === entry.restoredFrom);
+                return source >= 0 && depth === 0
+                    ? t('historyRestoredFrom', 'Restored from {{label}}', { label: labelFor(source, depth + 1) })
+                    : t('historyRestored', 'Restored');
+            }
+            case 'edited': return t('version', 'Version {{n}}', { n: numbered ? idx : idx + 1 });
+            default: return idx === 0 ? t('original', 'Original') : t('version', 'Version {{n}}', { n: idx });
+        }
+    };
+
+    const previewPlaceholder = (source) => t('historyEmbedPlaceholder', 'Embedded content: {{source}}', { source: source || '?' });
+    const refPreview = useMemo(() => (mode === 'visual' ? inertPreviewHtml(refHtml, previewPlaceholder) : ''),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [refHtml, mode, i18n.language]);
+    const comparePreview = useMemo(() => (mode === 'visual' ? inertPreviewHtml(compareHtml, previewPlaceholder) : ''),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [compareHtml, mode, i18n.language]);
 
     const diffSource = useMemo(() => {
         if (mode === 'visual') return null;
         if (mode === 'source') {
-            return Diff.diffLines(originalHtml || '', compareHtml);
+            return Diff.diffLines(refHtml || '', compareHtml);
         }
         if (mode === 'text') {
-            return Diff.diffWords(getTextContent(originalHtml || ''), getTextContent(compareHtml));
+            return Diff.diffWords(getTextContent(refHtml || ''), getTextContent(compareHtml));
         }
         return null;
-    }, [originalHtml, compareHtml, mode]);
+    }, [refHtml, compareHtml, mode]);
 
     // Calculate Title Diff
     const diffTitle = useMemo(() => {
         if (mode === 'visual') return null;
-        const originalTitle = typeof originalTitleProp === 'string' ? originalTitleProp : '';
+        const originalTitle = typeof refTitle === 'string' ? refTitle : '';
         const compareTitle = selectedState.title || '';
         return Diff.diffWords(originalTitle, compareTitle);
-    }, [originalTitleProp, selectedState.title, mode]);
+    }, [refTitle, selectedState.title, mode]);
 
     // Helper for Array Diff
     const getArrayDiff = (oldArr = [], newArr = []) => {
@@ -67,8 +155,8 @@ export const HistoryView = ({ history, originalHtml, originalTitle: originalTitl
         return { added, removed, unchanged };
     };
 
-    const tagDiff = useMemo(() => getArrayDiff(originalTags, selectedState.tags), [originalTags, selectedState.tags]);
-    const catDiff = useMemo(() => getArrayDiff(originalCategories, selectedState.categories), [originalCategories, selectedState.categories]);
+    const tagDiff = useMemo(() => getArrayDiff(refTags, selectedState.tags), [refTags, selectedState.tags]);
+    const catDiff = useMemo(() => getArrayDiff(refCategories, selectedState.categories), [refCategories, selectedState.categories]);
 
     const renderMetadataDiff = (diff, label, forOriginal) => {
         if (!diff) return null;
@@ -110,6 +198,8 @@ export const HistoryView = ({ history, originalHtml, originalTitle: originalTitl
         );
     };
 
+    const canRestore = hasEntries && selected !== currentIndex && typeof onSelect === 'function';
+
     return (
         <div className="flex flex-col md:flex-row h-full bg-[var(--inscript-color-surface)]">
             {/* History Sidebar - Styled to match main sidebar */}
@@ -120,42 +210,54 @@ export const HistoryView = ({ history, originalHtml, originalTitle: originalTitl
                     </span>
                 </div>
                 <div className="flex-1 overflow-y-auto bg-[var(--inscript-color-surface-raised)]">
+                    {!hasEntries && (
+                        <p className="px-4 md:px-6 py-4 text-sm text-[var(--inscript-color-muted)]">
+                            {t('historyEmpty', 'No versions yet. Versions are recorded as you edit.')}
+                        </p>
+                    )}
                     {history.map((item, idx) => {
                         const isCurrent = idx === currentIndex;
-                        const isOriginal = idx === 0;
-                        const isSelected = selectedIdx === idx;
+                        const isBaseline = BASELINE_KINDS.has(item.kind) || (!item.kind && idx === 0);
+                        const isSelected = selected === idx;
+                        const date = new Date(item.timestamp);
+                        const validDate = !Number.isNaN(date.getTime());
                         return (
                             <button
-                                key={idx}
+                                key={item.id ?? idx}
                                 ref={isSelected ? activeVersionRef : null}
                                 onClick={() => setSelectedIdx(idx)}
+                                aria-pressed={isSelected}
                                 className={`w-full text-left px-4 md:px-6 py-3 md:py-4 border-b border-[var(--inscript-color-border)] flex flex-col gap-1 transition-all ${isSelected
                                     ? 'bg-[var(--inscript-color-active)] border-l-2 border-l-[var(--inscript-color-accent)]'
                                     : 'hover:bg-[var(--inscript-color-hover)] border-l-2 border-l-transparent'
                                     }`}
                             >
-                                <div className="flex justify-between items-center mb-1">
-                                    <span className={`text-sm font-bold ${isOriginal ? 'text-blue-400' : 'text-[var(--inscript-color-text)]'}`}>
-                                        {isOriginal ? t('original', 'Original') : t('version', 'Version {{n}}', { n: idx })}
+                                <div className="flex justify-between items-center mb-1 gap-2">
+                                    <span className={`text-sm font-bold ${isBaseline ? 'text-[var(--inscript-color-link)]' : 'text-[var(--inscript-color-text)]'}`}>
+                                        {labelFor(idx)}
                                     </span>
                                     {isCurrent && (
                                         <span className="text-[10px] bg-[var(--inscript-color-accent-soft)] text-[var(--inscript-color-accent)] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">{t('active', 'Active')}</span>
                                     )}
                                 </div>
-                                <span className="text-[10px] font-mono text-[var(--inscript-color-muted)]">
-                                    {new Date(item.timestamp).toLocaleString(i18n.language, {
-                                        month: 'short', day: 'numeric',
-                                        hour: '2-digit', minute: '2-digit'
-                                    })}
-                                </span>
+                                {validDate && (
+                                    <time
+                                        dateTime={item.timestamp}
+                                        title={date.toLocaleString(i18n.language, { dateStyle: 'medium', timeStyle: 'medium' })}
+                                        className="text-[10px] font-mono text-[var(--inscript-color-muted)]"
+                                    >
+                                        {relativeTime(date, now, i18n.language)}
+                                    </time>
+                                )}
                             </button>
                         );
                     })}
                 </div>
                 <div className="p-2 md:p-4 border-t border-[var(--inscript-color-border)] bg-[var(--inscript-color-surface-raised)]">
                     <button
-                        onClick={() => onSelect(selectedIdx)}
-                        className="w-full py-2 md:py-2.5 bg-[var(--inscript-color-text)] hover:opacity-90 text-[var(--inscript-color-surface)] font-bold rounded-lg text-xs uppercase tracking-wide transition-colors shadow-lg flex items-center justify-center gap-2"
+                        onClick={() => { if (canRestore) onSelect(selected, history[selected]); }}
+                        disabled={!canRestore}
+                        className="w-full py-2 md:py-2.5 bg-[var(--inscript-color-text)] hover:opacity-90 text-[var(--inscript-color-surface)] font-bold rounded-lg text-xs uppercase tracking-wide transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
                     >
                         <span className="md:hidden"><Redo size={14} /></span>
                         {t('restoreVersion', 'Restore Version')}
@@ -175,32 +277,34 @@ export const HistoryView = ({ history, originalHtml, originalTitle: originalTitl
                 </div>
                 <div ref={leftRef} onScroll={handleScroll('left')} className="flex-1 overflow-y-auto custom-scrollbar">
                     {/* Title Display/Diff */}
-                    <div className="px-4 md:px-8 pt-4 md:pt-6 pb-2 border-b border-[var(--inscript-color-border)]">
-                        <div className="text-xs font-bold text-[var(--inscript-color-muted)] uppercase tracking-wider mb-2">{t('title', 'Title')}</div>
-                        {mode === 'visual' ? (
-                            <div className="text-lg md:text-xl font-bold text-[var(--inscript-color-muted)] mb-4 md:mb-6 break-words">{originalTitleProp}</div>
-                        ) : (
-                            <div className="text-lg md:text-xl font-bold text-[var(--inscript-color-muted)] font-mono mb-4 md:mb-6 break-words">
-                                {diffTitle ? diffTitle.map((part, i) => !part.added && <span key={i} style={part.removed ? { backgroundColor: 'rgba(127,29,29,0.4)', textDecoration: 'line-through' } : {}}>{part.value}</span>) : originalTitleProp}
-                            </div>
-                        )}
+                    {tracksMetadata && (
+                        <div className="px-4 md:px-8 pt-4 md:pt-6 pb-2 border-b border-[var(--inscript-color-border)]">
+                            <div className="text-xs font-bold text-[var(--inscript-color-muted)] uppercase tracking-wider mb-2">{t('title', 'Title')}</div>
+                            {mode === 'visual' ? (
+                                <div className="text-lg md:text-xl font-bold text-[var(--inscript-color-muted)] mb-4 md:mb-6 break-words">{refTitle}</div>
+                            ) : (
+                                <div className="text-lg md:text-xl font-bold text-[var(--inscript-color-muted)] font-mono mb-4 md:mb-6 break-words">
+                                    {diffTitle ? diffTitle.map((part, i) => !part.added && <span key={i} style={part.removed ? { backgroundColor: 'rgba(127,29,29,0.4)', textDecoration: 'line-through' } : {}}>{part.value}</span>) : refTitle}
+                                </div>
+                            )}
 
-                        {/* Metadata Original/Diff Left */}
-                        {mode !== 'visual' ? (
-                            <>
-                                {renderMetadataDiff(tagDiff, t('tags', 'Tags'), true)}
-                                {renderMetadataDiff(catDiff, t('categories', 'Categories'), true)}
-                            </>
-                        ) : (
-                            <>
-                                {renderMetadataCurrent(originalTags, t('tags', 'Tags'))}
-                                {renderMetadataCurrent(originalCategories, t('categories', 'Categories'))}
-                            </>
-                        )}
-                    </div>
+                            {/* Metadata Original/Diff Left */}
+                            {mode !== 'visual' ? (
+                                <>
+                                    {renderMetadataDiff(tagDiff, t('tags', 'Tags'), true)}
+                                    {renderMetadataDiff(catDiff, t('categories', 'Categories'), true)}
+                                </>
+                            ) : (
+                                <>
+                                    {renderMetadataCurrent(refTags, t('tags', 'Tags'))}
+                                    {renderMetadataCurrent(refCategories, t('categories', 'Categories'))}
+                                </>
+                            )}
+                        </div>
+                    )}
                     <div className="p-4 md:p-8">
                         {mode === 'visual' ? (
-                            <div className="prose dark:prose-invert max-w-none prose-sm md:prose-base" dangerouslySetInnerHTML={{ __html: originalHtml }} />
+                            <div className="ProseMirror inscript-history-preview" data-history-preview="reference" dangerouslySetInnerHTML={{ __html: refPreview }} />
                         ) : (
                             <pre className="font-mono text-xs text-[var(--inscript-color-muted)] whitespace-pre-wrap">{diffSource && diffSource.map((part, i) => !part.added && <span key={i} style={part.removed ? { backgroundColor: 'rgba(127,29,29,0.4)', textDecoration: 'line-through' } : {}}>{part.value}</span>)}</pre>
                         )}
@@ -209,36 +313,38 @@ export const HistoryView = ({ history, originalHtml, originalTitle: originalTitl
             </div>
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-[var(--inscript-color-surface-raised)]">
                 <div className="p-2 min-h-12 md:min-h-16 md:p-3 bg-[var(--inscript-color-surface-raised)] border-b border-[var(--inscript-color-border)] flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-[var(--inscript-color-accent)] sticky top-0 bg-[var(--inscript-color-surface)] backdrop-blur z-10">
-                    {t('selectedVersion', 'Selected Version ({{n}})', { n: selectedIdx })}
+                    {hasEntries && t('selectedVersion', 'Selected Version ({{n}})', { n: labelFor(selected) })}
                 </div>
                 <div ref={rightRef} onScroll={handleScroll('right')} className="flex-1 overflow-y-auto custom-scrollbar">
                     {/* Title Display/Diff */}
-                    <div className="px-4 md:px-8 pt-4 md:pt-6 pb-2 border-b border-[var(--inscript-color-border)] shrink-0">
-                        <div className="text-xs font-bold text-[var(--inscript-color-accent)] uppercase tracking-wider mb-2">{t('title', 'Title')}</div>
-                        {mode === 'visual' ? (
-                            <div className="text-lg md:text-xl font-bold text-[var(--inscript-color-text)] mb-4 md:mb-6 break-words">{selectedState.title}</div>
-                        ) : (
-                            <div className="text-lg md:text-xl font-bold text-[var(--inscript-color-text)] font-mono mb-4 md:mb-6 break-words">
-                                {diffTitle ? diffTitle.map((part, i) => !part.removed && <span key={i} style={part.added ? { backgroundColor: 'rgba(6,78,59,0.4)' } : {}}>{part.value}</span>) : selectedState.title}
-                            </div>
-                        )}
+                    {tracksMetadata && hasEntries && (
+                        <div className="px-4 md:px-8 pt-4 md:pt-6 pb-2 border-b border-[var(--inscript-color-border)] shrink-0">
+                            <div className="text-xs font-bold text-[var(--inscript-color-accent)] uppercase tracking-wider mb-2">{t('title', 'Title')}</div>
+                            {mode === 'visual' ? (
+                                <div className="text-lg md:text-xl font-bold text-[var(--inscript-color-text)] mb-4 md:mb-6 break-words">{selectedState.title}</div>
+                            ) : (
+                                <div className="text-lg md:text-xl font-bold text-[var(--inscript-color-text)] font-mono mb-4 md:mb-6 break-words">
+                                    {diffTitle ? diffTitle.map((part, i) => !part.removed && <span key={i} style={part.added ? { backgroundColor: 'rgba(6,78,59,0.4)' } : {}}>{part.value}</span>) : selectedState.title}
+                                </div>
+                            )}
 
-                        {/* Metadata Current/Diff Right */}
-                        {mode !== 'visual' ? (
-                            <>
-                                {renderMetadataDiff(tagDiff, t('tags', 'Tags'), false)}
-                                {renderMetadataDiff(catDiff, t('categories', 'Categories'), false)}
-                            </>
-                        ) : (
-                            <>
-                                {renderMetadataCurrent(selectedState.tags, t('tags', 'Tags'))}
-                                {renderMetadataCurrent(selectedState.categories, t('categories', 'Categories'))}
-                            </>
-                        )}
-                    </div>
+                            {/* Metadata Current/Diff Right */}
+                            {mode !== 'visual' ? (
+                                <>
+                                    {renderMetadataDiff(tagDiff, t('tags', 'Tags'), false)}
+                                    {renderMetadataDiff(catDiff, t('categories', 'Categories'), false)}
+                                </>
+                            ) : (
+                                <>
+                                    {renderMetadataCurrent(selectedState.tags, t('tags', 'Tags'))}
+                                    {renderMetadataCurrent(selectedState.categories, t('categories', 'Categories'))}
+                                </>
+                            )}
+                        </div>
+                    )}
                     <div className="p-4 md:p-8">
                         {mode === 'visual' ? (
-                            <div className="prose dark:prose-invert max-w-none prose-sm md:prose-base" dangerouslySetInnerHTML={{ __html: compareHtml }} />
+                            <div className="ProseMirror inscript-history-preview" data-history-preview="selected" dangerouslySetInnerHTML={{ __html: comparePreview }} />
                         ) : (
                             <pre className="font-mono text-xs text-[var(--inscript-color-text)] whitespace-pre-wrap">{diffSource && diffSource.map((part, i) => !part.removed && <span key={i} style={part.added ? { backgroundColor: 'rgba(6,78,59,0.4)' } : {}}>{part.value}</span>)}</pre>
                         )}
