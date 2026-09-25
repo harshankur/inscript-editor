@@ -73,38 +73,77 @@ Disable either feature entirely via `useInscriptEditor` options (`math: false`,
 
 ```jsx
 import { useInscriptEditor, InscriptEditor } from 'inscript-editor';
-import 'inscript-editor/styles';
+import 'inscript-editor/styles'; // already running Tailwind? see "Styling" first
 
-function PostEditor({ filename }) {
-    const {
-        editor, history, historyIndex, canUndo, canRedo,
-        restoreVersion, markSaved,
-    } = useInscriptEditor({
-        contentKey: filename,       // recreates the editor when this changes
-        title: 'My post',
-        onContentChange: (entry) => {
-            // entry = { html, title, tags, categories, timestamp }
-            // persist to your backend here
+function PostEditor({ post }) {
+    const api = useInscriptEditor({
+        contentKey: post.id,          // one editor per document...
+        initialContent: post.html,    // ...created with its content (the "Opened" version)
+        title: post.title,
+        editorOptions: {
+            onShowMediaLibrary: () => {/* open your <ImageSelectorModal> */},
+            onAddYoutube: () => {/* open your <YoutubeEmbedModal> */},
+        },
+        onContentChange: (entry, { reason }) => {
+            // reason: 'edit' | 'undo' | 'redo' | 'restore'. Persist entry.html here.
         },
     });
 
-    return (
-        <InscriptEditor
-            editor={editor}
-            history={history}
-            historyIndex={historyIndex}
-            canUndo={canUndo}
-            canRedo={canRedo}
-            restoreVersion={restoreVersion}
-            markSaved={markSaved}
-            onShowMediaLibrary={() => {/* open your <ImageSelectorModal> */}}
-            onAddYoutube={() => {/* open your <YoutubeEmbedModal> */}}
-        />
-    );
+    // Spread the hook's result in: the toolbar's Undo/Redo and the history panel work as is.
+    return <InscriptEditor {...api} />;
 }
 ```
 
-`useInscriptEditor` owns the TipTap editor instance and a client-side history stack; `InscriptEditor` renders the toolbar, bubble menus, content area, and (when `showDiff` is true) the history diff view. Everything else — saving, uploads, YouTube search — stays in your app, wired in through props and callbacks.
+`useInscriptEditor` owns the TipTap editor instance and a client-side version history; `InscriptEditor` renders the toolbar, bubble menus, content area, and (when `showDiff` is true) the history diff view. Everything else (saving, uploads, YouTube search) stays in your app, wired in through props and callbacks.
+
+### Loading a document
+
+A load is not an edit: it must not create a version, mark the document dirty, or trigger a save.
+Two ways to do it right:
+
+- **`initialContent`** (above): the editor is created with the document's content, which becomes
+  its baseline version ("Opened"). Best when you create one editor per document (`contentKey`).
+- **`loadContent(html, options)`**: load into the existing editor, for example when the user opens
+  another file, or when the file changed on disk.
+
+```js
+const { loadContent } = api;
+loadContent(file.html, { title: file.title, kind: 'opened' });           // a document is opened
+loadContent(changedHtml, { keepHistory: true });                         // same document, changed elsewhere
+loadContent(file.html, { history: savedStack, historyIndex: savedIdx }); // restore a persisted stack
+```
+
+`loadContent` seeds the baseline, clears the dirty flag, never calls `onContentChange`, drops a
+pending edit (so a keystroke just before a document switch can't land in the next document) and
+starts keyboard undo fresh (so Cmd/Ctrl+Z can't undo the load). Don't use `editor.commands.setContent`
+or the ref handle's `setContent` to open a document: those record an edit.
+
+Pass **`documentKey`** (the document's id) when the editor can be recreated without the document
+changing (a `contentKey` or `editorOptions` change): history then belongs to the document and
+survives the recreation, content and pending edits included.
+
+> **Calling `loadContent` from `useEffect`?** Nodes rendered by React (embeds, admonitions,
+> footnotes, math, mermaid, wikilinks) mount through `flushSync`, which React refuses (and logs
+> "flushSync was called from inside a lifecycle method") during its commit phase. Load from an event
+> handler, use `initialContent`, or defer the call: `useEffect(() => { queueMicrotask(() => loadContent(html)); }, [docId])`.
+
+### Version history
+
+Versions are an append-only list with a pointer:
+
+- **Edits** append a version (debounced 1s), and so does an edit made after an undo, so undone
+  versions are never lost (redo is disabled after it, as users expect).
+- **Toolbar Undo/Redo** move the pointer (`undo()` / `redo()`). Undo commits pending typing first,
+  so it can be redone. Keyboard undo (Cmd/Ctrl+Z) is finer-grained: it undoes typing within the
+  current version.
+- **Restore** in the history panel appends a `restored` version (`restoreVersion(i, { reason: 'restore' })`).
+- `onContentChange(entry, { reason })` fires for every one of these (`'edit'`, `'undo'`, `'redo'`,
+  `'restore'`), so saving from it saves them all. Loads never fire it.
+- Each entry is plain JSON: `{ id, kind, html, title, tags, categories, timestamp }`, with `kind` one of
+  `opened`, `imported`, `edited`, `restored`, `external` (plus `restoredFrom` / `parentId` links), so
+  you can persist a document's stack and hand it back to `loadContent`.
+- A cap keeps memory bounded: `maxHistory` (default 200 versions) and `maxHistoryBytes` (default
+  about 20 MB of HTML). The oldest versions go first; the baseline and the active version never do.
 
 ## Internationalization
 
@@ -146,15 +185,23 @@ i18n.addResourceBundle('en', 'inscript-editor', { insertImage: 'Add Image' }, tr
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
-| `contentKey` | `string` | `''` | Changing this recreates the TipTap editor and resets history/dirty state. Pass a filename or document id. |
+| `contentKey` | `string` | `''` | Changing this recreates the TipTap editor. Without a `documentKey` it also names the document, so history and dirty state reset when it changes. Pass a filename or document id. |
+| `documentKey` | `string \| number` | | Names the document. When set, history resets only when this changes (or on `loadContent` without `keepHistory`); recreating the editor (`contentKey`, `editorOptions`) keeps the content and history. |
+| `initialContent` | `string` | | The document's HTML, set when an editor is created and seeded as its baseline version. See [Loading a document](#loading-a-document). |
 | `title` | `string` | `''` | Live title, read inside the debounced update handler without recreating the editor. |
 | `tags` | `string[]` | `[]` | Live tags, same live-ref treatment as `title`. |
 | `categories` | `string[]` | `[]` | Live categories, same live-ref treatment as `title`. |
 | `isReadonly` | `boolean` | `false` | Disables editing without recreating the editor. |
-| `onContentChange` | `(entry) => void` | `null` | Called ~1s after edits settle, with `{ html, title, tags, categories, timestamp }`. |
-| `editorOptions` | `EditorBuildOptions` | `{}` | Per-editor feature toggles plus the host handlers `onAddCitation` / `onAddWikilink` / `onAddAbbreviation` / `onShowMediaLibrary` / `onAddYoutube`. Pass each host handler **once** here and it drives both the slash menu and the toolbar/bubble buttons (the matching `<InscriptEditor>` props are optional per-call overrides). |
+| `onContentChange` | `(entry, { reason }) => void` | `null` | Called for every change the user causes: an edit (~1s after typing settles), an undo, a redo or a restore, with the now-active entry and `reason` (`'edit'`, `'undo'`, `'redo'`, `'restore'`). Never called for a load. |
+| `editorOptions` | `EditorBuildOptions` | `{}` | Per-editor feature toggles plus the host handlers `onAddCitation` / `onAddWikilink` / `onAddAbbreviation` / `onShowMediaLibrary` / `onAddYoutube`. Pass each host handler **once** here and it drives both the slash menu and the toolbar/bubble buttons (the matching `<InscriptEditor>` props are optional per-call overrides). Options apply at construction: changing their serializable part recreates the editor (keeping the document); functions are read live, so a new function identity never recreates it. |
+| `maxHistory` | `number` | `200` | Most versions kept. |
+| `maxHistoryBytes` | `number` | ~20 MB | Most HTML kept across versions (in characters). |
 
-Returns `{ editor, history, setHistory, historyIndex, setHistoryIndex, isDirty, setIsDirty, canUndo, canRedo, restoreVersion, markSaved, titleRef, historyRef, historyDebounceRef, isSyncingRef, isLoadingRef }`.
+Returns `{ editor, history, historyIndex, isDirty, canUndo, canRedo, loadContent, undo, redo, restoreVersion, markSaved, setIsDirty, titleRef, historyRef, historyDebounceRef, isSyncingRef, isLoadingRef }`, plus the deprecated `setHistory` / `setHistoryIndex` (use `loadContent` instead; they still work).
+
+- `loadContent(html, { title, tags, categories, kind, keepHistory, history, historyIndex })`: see [Loading a document](#loading-a-document).
+- `undo()` / `redo()`: step through versions; each notifies the host.
+- `restoreVersion(index, { reason })`: `'restore'` appends a `restored` version (the history panel); `'undo'`/`'redo'`, or no reason, move the pointer.
 
 ### `<InscriptEditor />`
 
@@ -164,18 +211,20 @@ Returns `{ editor, history, setHistory, historyIndex, setHistoryIndex, isDirty, 
 | `isReadonly` | `boolean` | Hides the toolbar and disables bubble menus. |
 | `showDiff` | `boolean` | Swaps the content area for `<HistoryView>`. |
 | `history`, `historyIndex` | | Passed through to `<HistoryView>`. |
-| `originalContent` | `{ html, title, tags, categories }` | The pre-edit baseline shown in the diff view. |
+| `originalContent` | `{ html, title, tags, categories }` | The diff view's reference. Defaults to the first version (the document as opened). Its `html` is rendered as markup, so it must be editor-serialized HTML (from `getHTML()` or a history entry). |
 | `canUndo`, `canRedo` | `boolean` | Drive the toolbar's undo/redo buttons. |
-| `onHistoryUndo`, `onHistoryRedo` | `() => void` | Undo/redo handlers. |
+| `onHistoryUndo`, `onHistoryRedo` | `() => void` | Undo/redo handlers. Default to the hook's `undo` / `redo` when you spread its result in. |
 | `onShowMetadataModal`, `hasMetadata`, `showMetadataActive` | | Tags/categories entry point — bring your own modal. |
 | `onShowMediaLibrary` | `() => void` | Opens your `<ImageSelectorModal>`. |
 | `onAddYoutube` | `() => void` | Opens your `<YoutubeEmbedModal>`. |
 | `onAddCitation`, `onAddWikilink`, `onAddAbbreviation` | `() => void` | Optional **per-call overrides** of the matching `editorOptions` handlers for the Citation / Wikilink / Abbreviation toolbar/bubble buttons. Prefer supplying each handler **once** via `useInscriptEditor({ editorOptions })` (see the `editorOptions` row above) so it also drives the slash menu; a prop here wins when both are set. When neither is given, a built-in native prompt is used. |
-| `onHistorySelect` | `(index) => void` | Called when a version is chosen for restore in `<HistoryView>`. |
-| `restoreVersion`, `markSaved` | | From `useInscriptEditor`, exposed through the imperative ref too. |
+| `onHistorySelect` | `(index, entry) => void` | Called when a version is chosen for restore in `<HistoryView>`. Defaults to `restoreVersion(index, { reason: 'restore' })`. |
+| `restoreVersion`, `loadContent`, `undo`, `redo`, `markSaved` | | From `useInscriptEditor`, exposed through the imperative ref too. |
 | `theme` | `InscriptEditorTheme` | Colors, surfaces, borders, radii, spacing and fonts for the whole editor. See [Theming](#theming). |
 
-**Imperative ref**: `ref.current.getHTML()`, `.getText()`, `.setContent(html)`, `.restoreVersion(index)`, `.markSaved()`.
+**Imperative ref**: `ref.current.getHTML()`, `.getText()`, `.loadContent(html, options)`, `.undo()`, `.redo()`, `.restoreVersion(index, options)`, `.markSaved()`, and `.setContent(html)`, which records an **edit** (use `loadContent` to open a document).
+
+The history panel's previews are inert: embeds show a placeholder naming their source instead of loading (the YouTube node serializes a live iframe), and nothing in a version can run.
 
 ### Extensions
 
@@ -193,10 +242,33 @@ Every piece is also exported standalone if you want to compose your own layout i
 
 ## Styling
 
-Built with Tailwind CSS (v4) utility classes baked into the compiled `dist/styles/inscript-editor.css` — you don't need Tailwind in your own app to use it. Import the stylesheet once:
+Built with Tailwind CSS (v4) utility classes baked into the compiled `dist/styles/inscript-editor.css`, so you don't need Tailwind in your own app to use it. **If your app does not run Tailwind**, import the stylesheet once:
 
 ```js
 import 'inscript-editor/styles';
+```
+
+### Already using Tailwind? Don't import the full bundle
+
+The full bundle is a complete Tailwind build (reset, theme, utilities). Next to your own Tailwind
+build it silently breaks your layout: the two `utilities` layers merge, and the bundle's plain
+`.hidden`, `.fixed`, `.flex`, ... come later in the cascade than your `md:` / `dark:` variants, so
+they win (a `fixed md:sticky` sidebar stays `fixed` on desktop). Nothing errors; things just move.
+
+Import only the editor's content and token rules, and let **your** Tailwind generate the utilities
+the editor's components use, by scanning the package:
+
+```css
+/* Tailwind v4 (CSS-first). The @source path is relative to this CSS file. */
+@import "tailwindcss";
+@import "inscript-editor/styles/content";
+@source "../node_modules/inscript-editor/dist";
+```
+
+```js
+// Tailwind v3 (tailwind.config.js): contentGlob resolves the package wherever it is installed.
+import { contentGlob } from 'inscript-editor/tailwind-content';
+export default { content: ['./src/**/*.{js,jsx,ts,tsx}', contentGlob] };
 ```
 
 Dark mode follows Tailwind's `dark:` class strategy — add/remove a `dark` class on an ancestor element (e.g. `<html>`) to toggle it.
@@ -251,7 +323,7 @@ The token map is exported as `THEME_VAR_MAP` (with `buildThemeVars`) from the pa
 
 Content-semantic palettes are intentionally **not** themed: syntax highlighting, admonition types (note/tip/warning/…), and the `<MiniMap>`'s content colors identify a *kind* of content, not your brand.
 
-> If your app already runs its own Tailwind v4 build, import `inscript-editor/styles/content` (just the content + token rules, no global reset) instead of `inscript-editor/styles`, and point your Tailwind `@source` at the package via the exported `contentGlob` from `inscript-editor/tailwind-content`.
+> Running your own Tailwind? Use `inscript-editor/styles/content` instead of the full bundle; see [Already using Tailwind?](#already-using-tailwind-dont-import-the-full-bundle).
 
 `<MiniMap>` is a *spatial outline*, not a shrunk photo of the text. Prose has weak
 silhouette, so instead of near-identical grey blocks it makes the picture a function of the

@@ -124,6 +124,10 @@ export interface UseInscriptEditorOptions {
     editorOptions?: EditorBuildOptions;
     /** Browser spellcheck underlines in the editor (default true). Applied live, no editor recreation. */
     spellcheck?: boolean;
+    /** The document's HTML, set when an editor is created for it and seeded as its baseline
+     *  version. Lets a host that creates the editor per document (contentKey = its id) load it
+     *  without an effect. Read at creation only; to load into an existing editor, use loadContent. */
+    initialContent?: string;
     /** Most versions kept (default 200). The oldest go first; the baseline and the active entry never do. */
     maxHistory?: number;
     /** Most HTML kept across versions, measured in characters (default about 20 MB). */

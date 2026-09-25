@@ -44,6 +44,10 @@ function setContentQuiet(editor, html) {
  * @param {string[]} options.categories    - Live categories prop; mirrored to categoriesRef.
  * @param {boolean}  options.isReadonly    - Disable editing when true.
  * @param {Function} options.onContentChange - `(entry, { reason })`, reason 'edit' | 'undo' | 'redo' | 'restore'.
+ * @param {string}   [options.initialContent]  - The document's HTML, set when an editor is created for
+ *                                           it (and seeded as its baseline version). The way to load a
+ *                                           document without an effect, when the editor is created
+ *                                           per document (contentKey = its id).
  * @param {number}   [options.maxHistory]      - Most versions kept (default 200).
  * @param {number}   [options.maxHistoryBytes] - Most HTML kept across versions, in characters (default ~20 MB).
  */
@@ -57,6 +61,7 @@ export function useInscriptEditor({
     onContentChange = null,
     editorOptions = {},
     spellcheck = true,
+    initialContent,
     maxHistory = DEFAULT_MAX_HISTORY,
     maxHistoryBytes = DEFAULT_MAX_HISTORY_BYTES,
 } = {}) {
@@ -172,9 +177,12 @@ export function useInscriptEditor({
     );
 
     const handleDestroyRef = useRef(null);
+    const hasInitialContent = typeof initialContent === 'string';
     const editor = useEditor({
         extensions,
-        content: '',
+        // Read when an editor is created: a new document's editor starts with its content, which
+        // then becomes the baseline version (see the editor effect). No load from an effect needed.
+        content: hasInitialContent ? initialContent : '',
         editable: !isReadonly,
         editorProps: {
             attributes: {
@@ -318,6 +326,11 @@ export function useInscriptEditor({
     //
     // A replacement editor for the same document then gets the outgoing editor's content,
     // quietly (no phantom version, no onContentChange), so the host doesn't reload anything.
+    //
+    // An editor created for a document with `initialContent` (first mount, or a new document)
+    // seeds that content as the baseline version.
+    const hasInitialContentRef = useRef(hasInitialContent);
+    hasInitialContentRef.current = hasInitialContent;
     useEffect(() => {
         clearPending();
         const carried = carryHtmlRef.current;
@@ -325,9 +338,16 @@ export function useInscriptEditor({
         if (carried !== null && hasView(editor)) {
             setContentQuiet(editor, carried);
             lastSyncedHtmlRef.current = editor.getHTML();
+        } else if (hasInitialContentRef.current && hasView(editor) && historyRef.current.length === 0) {
+            const html = editor.getHTML();
+            lastSyncedHtmlRef.current = html;
+            applyHistory([createEntry('opened', {
+                html, title: titleRef.current, tags: tagsRef.current, categories: categoriesRef.current,
+            })], 0);
+            setIsDirty(false);
         }
         return clearPending;
-    }, [editor, clearPending]);
+    }, [editor, clearPending, applyHistory]);
 
     /**
      * Load a document: the one way to put content into the editor that is NOT an edit. It

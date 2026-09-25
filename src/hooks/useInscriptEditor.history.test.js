@@ -308,4 +308,30 @@ describe('useInscriptEditor version history', () => {
             expect(result.current.history[0].kind).toBe('opened');
         });
     });
+
+    describe('initialContent', () => {
+        it('creates the editor with the document and seeds it as the baseline, quietly', () => {
+            const onContentChange = vi.fn();
+            const { result } = renderHook(() => useInscriptEditor({ contentKey: 'a', initialContent: '<p>Start</p>', title: 'T', onContentChange }));
+            expect(result.current.editor.getHTML()).toBe('<p>Start</p>');
+            expect(result.current.history).toHaveLength(1);
+            expect(result.current.history[0]).toMatchObject({ kind: 'opened', html: '<p>Start</p>', title: 'T' });
+            expect(result.current.editor.can().undo()).toBe(false);
+            idle(2000);
+            expect(onContentChange).not.toHaveBeenCalled();
+            expect(result.current.isDirty).toBe(false);
+        });
+
+        it('seeds the next document when the editor is recreated for it', () => {
+            const { result, rerender } = renderHook(
+                props => useInscriptEditor(props),
+                { initialProps: { contentKey: 'a', initialContent: '<p>A</p>' } },
+            );
+            type(result.current.editor, '!');
+            idle();
+            rerender({ contentKey: 'b', initialContent: '<p>B</p>' });
+            expect(result.current.editor.getHTML()).toBe('<p>B</p>');
+            expect(result.current.history.map(e => [e.kind, e.html])).toEqual([['opened', '<p>B</p>']]);
+        });
+    });
 });

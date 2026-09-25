@@ -12,6 +12,9 @@ first edit was labelled "Original", and the opened document could not be reached
 behaviour changes are listed under **Changed**.
 
 ### Added
+- `initialContent` option: the editor is created with the document's content, seeded as its
+  baseline version, so a host that creates one editor per document never loads from an effect
+  (where React-rendered nodes log "flushSync was called from inside a lifecycle method").
 - `loadContent(html, { title, tags, categories, kind, keepHistory, history })` on the hook: the way
   to load a document. It becomes the baseline version ("Opened"), clears the dirty flag, never
   calls `onContentChange`, drops any pending edit (a keystroke just before a document switch no
@@ -43,6 +46,11 @@ behaviour changes are listed under **Changed**.
   hosts needed before. `<DocumentOutline>` also takes `width` and `className`, like `<MiniMap>`.
 
 ### Changed
+- README: a prominent "Already using Tailwind?" section. The full stylesheet next to a host's own
+  Tailwind build silently breaks the host's `md:`/`dark:` layout (the merged utilities layers let
+  the bundle's plain classes win); the content-only route is now spelled out for Tailwind v4
+  (`@source`) and v3 (`contentGlob`). Also: a "Loading a document" section, the version-history
+  model, and a note on loading from effects.
 - **Versions are append-only.** Editing after an undo, or after restoring an older version, used to
   delete every newer version silently. The edit is now added at the end (recording where it
   branched from), and nothing but the cap ever removes a version.
