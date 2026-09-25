@@ -80,4 +80,24 @@ describe('DocumentOutline component', () => {
         editor.unmount();
         expect(() => fireEvent.click(screen.getByText('Hi'))).not.toThrow();
     });
+
+    it('chrome={false} renders just the list: no header, and a stored collapsed state is ignored', () => {
+        localStorage.setItem('inscript-outline-collapsed', 'true');
+        editor.commands.setContent('<h1>Main Title</h1>');
+        render(<DocumentOutline editor={editor} chrome={false} />);
+        expect(screen.queryByText('Outline')).not.toBeInTheDocument();
+        expect(screen.queryByTitle('Expand outline')).not.toBeInTheDocument();
+        expect(screen.queryByTitle('Collapse outline')).not.toBeInTheDocument();
+        expect(screen.getByText('Main Title')).toBeInTheDocument();
+    });
+
+    it('collapsible={false} keeps the header but drops the collapse button and stored state', () => {
+        localStorage.setItem('inscript-outline-collapsed', 'true');
+        render(<DocumentOutline editor={editor} collapsible={false} width="20rem" className="my-outline" />);
+        expect(screen.getByText('Outline')).toBeInTheDocument();
+        expect(screen.queryByTitle('Collapse outline')).not.toBeInTheDocument();
+        const root = screen.getByText('Outline').closest('.my-outline');
+        expect(root).not.toBeNull();
+        expect(root.style.width).toBe('20rem');
+    });
 });

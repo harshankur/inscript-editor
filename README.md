@@ -295,6 +295,23 @@ natural scale with internal scroll if the height is unbounded).
 <MiniMap editor={editor} width="6rem" className="border-l-0" />
 ```
 
+### Hosting the outline and minimap in your own panel
+
+`<DocumentOutline>` and `<MiniMap>` come with their own panel chrome (a header with a collapse
+button, a border, a fixed width). To put either inside a panel of your own, pass `chrome={false}`:
+it renders just the content, fills its container, and ignores any stored collapsed state (there is
+no header to expand it from). No CSS overrides or `localStorage` clearing needed.
+
+```jsx
+<aside className="my-panel">
+    <header>Outline</header>
+    <DocumentOutline editor={editor} chrome={false} />
+</aside>
+```
+
+`collapsible={false}` keeps the header but removes the collapse button. Both components also take
+`width` and `className`. Match the minimap's label backing to your panel with `--im-minimap-bg`.
+
 ### Toolbar customizer containment
 
 The settings-gear customizer drawer covers the viewport (`position: fixed`) by

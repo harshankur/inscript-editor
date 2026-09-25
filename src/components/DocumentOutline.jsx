@@ -14,11 +14,28 @@ const writeCollapsed = (value) => {
     try { localStorage.setItem(STORAGE_KEY, String(value)); } catch { /* ignore */ }
 };
 
-export const DocumentOutline = ({ editor }) => {
+/**
+ * The document's headings as a clickable outline.
+ *
+ * @param {object} props
+ * @param {import('@tiptap/core').Editor|null} props.editor
+ * @param {string}  [props.width]        - CSS width for the expanded panel (default 16rem).
+ * @param {string}  [props.className]    - Extra classes appended to the root.
+ * @param {boolean} [props.chrome]       - Default true. False renders just the list, with no header,
+ *                                          border, background or fixed width, filling its container:
+ *                                          for hosting the outline inside your own panel.
+ * @param {boolean} [props.collapsible]  - Default true. False removes the collapse button and ignores
+ *                                          the stored collapsed state. Implied by `chrome={false}`.
+ */
+export const DocumentOutline = ({ editor, width, className = '', chrome = true, collapsible = true }) => {
     const { t } = useTranslation('inscript-editor');
     const [headings, setHeadings] = useState([]);
-    
-    const [isCollapsed, setIsCollapsed] = useState(readCollapsed);
+
+    // Without its header there is no button to expand it again, so a chrome-less outline can't
+    // collapse; a stored "collapsed" state is ignored whenever collapsing is off.
+    const canCollapse = chrome && collapsible;
+    const [storedCollapsed, setIsCollapsed] = useState(readCollapsed);
+    const isCollapsed = canCollapse && storedCollapsed;
 
     useEffect(() => {
         if (!editor) return;
@@ -41,7 +58,7 @@ export const DocumentOutline = ({ editor }) => {
     }, [editor]);
 
     const handleToggleCollapse = () => {
-        const next = !isCollapsed;
+        const next = !storedCollapsed;
         setIsCollapsed(next);
         writeCollapsed(next);
     };
@@ -66,7 +83,7 @@ export const DocumentOutline = ({ editor }) => {
 
     if (isCollapsed) {
         return (
-            <div className="flex flex-col border-l border-[var(--inscript-color-border)] bg-[var(--inscript-color-surface-raised)] w-12 shrink-0 transition-all">
+            <div className={`flex flex-col border-l border-[var(--inscript-color-border)] bg-[var(--inscript-color-surface-raised)] w-12 shrink-0 transition-all ${className}`}>
                 <button
                     onClick={handleToggleCollapse}
                     className="p-3 text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)] flex justify-center"
@@ -79,17 +96,24 @@ export const DocumentOutline = ({ editor }) => {
     }
 
     return (
-        <div className="flex flex-col border-l border-[var(--inscript-color-border)] bg-[var(--inscript-color-surface-raised)] w-64 shrink-0 transition-all max-h-full overflow-hidden">
-            <div className="flex items-center justify-between p-3 border-b border-[var(--inscript-color-border)]">
-                <span className="font-semibold text-sm text-[var(--inscript-color-text)]">{t('documentOutline', 'Outline')}</span>
-                <button
-                    onClick={handleToggleCollapse}
-                    className="p-1 rounded text-[var(--inscript-color-muted)] hover:bg-[var(--inscript-color-hover)]"
-                    title={t('collapseOutline', 'Collapse outline')}
-                >
-                    <ChevronRight size={16} />
-                </button>
-            </div>
+        <div
+            className={`flex flex-col ${chrome ? 'border-l border-[var(--inscript-color-border)] bg-[var(--inscript-color-surface-raised)] w-64 shrink-0 transition-all' : 'w-full h-full'} max-h-full overflow-hidden ${className}`}
+            style={width ? { width } : undefined}
+        >
+            {chrome && (
+                <div className="flex items-center justify-between p-3 border-b border-[var(--inscript-color-border)]">
+                    <span className="font-semibold text-sm text-[var(--inscript-color-text)]">{t('documentOutline', 'Outline')}</span>
+                    {canCollapse && (
+                        <button
+                            onClick={handleToggleCollapse}
+                            className="p-1 rounded text-[var(--inscript-color-muted)] hover:bg-[var(--inscript-color-hover)]"
+                            title={t('collapseOutline', 'Collapse outline')}
+                        >
+                            <ChevronRight size={16} />
+                        </button>
+                    )}
+                </div>
+            )}
             <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-1 custom-scrollbar">
                 {headings.length === 0 ? (
                     <div className="text-sm text-[var(--inscript-color-muted)] italic">

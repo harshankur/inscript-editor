@@ -75,22 +75,11 @@
 .dark .demo-panel-head button:hover { background: #27272a; color: #f4f4f5; }
 
 .demo-panel-body { flex: 1; min-height: 0; position: relative; }
-/* The embedded outline/minimap keep their own chrome; strip it so the panel header is the
-   only one: drop their border/width/bg and hide their internal header (their first child). */
-.demo-panel-body > * {
-    border: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    max-height: 100% !important;
-    background: transparent !important;
-}
-.demo-panel-body > * > :first-child { display: none !important; }
-
-/* ── Theme panel: plain markup, so it opts out of the outline/minimap chrome
-   stripping above (it has no inner header to hide, and should size to content). ── */
+/* The outline/minimap render chrome-less (chrome={false}), so the panel header above is the
+   only one; the minimap's label backing matches the panel background. */
+.demo-panel-body { --im-minimap-bg: #fafafa; }
+.dark .demo-panel-body { --im-minimap-bg: #18181b; }
 .demo-panel-body.is-plain { overflow-y: auto; }
-.demo-panel-body.is-plain > * { height: auto !important; max-height: none !important; }
-.demo-panel-body.is-plain > * > :first-child { display: revert !important; }
 
 .demo-theme {
     padding: 12px;

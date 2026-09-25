@@ -13,18 +13,11 @@ if (!i18n.isInitialized) {
     i18n.use(initReactI18next).init({ lng: 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false } });
 }
 
-// The combined sidebar renders the outline/minimap header-less, so make sure neither
-// component starts in its own collapsed state.
-try {
-    localStorage.removeItem('inscript-outline-collapsed');
-    localStorage.removeItem('inscript-minimap-collapsed');
-} catch { /* ignore */ }
-
 // Right-hand tools, markdownwriter-style: a narrow always-present rail of icon buttons
 // (Outline / Minimap), with ONE panel open at a time beside it. Clicking the active
 // button closes it, collapsing back to just the rail — so the editor gets the full width
-// by default. The library components keep their own chrome, so demo.css hides their
-// internal headers and lets them fill the panel body.
+// by default. The library components render with chrome={false}, so this panel's header is
+// the only one and they fill the panel body.
 const PANELS = {
     outline: { icon: ListTree, title: 'Outline' },
     minimap: { icon: MapIcon, title: 'Minimap' },
@@ -116,8 +109,8 @@ function DemoSidebar({ editor, theme, setTheme, showOutline = true, showMiniMap 
     const toggle = (v) => setView((cur) => (cur === v ? null : v));
     const active = view && panels[view];
     const renderBody = () => {
-        if (view === 'outline') return <DocumentOutline editor={editor} />;
-        if (view === 'minimap') return <MiniMap editor={editor} />;
+        if (view === 'outline') return <DocumentOutline editor={editor} chrome={false} />;
+        if (view === 'minimap') return <MiniMap editor={editor} chrome={false} />;
         if (view === 'theme') return <ThemeControls theme={theme} setTheme={setTheme} />;
         return null;
     };
@@ -130,8 +123,7 @@ function DemoSidebar({ editor, theme, setTheme, showOutline = true, showMiniMap 
                         <span>{active.title}</span>
                         <button onClick={() => setView(null)} title="Close" aria-label="Close panel"><X size={15} /></button>
                     </header>
-                    {/* The outline/minimap keep their own chrome (demo.css hides their inner header);
-                        the theme panel is plain markup, so it opts out of that hiding via .is-plain. */}
+                    {/* The outline/minimap render chrome-less inside this panel; the theme panel scrolls. */}
                     <div className={`demo-panel-body ${view === 'theme' ? 'is-plain' : ''}`}>{renderBody()}</div>
                 </aside>
             )}

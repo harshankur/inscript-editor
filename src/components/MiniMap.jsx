@@ -331,14 +331,24 @@ function blockBody(b, w, h) {
  * @param {string}  [props.className]       - Extra classes appended to the root.
  * @param {boolean} [props.showHeadingText] - Render readable heading labels (default true).
  *                                            When false, headings collapse to level ticks.
+ * @param {boolean} [props.chrome]          - Default true. False renders just the map, with no header,
+ *                                            border or fixed width, filling its container: for hosting
+ *                                            the minimap inside your own panel (match its background
+ *                                            with `--im-minimap-bg`).
+ * @param {boolean} [props.collapsible]     - Default true. False removes the collapse button and
+ *                                            ignores the stored collapsed state. Implied by `chrome={false}`.
  */
-export const MiniMap = ({ editor, width, className = '', showHeadingText = true }) => {
+export const MiniMap = ({ editor, width, className = '', showHeadingText = true, chrome = true, collapsible = true }) => {
     const { t } = useTranslation('inscript-editor');
     const [meta, setMeta] = useState({ blocks: [], docHeight: 0, colWidth: 0, measured: false, lineHeightPx: 28 });
     const [panel, setPanel] = useState({ w: 0, h: 0 });
-    const [isCollapsed, setIsCollapsed] = useState(() => {
+    // Without its header there is no button to expand it again, so a chrome-less minimap can't
+    // collapse; a stored "collapsed" state is ignored whenever collapsing is off.
+    const canCollapse = chrome && collapsible;
+    const [storedCollapsed, setIsCollapsed] = useState(() => {
         try { return localStorage.getItem('inscript-minimap-collapsed') === 'true'; } catch { return false; }
     });
+    const isCollapsed = canCollapse && storedCollapsed;
     const [viewport, setViewport] = useState({ top: 0, height: 40, scrolls: false });
 
     const bodyRef = useRef(null);
@@ -521,7 +531,7 @@ export const MiniMap = ({ editor, width, className = '', showHeadingText = true 
     };
 
     const handleToggleCollapse = () => {
-        const next = !isCollapsed;
+        const next = !storedCollapsed;
         setIsCollapsed(next);
         try { localStorage.setItem('inscript-minimap-collapsed', String(next)); } catch { /* ignore */ }
     };
@@ -540,15 +550,19 @@ export const MiniMap = ({ editor, width, className = '', showHeadingText = true 
 
     return (
         <div
-            className={`flex flex-col border-l ${BORDER_CLS} ${BG_CLS} w-36 shrink-0 transition-all max-h-full overflow-hidden select-none ${className}`}
+            className={`flex flex-col ${BG_CLS} ${chrome ? `border-l ${BORDER_CLS} w-36 shrink-0 transition-all` : 'w-full h-full'} max-h-full overflow-hidden select-none ${className}`}
             style={width ? { width } : undefined}
         >
-            <div className={`flex items-center justify-between p-3 border-b ${BORDER_CLS} shrink-0`}>
-                <span className={`font-semibold text-xs ${HEADER_LABEL_CLS} uppercase tracking-wider`}>{t('minimap', 'Minimap')}</span>
-                <button onClick={handleToggleCollapse} className="p-1 rounded text-zinc-500 hover:bg-zinc-200 dark:text-zinc-400 dark:hover:bg-zinc-800" title={t('collapseMinimap', 'Collapse minimap')}>
-                    <ChevronRight size={16} />
-                </button>
-            </div>
+            {chrome && (
+                <div className={`flex items-center justify-between p-3 border-b ${BORDER_CLS} shrink-0`}>
+                    <span className={`font-semibold text-xs ${HEADER_LABEL_CLS} uppercase tracking-wider`}>{t('minimap', 'Minimap')}</span>
+                    {canCollapse && (
+                        <button onClick={handleToggleCollapse} className="p-1 rounded text-zinc-500 hover:bg-zinc-200 dark:text-zinc-400 dark:hover:bg-zinc-800" title={t('collapseMinimap', 'Collapse minimap')}>
+                            <ChevronRight size={16} />
+                        </button>
+                    )}
+                </div>
+            )}
 
             <div
                 ref={bodyRef}

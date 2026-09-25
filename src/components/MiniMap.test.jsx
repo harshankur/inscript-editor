@@ -151,4 +151,20 @@ describe('MiniMap component', () => {
             vi.useRealTimers();
         }
     });
+
+    it('chrome={false} renders just the map: no header, and a stored collapsed state is ignored', () => {
+        localStorage.setItem('inscript-minimap-collapsed', 'true');
+        editor.commands.setContent('<h1>My Big Heading</h1><p>Paragraph</p>');
+        render(<MiniMap editor={editor} chrome={false} />);
+        expect(screen.queryByText('Minimap')).not.toBeInTheDocument();
+        expect(screen.queryByTitle('Expand minimap')).not.toBeInTheDocument();
+        expect(screen.getByText('My Big Heading')).toBeInTheDocument();
+    });
+
+    it('collapsible={false} keeps the header but drops the collapse button', () => {
+        localStorage.setItem('inscript-minimap-collapsed', 'true');
+        render(<MiniMap editor={editor} collapsible={false} />);
+        expect(screen.getByText('Minimap')).toBeInTheDocument();
+        expect(screen.queryByTitle('Collapse minimap')).not.toBeInTheDocument();
+    });
 });

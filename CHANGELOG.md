@@ -7,6 +7,12 @@ carry small breaking changes, called out below).
 
 ## [Unreleased]
 
+### Added
+- `chrome` and `collapsible` props on `<DocumentOutline>` and `<MiniMap>`. `chrome={false}` renders
+  just the content (no header, border or fixed width) to host it inside your own panel, and ignores
+  the stored collapsed state, replacing the `!important` CSS overrides and `localStorage` clearing
+  hosts needed before. `<DocumentOutline>` also takes `width` and `className`, like `<MiniMap>`.
+
 ### Fixed
 - `<MiniMap>` no longer throws "The editor view is not available" for an editor that is unmounted
   or destroyed (a host that swaps editors per document hit this, and it could blank the page). In

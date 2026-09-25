@@ -452,8 +452,23 @@ export const HistoryView: (props: {
     onSelect: (index: number) => void;
 }) => ReactNode;
 
-export const DocumentOutline: (props: { editor: Editor | null }) => ReactNode;
-export const MiniMap: (props: {
+/** Shared by DocumentOutline and MiniMap for hosting them inside your own panel. */
+export interface HostablePanelProps {
+    /** Default true. False renders just the content: no header, no border, no fixed width
+     *  (it fills its container). Use it to host the component inside your own panel, with no
+     *  CSS overrides. A chrome-less panel can't collapse (it has no button to expand again). */
+    chrome?: boolean;
+    /** Default true. False removes the collapse button and ignores the stored collapsed state. */
+    collapsible?: boolean;
+}
+export const DocumentOutline: (props: HostablePanelProps & {
+    editor: Editor | null;
+    /** CSS width for the expanded panel (default 16rem); applied as an inline style. */
+    width?: string;
+    /** Extra classes appended to the root. */
+    className?: string;
+}) => ReactNode;
+export const MiniMap: (props: HostablePanelProps & {
     editor: Editor | null;
     /** CSS width for the expanded panel (default 9rem); applied as an inline style. */
     width?: string;
