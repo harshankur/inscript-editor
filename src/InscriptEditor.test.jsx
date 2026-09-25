@@ -44,6 +44,17 @@ describe('InscriptEditor', () => {
             expect(restoreVersion).toHaveBeenCalledWith(2);
         });
 
+        it('flush delegates to the flush prop, and falls back to the current history props', () => {
+            const snapshot = { history: [], historyIndex: -1 };
+            const flush = vi.fn(() => snapshot);
+            const ref = createRef();
+            const { rerender } = render(<InscriptEditor editor={editor} flush={flush} ref={ref} />);
+            expect(ref.current.flush()).toBe(snapshot);
+            const history = [{ html: '<p>a</p>', title: '', tags: [], categories: [], timestamp: 't' }];
+            rerender(<InscriptEditor editor={editor} history={history} historyIndex={0} ref={ref} />);
+            expect(ref.current.flush()).toEqual({ history, historyIndex: 0 });
+        });
+
         it('markSaved delegates to the markSaved prop', () => {
             const markSaved = vi.fn();
             const ref = createRef();

@@ -26,6 +26,9 @@ behaviour changes are listed under **Changed**.
   blockquote, a Markdown renderer's newlines, an older release's attribute order), so the pointer
   and redo stay where the user left them.
 - `undo()` and `redo()` on the hook. Undo commits pending typing first, so it can be redone.
+- `flush()` on the hook (and the `<InscriptEditor>` ref): commits pending typing now and returns
+  `{ history, historyIndex }` synchronously, so a host switching documents in one editor can save
+  the outgoing document's last second of typing instead of losing it.
 - `documentKey` option: names the document, so history resets only when it changes, and
   recreating the editor (a `contentKey` or `editorOptions` change) keeps the document's content and
   history, a pending edit included. Without it, `contentKey` behaves exactly as before.

@@ -21,8 +21,8 @@ const EMPTY_ORIGINAL = { html: '', title: '', tags: [], categories: [] };
  * Spread the hook's result into it (`<InscriptEditor {...api} />`) and the toolbar's Undo/Redo
  * and the history panel's Restore work with no further wiring; any `onHistory*` prop overrides.
  *
- * Exposes an imperative ref handle: { getHTML, getText, setContent, loadContent, undo, redo,
- * restoreVersion, markSaved }.
+ * Exposes an imperative ref handle: { getHTML, getText, setContent, loadContent, flush, undo,
+ * redo, restoreVersion, markSaved }.
  */
 export const InscriptEditor = forwardRef(function InscriptEditor({
     editor,
@@ -47,6 +47,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     onHistorySelect,
     restoreVersion,
     loadContent,
+    flush,
     undo,
     redo,
     markSaved,
@@ -87,12 +88,13 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
         // Records an edit (a version, onContentChange). To open a document, use loadContent.
         setContent: (html) => editor?.commands.setContent(html),
         loadContent: (html, options) => loadContent?.(html, options) ?? false,
+        flush: () => flush?.() ?? { history, historyIndex },
         undo: () => undo?.() ?? false,
         redo: () => redo?.() ?? false,
         restoreVersion: (index, options) => (options === undefined ? restoreVersion?.(index) : restoreVersion?.(index, options)),
         markSaved: () => markSaved?.(),
         toggleFocusMode: () => { /* host app manages this prop usually, but we could provide a local override if we tracked it locally */ },
-    }), [editor, restoreVersion, loadContent, undo, redo, markSaved]);
+    }), [editor, restoreVersion, loadContent, flush, undo, redo, markSaved, history, historyIndex]);
 
     if (!editor) return null;
 

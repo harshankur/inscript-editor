@@ -151,6 +151,10 @@ export interface UseInscriptEditorResult {
     /** Load a document: becomes the baseline version, clears dirty, never calls onContentChange,
      *  drops a pending edit, and keystroke undo can't cross it. Returns false with no live editor. */
     loadContent: (html: string, options?: LoadContentOptions) => boolean;
+    /** Commit pending typing now (onContentChange fires with reason 'edit') and return the stack
+     *  synchronously. Call it before switching documents in one editor, and save what it returns
+     *  as the outgoing document's history. Commits nothing while read-only, loading or syncing. */
+    flush: () => { history: HistoryEntry[]; historyIndex: number };
     /** Step back one version (pending typing is committed first, so it can be redone). */
     undo: () => boolean;
     /** Step forward one version. */
@@ -177,6 +181,8 @@ export interface InscriptEditorRefHandle {
     setContent: (html: string) => void;
     /** See UseInscriptEditorResult.loadContent (needs the hook's `loadContent` passed in). */
     loadContent: (html: string, options?: LoadContentOptions) => boolean;
+    /** See UseInscriptEditorResult.flush. Without the hook's `flush`, returns the history props. */
+    flush: () => { history: HistoryEntry[]; historyIndex: number };
     undo: () => boolean;
     redo: () => boolean;
     restoreVersion: (index: number, options?: RestoreVersionOptions) => void;
@@ -299,6 +305,8 @@ export interface InscriptEditorProps {
     restoreVersion?: (index: number, options?: RestoreVersionOptions) => boolean | void;
     /** From the hook; powers the ref handle's loadContent. */
     loadContent?: (html: string, options?: LoadContentOptions) => boolean;
+    /** From the hook; powers the ref handle's flush. */
+    flush?: () => { history: HistoryEntry[]; historyIndex: number };
     /** From the hook; the default toolbar Undo/Redo. */
     undo?: () => boolean;
     redo?: () => boolean;

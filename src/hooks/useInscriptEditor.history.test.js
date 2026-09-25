@@ -407,4 +407,50 @@ describe('useInscriptEditor version history', () => {
         rerender({ contentKey: 'k2', documentKey: 'e' });
         expect(result.current.history).toEqual([]);
     });
+
+    describe('flush (Inscript review of 0.4.0, F2)', () => {
+        it('commits pending typing now, notifies the host, and returns the stack synchronously', () => {
+            const onContentChange = vi.fn();
+            const { result } = renderHook(() => useInscriptEditor({ documentKey: 'a.md', onContentChange }));
+            act(() => { result.current.loadContent('<p>Doc A</p>', { title: 'T' }); });
+            type(result.current.editor, ' typed');
+            let snapshot;
+            act(() => { snapshot = result.current.flush(); });
+            expect(snapshot.history.map(e => e.kind)).toEqual(['opened', 'edited']);
+            expect(snapshot.historyIndex).toBe(1);
+            expect(snapshot.history[1].html).toBe('<p>Doc A typed</p>');
+            expect(onContentChange).toHaveBeenCalledWith(snapshot.history[1], { reason: 'edit' });
+            // The debounce is spent: nothing fires later.
+            idle(2000);
+            expect(onContentChange).toHaveBeenCalledTimes(1);
+            expect(result.current.history).toHaveLength(2);
+        });
+
+        it('lets a host save the outgoing document before switching in the same handler', () => {
+            const saved = {};
+            const { result, rerender } = renderHook(
+                props => useInscriptEditor({ contentKey: 'one-editor', ...props }),
+                { initialProps: { documentKey: 'a' } },
+            );
+            act(() => { result.current.loadContent('<p>A</p>'); });
+            type(result.current.editor, '!');
+            act(() => {
+                saved.a = result.current.flush();
+                rerender({ documentKey: 'b' });
+            });
+            expect(saved.a.history.map(e => e.html)).toEqual(['<p>A</p>', '<p>A!</p>']);
+            expect(result.current.history).toEqual([]);
+        });
+
+        it('with nothing pending (or while loading), just returns the current stack', () => {
+            const onContentChange = vi.fn();
+            const { result } = renderHook(() => useInscriptEditor({ contentKey: 'a', onContentChange }));
+            act(() => { result.current.loadContent('<p>A</p>'); });
+            expect(result.current.flush()).toEqual({ history: result.current.history, historyIndex: 0 });
+            result.current.isLoadingRef.current = true;
+            type(result.current.editor, 'x');
+            expect(result.current.flush().history).toHaveLength(1);
+            expect(onContentChange).not.toHaveBeenCalled();
+        });
+    });
 });

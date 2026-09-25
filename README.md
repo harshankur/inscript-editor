@@ -117,6 +117,16 @@ Reopening a persisted stack adds no version when you load its active entry's HTM
 parses to the same document, such as a file whose Markdown renders it), so the pointer and redo
 stay where the user left them. Different content is recorded as "Changed outside the app".
 
+**Switching documents in one editor?** Typing from the last second is still waiting for its
+debounced commit, and a document switch drops it (so it can't land in the next document). Call
+`flush()` first: it commits that typing to the current document and returns the stack
+synchronously, ready to save before you switch.
+
+```js
+const { history, historyIndex } = api.flush(); // commit the last keystrokes to the outgoing document
+saveDraft(currentId, { history, historyIndex });
+setCurrentId(nextId);                          // then switch (documentKey changes on render)
+```
 
 `loadContent` seeds the baseline, clears the dirty flag, never calls `onContentChange`, drops a
 pending edit (so a keystroke just before a document switch can't land in the next document) and
@@ -204,9 +214,10 @@ i18n.addResourceBundle('en', 'inscript-editor', { insertImage: 'Add Image' }, tr
 | `maxHistory` | `number` | `200` | Most versions kept. |
 | `maxHistoryBytes` | `number` | ~20 MB | Most HTML kept across versions (in characters). |
 
-Returns `{ editor, history, historyIndex, isDirty, canUndo, canRedo, loadContent, undo, redo, restoreVersion, markSaved, setIsDirty, titleRef, historyRef, historyDebounceRef, isSyncingRef, isLoadingRef }`, plus the deprecated `setHistory` / `setHistoryIndex` (use `loadContent` instead; they still work).
+Returns `{ editor, history, historyIndex, isDirty, canUndo, canRedo, loadContent, flush, undo, redo, restoreVersion, markSaved, setIsDirty, titleRef, historyRef, historyDebounceRef, isSyncingRef, isLoadingRef }`, plus the deprecated `setHistory` / `setHistoryIndex` (use `loadContent` instead; they still work).
 
 - `loadContent(html, { title, tags, categories, kind, keepHistory, history, historyIndex })`: see [Loading a document](#loading-a-document).
+- `flush()`: commit pending typing now and return `{ history, historyIndex }` synchronously (before switching documents).
 - `undo()` / `redo()`: step through versions; each notifies the host.
 - `restoreVersion(index, { reason })`: `'restore'` appends a `restored` version (the history panel); `'undo'`/`'redo'`, or no reason, move the pointer.
 
@@ -226,10 +237,10 @@ Returns `{ editor, history, historyIndex, isDirty, canUndo, canRedo, loadContent
 | `onAddYoutube` | `() => void` | Opens your `<YoutubeEmbedModal>`. |
 | `onAddCitation`, `onAddWikilink`, `onAddAbbreviation` | `() => void` | Optional **per-call overrides** of the matching `editorOptions` handlers for the Citation / Wikilink / Abbreviation toolbar/bubble buttons. Prefer supplying each handler **once** via `useInscriptEditor({ editorOptions })` (see the `editorOptions` row above) so it also drives the slash menu; a prop here wins when both are set. When neither is given, a built-in native prompt is used. |
 | `onHistorySelect` | `(index, entry) => void` | Called when a version is chosen for restore in `<HistoryView>`. Defaults to `restoreVersion(index, { reason: 'restore' })`. |
-| `restoreVersion`, `loadContent`, `undo`, `redo`, `markSaved` | | From `useInscriptEditor`, exposed through the imperative ref too. |
+| `restoreVersion`, `loadContent`, `flush`, `undo`, `redo`, `markSaved` | | From `useInscriptEditor`, exposed through the imperative ref too. |
 | `theme` | `InscriptEditorTheme` | Colors, surfaces, borders, radii, spacing and fonts for the whole editor. See [Theming](#theming). |
 
-**Imperative ref**: `ref.current.getHTML()`, `.getText()`, `.loadContent(html, options)`, `.undo()`, `.redo()`, `.restoreVersion(index, options)`, `.markSaved()`, and `.setContent(html)`, which records an **edit** (use `loadContent` to open a document).
+**Imperative ref**: `ref.current.getHTML()`, `.getText()`, `.loadContent(html, options)`, `.flush()`, `.undo()`, `.redo()`, `.restoreVersion(index, options)`, `.markSaved()`, and `.setContent(html)`, which records an **edit** (use `loadContent` to open a document).
 
 The history panel's previews are inert: embeds show a placeholder naming their source instead of loading (the YouTube node serializes a live iframe), and nothing in a version can run.
 

@@ -469,6 +469,19 @@ export function useInscriptEditor({
     const restoreAsNewRef = useRef(restoreAsNewVersion);
     restoreAsNewRef.current = restoreAsNewVersion;
 
+    /**
+     * Commit pending typing now (onContentChange fires with reason 'edit', as for a debounced
+     * commit) and return the stack as it stands, synchronously: the state update renders only
+     * later, and a host switching documents in the same handler needs to save the outgoing
+     * document's history first. Nothing is committed while read-only, loading or syncing.
+     *
+     * @returns {{ history: object[], historyIndex: number }}
+     */
+    const flush = useCallback(() => {
+        flushPendingRef.current();
+        return { history: historyRef.current, historyIndex: historyIndexRef.current };
+    }, []);
+
     /** Step back one version (commits pending typing first, so it can be redone). */
     const undo = useCallback(() => {
         flushPendingRef.current();
@@ -526,6 +539,7 @@ export function useInscriptEditor({
         canUndo: historyIndex > 0,
         canRedo: historyIndex < history.length - 1,
         loadContent,
+        flush,
         undo,
         redo,
         restoreVersion,
