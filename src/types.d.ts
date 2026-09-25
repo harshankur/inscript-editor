@@ -338,8 +338,19 @@ export function extractYoutubeId(input: string): string | null;
 export interface HeadingEntry { level: number; text: string; pos: number; }
 /** Walks the document for heading nodes; shared by DocumentOutline and MiniMap. */
 export function extractHeadings(editor: Editor): HeadingEntry[];
-/** Registers inscript-editor's custom-node preservation rules on a TurndownService. */
-export function applyInscriptEditorTurndownRules(turndownService: { addRule: (key: string, rule: unknown) => unknown }): void;
+/**
+ * Registers inscript-editor's rules on a TurndownService so a Markdown round trip keeps every
+ * editor node: custom nodes (math, mermaid, admonitions, citations, embeds, source comments,
+ * YouTube, laid-out images, ...) as raw HTML, checklists as GFM task items, and tables as GFM
+ * tables when GFM can express them (raw HTML otherwise). Apply it after `use(gfm)` so these
+ * rules win. Empty nodes (a source comment, a gated embed) are routed to their rule even though
+ * turndown treats them as blank; a duck-typed `{ addRule }` object gets the rules only.
+ */
+export function applyInscriptEditorTurndownRules(turndownService: {
+    addRule: (key: string, rule: unknown) => unknown;
+    rules?: { blankRule?: { replacement: (...args: any[]) => string } };
+    options?: Record<string, unknown>;
+}): void;
 
 // --- UI components ---
 export interface ToolbarButtonProps {

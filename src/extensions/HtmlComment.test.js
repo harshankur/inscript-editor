@@ -1,5 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { createEditor } from '../../tests/helpers/createEditor.js';
+import TurndownService from 'turndown';
+import { gfm } from 'turndown-plugin-gfm';
 import { applyInscriptEditorTurndownRules } from '../markdown/turndownRules.js';
 
 describe('HtmlComment extension (source <!-- --> comments)', () => {
@@ -57,29 +59,30 @@ describe('HtmlComment extension (source <!-- --> comments)', () => {
     });
 });
 
+// Through a real TurndownService: the comment span is empty, and turndown treats empty
+// elements as blank before consulting any rule, so a stubbed addRule would hide that.
 describe('turndown rule for source comments', () => {
-    const rules = {};
-    applyInscriptEditorTurndownRules({ addRule: (name, rule) => { rules[name] = rule; } });
-    const rule = rules.inscriptHtmlComment;
-    const span = text => {
-        const el = document.createElement('span');
-        el.setAttribute('data-html-comment', text);
-        return el;
+    const toMd = html => {
+        const td = new TurndownService();
+        td.use(gfm);
+        applyInscriptEditorTurndownRules(td);
+        return td.turndown(html);
     };
+    const para = text => `<p>a<span data-html-comment="${text.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}"></span>b</p>`;
 
-    it('matches only the comment span', () => {
-        expect(rule.filter(span(' x '))).toBe(true);
-        expect(rule.filter(document.createElement('span'))).toBe(false);
+    it('writes a real comment, verbatim, for the (empty) comment span', () => {
+        // Turndown collapses the two spaces around the invisible node into one, as a browser would.
+        expect(toMd('<p>Before <span data-html-comment=" note "></span> after</p>')).toBe('Before <!-- note -->after');
     });
 
-    it('writes a real comment, verbatim', () => {
-        expect(rule.replacement('', span(' a hidden note '))).toBe('<!-- a hidden note -->');
+    it('leaves other empty spans alone', () => {
+        expect(toMd('<p>a<span></span>b</p>')).toBe('ab');
     });
 
     it('neutralizes sequences that would close the comment early', () => {
-        expect(rule.replacement('', span(' x --> <script>'))).toBe('<!-- x --&gt; <script>-->');
-        expect(rule.replacement('', span(' x --!> y'))).toBe('<!-- x --!&gt; y-->');
-        expect(rule.replacement('', span('> y'))).toBe('<!--&gt; y-->');
-        expect(rule.replacement('', span('-> y'))).toBe('<!---&gt; y-->');
+        expect(toMd(para(' x --> <script>'))).toBe('a<!-- x --&gt; <script>-->b');
+        expect(toMd(para(' x --!> y'))).toBe('a<!-- x --!&gt; y-->b');
+        expect(toMd(para('> y'))).toBe('a<!--&gt; y-->b');
+        expect(toMd(para('-> y'))).toBe('a<!---&gt; y-->b');
     });
 });

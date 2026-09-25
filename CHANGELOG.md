@@ -14,6 +14,17 @@ carry small breaking changes, called out below).
   hosts needed before. `<DocumentOutline>` also takes `width` and `className`, like `<MiniMap>`.
 
 ### Fixed
+- **Markdown round trips no longer lose editor nodes.** `applyInscriptEditorTurndownRules` now
+  works with a real TurndownService, which decides an element is "blank" before consulting any
+  rule, so the 0.3.3 source-comment rule never ran and comments were dropped on save. Empty nodes
+  are now routed to their rule. New rules keep generic embeds (every third-party iframe was
+  deleted from a document the first time it was saved, since 0.2.1), citations (they became the
+  escaped text `\[label\]`), YouTube videos and resized/aligned images as HTML, and write
+  checklists as GFM task items (`- [x]`) instead of plain lists that lost the checked state.
+- Editor tables become real GFM tables. Their `<colgroup>` made turndown-plugin-gfm keep every
+  one as raw HTML, and the `<p>` in every cell broke the rows. A table GFM can't express (merged
+  cells, a header column, resized columns, multi-paragraph cells, a non-default alignment) stays
+  HTML so nothing is lost. Works with or without the gfm plugin.
 - `<MiniMap>` no longer throws "The editor view is not available" for an editor that is unmounted
   or destroyed (a host that swaps editors per document hit this, and it could blank the page). In
   TipTap v3 `editor.view` is a Proxy that throws whenever no view is mounted, so `!editor.view` never
