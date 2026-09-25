@@ -29,9 +29,11 @@ export const SlashCommand = Extension.create({
                 },
                 items: ({ query, editor }) => {
                     const items = editor.extensionManager.extensions.find(e => e.name === 'slashCommand').options.items || [];
-                    return items.filter(item => 
-                        item.title.toLowerCase().includes(query.toLowerCase()) || 
-                        item.keywords.some(k => k.toLowerCase().includes(query.toLowerCase()))
+                    // `title` is read here, at query time, so filtering matches the current language.
+                    const q = query.toLowerCase();
+                    return items.filter(item =>
+                        String(item.title ?? '').toLowerCase().includes(q) ||
+                        (item.keywords || []).some(k => String(k).toLowerCase().includes(q))
                     );
                 },
                 render: () => {

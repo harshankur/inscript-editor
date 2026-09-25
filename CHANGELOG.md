@@ -33,6 +33,10 @@ carry small breaking changes, called out below).
   one as raw HTML, and the `<p>` in every cell broke the rows. A table GFM can't express (merged
   cells, a header column, resized columns, multi-paragraph cells, a non-default alignment) stays
   HTML so nothing is lost. Works with or without the gfm plugin.
+- "/" menu labels follow an i18n language switch made after the editor was created (they were
+  resolved once, at creation), and filtering matches the current language. The default items also
+  carry `titleKey`/`subtitleKey`. Host-supplied `slashCommands` with plain strings work as before;
+  an item without `keywords` no longer breaks filtering.
 - `<MiniMap>` no longer throws "The editor view is not available" for an editor that is unmounted
   or destroyed (a host that swaps editors per document hit this, and it could blank the page). In
   TipTap v3 `editor.view` is a Proxy that throws whenever no view is mounted, so `!editor.view` never

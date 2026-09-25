@@ -41,3 +41,27 @@ describe('slash command: citation', () => {
         promptSpy.mockRestore();
     });
 });
+
+describe('slash item labels', () => {
+    it('follow an i18n language switch made after the items were built', async () => {
+        const i18n = (await import('i18next')).default;
+        i18n.addResourceBundle('de', 'inscript-editor', { heading1: 'Überschrift 1', h1Subtitle: 'Große Überschrift' }, true, true);
+        const live = (k, f) => i18n.t(k, { defaultValue: f, ns: 'inscript-editor' });
+        const [h1] = getDefaultSlashItems(live, {});
+        try {
+            expect(h1.title).toBe('Heading 1');
+            await i18n.changeLanguage('de');
+            expect(h1.title).toBe('Überschrift 1');
+            expect(h1.subtitle).toBe('Große Überschrift');
+            expect(h1).toMatchObject({ titleKey: 'heading1', subtitleKey: 'h1Subtitle' });
+        } finally {
+            await i18n.changeLanguage('en');
+        }
+    });
+
+    it('keep their English defaults when a key has no translation', () => {
+        const [h1] = getDefaultSlashItems((k, f) => f, {});
+        expect(h1.title).toBe('Heading 1');
+        expect(h1.subtitle).toBe('Big section heading');
+    });
+});

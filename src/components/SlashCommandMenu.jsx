@@ -1,7 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { slashCommandStore } from '../extensions/SlashCommand.js';
 
 export const SlashCommandMenu = ({ isReadonly }) => {
+    // Subscribes to language changes: the default items resolve their title/subtitle through
+    // i18next when read, so re-rendering is all it takes for an open menu to follow a switch.
+    useTranslation('inscript-editor');
     const [state, setState] = useState(null);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const menuRef = useRef(null);

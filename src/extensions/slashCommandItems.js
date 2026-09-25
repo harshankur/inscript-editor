@@ -3,11 +3,23 @@
 // This lets the slash menu and <InscriptEditor> share one set of handlers.
 const handler = (options, name) => options.hostHandlersRef?.current?.[name] ?? options[name];
 
+/**
+ * An item whose `title`/`subtitle` are resolved through `t` every time they are read, so the
+ * menu (and its filtering) follows an i18n language switch made after the editor was created.
+ * The keys stay on the item (`titleKey`, `subtitleKey`) for hosts that translate themselves.
+ */
+function localized(t, { titleKey, titleDefault, subtitleKey, subtitleDefault, ...item }) {
+    return Object.defineProperties({ ...item, titleKey, subtitleKey }, {
+        title: { get: () => t(titleKey, titleDefault), enumerable: true },
+        subtitle: { get: () => t(subtitleKey, subtitleDefault), enumerable: true },
+    });
+}
+
 export const getDefaultSlashItems = (t, options = {}) => [
     {
         id: 'h1',
-        title: t('heading1', 'Heading 1'),
-        subtitle: t('h1Subtitle', 'Big section heading'),
+        titleKey: 'heading1', titleDefault: 'Heading 1',
+        subtitleKey: 'h1Subtitle', subtitleDefault: 'Big section heading',
         keywords: ['h1', 'heading', 'title'],
         group: 'text',
         command: ({ editor, range }) => {
@@ -16,8 +28,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
     },
     {
         id: 'h2',
-        title: t('heading2', 'Heading 2'),
-        subtitle: t('h2Subtitle', 'Medium section heading'),
+        titleKey: 'heading2', titleDefault: 'Heading 2',
+        subtitleKey: 'h2Subtitle', subtitleDefault: 'Medium section heading',
         keywords: ['h2', 'heading', 'subtitle'],
         group: 'text',
         command: ({ editor, range }) => {
@@ -26,8 +38,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
     },
     {
         id: 'h3',
-        title: t('heading3', 'Heading 3'),
-        subtitle: t('h3Subtitle', 'Small section heading'),
+        titleKey: 'heading3', titleDefault: 'Heading 3',
+        subtitleKey: 'h3Subtitle', subtitleDefault: 'Small section heading',
         keywords: ['h3', 'heading', 'subtitle'],
         group: 'text',
         command: ({ editor, range }) => {
@@ -36,8 +48,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
     },
     {
         id: 'bulletList',
-        title: t('bulletList', 'Bullet List'),
-        subtitle: t('bulletListSubtitle', 'Create a simple bulleted list'),
+        titleKey: 'bulletList', titleDefault: 'Bullet List',
+        subtitleKey: 'bulletListSubtitle', subtitleDefault: 'Create a simple bulleted list',
         keywords: ['bullet', 'list', 'unordered'],
         group: 'list',
         command: ({ editor, range }) => {
@@ -46,8 +58,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
     },
     {
         id: 'orderedList',
-        title: t('orderedList', 'Numbered List'),
-        subtitle: t('orderedListSubtitle', 'Create a list with numbering'),
+        titleKey: 'orderedList', titleDefault: 'Numbered List',
+        subtitleKey: 'orderedListSubtitle', subtitleDefault: 'Create a list with numbering',
         keywords: ['ordered', 'list', 'number'],
         group: 'list',
         command: ({ editor, range }) => {
@@ -56,8 +68,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
     },
     ...(options.taskList !== false ? [{
         id: 'taskList',
-        title: t('taskList', 'Task List'),
-        subtitle: t('taskListSubtitle', 'Track tasks with a to-do list'),
+        titleKey: 'taskList', titleDefault: 'Task List',
+        subtitleKey: 'taskListSubtitle', subtitleDefault: 'Track tasks with a to-do list',
         keywords: ['task', 'list', 'todo', 'check'],
         group: 'list',
         command: ({ editor, range }) => {
@@ -67,8 +79,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
     ...(options.admonition !== false ? [
         {
             id: 'admonitionNote',
-            title: t('admonitionNote', 'Admonition ▸ Note'),
-            subtitle: t('admonitionNoteSubtitle', 'Add a note admonition'),
+            titleKey: 'admonitionNote', titleDefault: 'Admonition ▸ Note',
+            subtitleKey: 'admonitionNoteSubtitle', subtitleDefault: 'Add a note admonition',
             keywords: ['admonition', 'note', 'info'],
             group: 'text',
             command: ({ editor, range }) => {
@@ -77,8 +89,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
         },
         {
             id: 'admonitionTip',
-            title: t('admonitionTip', 'Admonition ▸ Tip'),
-            subtitle: t('admonitionTipSubtitle', 'Add a tip admonition'),
+            titleKey: 'admonitionTip', titleDefault: 'Admonition ▸ Tip',
+            subtitleKey: 'admonitionTipSubtitle', subtitleDefault: 'Add a tip admonition',
             keywords: ['admonition', 'tip', 'idea'],
             group: 'text',
             command: ({ editor, range }) => {
@@ -87,8 +99,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
         },
         {
             id: 'admonitionImportant',
-            title: t('admonitionImportant', 'Admonition ▸ Important'),
-            subtitle: t('admonitionImportantSubtitle', 'Add an important admonition'),
+            titleKey: 'admonitionImportant', titleDefault: 'Admonition ▸ Important',
+            subtitleKey: 'admonitionImportantSubtitle', subtitleDefault: 'Add an important admonition',
             keywords: ['admonition', 'important', 'warning'],
             group: 'text',
             command: ({ editor, range }) => {
@@ -97,8 +109,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
         },
         {
             id: 'admonitionWarning',
-            title: t('admonitionWarning', 'Admonition ▸ Warning'),
-            subtitle: t('admonitionWarningSubtitle', 'Add a warning admonition'),
+            titleKey: 'admonitionWarning', titleDefault: 'Admonition ▸ Warning',
+            subtitleKey: 'admonitionWarningSubtitle', subtitleDefault: 'Add a warning admonition',
             keywords: ['admonition', 'warning', 'alert'],
             group: 'text',
             command: ({ editor, range }) => {
@@ -107,8 +119,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
         },
         {
             id: 'admonitionCaution',
-            title: t('admonitionCaution', 'Admonition ▸ Caution'),
-            subtitle: t('admonitionCautionSubtitle', 'Add a caution admonition'),
+            titleKey: 'admonitionCaution', titleDefault: 'Admonition ▸ Caution',
+            subtitleKey: 'admonitionCautionSubtitle', subtitleDefault: 'Add a caution admonition',
             keywords: ['admonition', 'caution', 'danger'],
             group: 'text',
             command: ({ editor, range }) => {
@@ -119,8 +131,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
     ...(options.footnote !== false ? [
         {
             id: 'footnote',
-            title: t('footnote', 'Footnote'),
-            subtitle: t('footnoteSubtitle', 'Insert a footnote reference'),
+            titleKey: 'footnote', titleDefault: 'Footnote',
+            subtitleKey: 'footnoteSubtitle', subtitleDefault: 'Insert a footnote reference',
             keywords: ['footnote', 'reference', 'citation'],
             group: 'text',
             command: ({ editor, range }) => {
@@ -131,8 +143,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
     ...(options.citation !== false ? [
         {
             id: 'citation',
-            title: t('citation', 'Citation'),
-            subtitle: t('citationSubtitle', 'Insert a citation reference'),
+            titleKey: 'citation', titleDefault: 'Citation',
+            subtitleKey: 'citationSubtitle', subtitleDefault: 'Insert a citation reference',
             keywords: ['citation', 'reference', 'bibliography', 'key'],
             group: 'text',
             command: ({ editor, range }) => {
@@ -160,8 +172,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
     ...(options.mermaid !== false ? [
         {
             id: 'mermaid',
-            title: t('slash.mermaid', 'Mermaid Diagram'),
-            subtitle: t('slash.mermaidDesc', 'Insert a mermaid diagram'),
+            titleKey: 'slash.mermaid', titleDefault: 'Mermaid Diagram',
+            subtitleKey: 'slash.mermaidDesc', subtitleDefault: 'Insert a mermaid diagram',
             keywords: ['mermaid', 'diagram', 'chart'],
             group: 'media',
             command: ({ editor, range }) => {
@@ -172,8 +184,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
     ...(options.math !== false ? [
         {
             id: 'math',
-            title: t('slash.math', 'Math Block'),
-            subtitle: t('slash.mathDesc', 'Insert a LaTeX math block'),
+            titleKey: 'slash.math', titleDefault: 'Math Block',
+            subtitleKey: 'slash.mathDesc', subtitleDefault: 'Insert a LaTeX math block',
             keywords: ['math', 'latex', 'formula'],
             group: 'text',
             command: ({ editor, range }) => {
@@ -183,8 +195,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
     ] : []),
     {
         id: 'blockquote',
-        title: t('quote', 'Quote'),
-        subtitle: t('quoteSubtitle', 'Capture a quote'),
+        titleKey: 'quote', titleDefault: 'Quote',
+        subtitleKey: 'quoteSubtitle', subtitleDefault: 'Capture a quote',
         keywords: ['quote', 'blockquote'],
         group: 'text',
         command: ({ editor, range }) => {
@@ -193,8 +205,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
     },
     {
         id: 'codeBlock',
-        title: t('codeBlock', 'Code Block'),
-        subtitle: t('codeBlockSubtitle', 'Insert a block of code'),
+        titleKey: 'codeBlock', titleDefault: 'Code Block',
+        subtitleKey: 'codeBlockSubtitle', subtitleDefault: 'Insert a block of code',
         keywords: ['code', 'block', 'pre'],
         group: 'text',
         command: ({ editor, range }) => {
@@ -203,8 +215,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
     },
     {
         id: 'table',
-        title: t('insertTable', 'Table'),
-        subtitle: t('tableSubtitle', 'Insert a 3x3 table'),
+        titleKey: 'insertTable', titleDefault: 'Table',
+        subtitleKey: 'tableSubtitle', subtitleDefault: 'Insert a 3x3 table',
         keywords: ['table', 'grid'],
         group: 'media',
         command: ({ editor, range }) => {
@@ -213,8 +225,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
     },
     ...(options.onShowMediaLibrary ? [{
         id: 'image',
-        title: t('insertImage', 'Image'),
-        subtitle: t('imageSubtitle', 'Upload or select an image'),
+        titleKey: 'insertImage', titleDefault: 'Image',
+        subtitleKey: 'imageSubtitle', subtitleDefault: 'Upload or select an image',
         keywords: ['image', 'picture', 'photo'],
         group: 'media',
         command: ({ editor, range }) => {
@@ -224,8 +236,8 @@ export const getDefaultSlashItems = (t, options = {}) => [
     }] : []),
     ...(options.onAddYoutube ? [{
         id: 'youtube',
-        title: t('embedYoutube', 'YouTube Video'),
-        subtitle: t('youtubeSubtitle', 'Embed a YouTube video'),
+        titleKey: 'embedYoutube', titleDefault: 'YouTube Video',
+        subtitleKey: 'youtubeSubtitle', subtitleDefault: 'Embed a YouTube video',
         keywords: ['youtube', 'video', 'embed'],
         group: 'media',
         command: ({ editor, range }) => {
@@ -235,12 +247,12 @@ export const getDefaultSlashItems = (t, options = {}) => [
     }] : []),
     {
         id: 'horizontalRule',
-        title: t('horizontalRule', 'Divider'),
-        subtitle: t('hrSubtitle', 'Insert a horizontal line'),
+        titleKey: 'horizontalRule', titleDefault: 'Divider',
+        subtitleKey: 'hrSubtitle', subtitleDefault: 'Insert a horizontal line',
         keywords: ['hr', 'divider', 'line', 'horizontal rule'],
         group: 'text',
         command: ({ editor, range }) => {
             editor.chain().focus().deleteRange(range).setHorizontalRule().run();
         }
     }
-];
+].map(item => localized(t, item));
