@@ -20,9 +20,23 @@ carry small breaking changes, called out below).
   A host on an older TipTap or Mermaid must update them together with this release (npm reports
   the peer mismatch). All 23 TipTap packages should stay on one version.
 
+### Added
+- Support for the current majors of the optional and UI peers. The peer ranges now also accept
+  `lucide-react` 1.x, `i18next` 26, `react-i18next` 17, `diff` 9, `katex` 0.18 and `mermaid` 12; the
+  test suite passes on both the previous and the new major of each.
+
 ### Changed
-- The development lockfile is refreshed within its ranges (TipTap 3.31.4, React 19.3, Vite 8.3,
-  Vitest 4.1.11), clearing every `npm audit` finding in this repo's own toolchain.
+- The YouTube toolbar tool, bubble menu and modal use lucide's `SquarePlay` icon instead of its
+  `Youtube` brand icon, which lucide-react 1.0 removed (with every brand icon). `SquarePlay` exists
+  in both 0.577 and 1.x, so the icon renders whichever lucide the host has.
+- Mermaid diagrams are pinned to the classic look and the dagre layout (Mermaid 11's defaults), so
+  a document draws the same on Mermaid 11 and 12, whose defaults changed to the "neo" look and the
+  ELK layout. A diagram can still choose its own through its frontmatter config.
+- Development moves to Vitest 5, jsdom 29 and jest-dom 7, which need Node 22.12 or later; CI now
+  runs on Node 24 like the release and Pages workflows. The development lockfile is refreshed
+  (TipTap 3.31.4, React 19.3, Vite 8.3), clearing every `npm audit` finding in this repo's own
+  toolchain. This repo still develops against Mermaid 11: Mermaid 12.0.0 depends on a `lodash-es`
+  with open advisories (through chevrotain), which a host that chooses Mermaid 12 inherits.
 
 ## [0.4.0] - 2026-09-25
 

@@ -21,6 +21,14 @@ describe('YoutubeEmbedModal', () => {
         expect(container).toBeEmptyDOMElement();
     });
 
+    it('renders the translated experimental notice with its bold "Direct Link" (Trans)', async () => {
+        render(<YoutubeEmbedModal isOpen onClose={() => {}} onConfirm={() => {}} />);
+        await user.click(screen.getByText('Search YouTube (Experimental)'));
+        // en.json maps the <strong> child to <1>…</1>; the notice must keep it bold.
+        const bold = screen.getByText('Direct Link', { selector: 'strong' });
+        expect(bold.parentElement.textContent).toMatch(/^External search uses public proxy instances which can be unreliable\. If search fails, please use the Direct Link tab instead\.$/);
+    });
+
     it('previews a valid URL and confirms with the extracted id', async () => {
         const onConfirm = vi.fn();
         render(<YoutubeEmbedModal isOpen onClose={() => {}} onConfirm={onConfirm} />);
