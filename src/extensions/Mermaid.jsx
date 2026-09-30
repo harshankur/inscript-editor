@@ -33,7 +33,11 @@ const MermaidComponent = (props) => {
             }
             try {
                 if (!mermaidInitialized) {
-                    mermaid.initialize({ startOnLoad: false, theme: 'default' });
+                    // look/layout pinned to Mermaid 11's defaults: Mermaid 12 switched its defaults
+                    // to the "neo" look and the ELK layout, so the same document would otherwise
+                    // draw differently depending on the host's Mermaid. A diagram can still opt in
+                    // through its own frontmatter config.
+                    mermaid.initialize({ startOnLoad: false, theme: 'default', look: 'classic', layout: 'dagre' });
                     mermaidInitialized = true;
                 }
                 const { svg: renderedSvg } = await mermaid.render(idRef.current, code);
