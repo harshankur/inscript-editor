@@ -5,6 +5,25 @@ All notable changes to `inscript-editor` are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (pre-1.0: minor versions may
 carry small breaking changes, called out below).
 
+## [0.4.1] - 2026-09-30
+
+### Security
+- **Raised the minimum TipTap and Mermaid versions to patched releases.** The peer ranges allowed
+  versions with published advisories, and the editor exercises both code paths:
+  - every `@tiptap/*` peer is now `^3.30.5` (was as low as `^3.20.4`). Earlier `@tiptap/core`
+    releases have a high-severity ReDoS in its Markdown attribute parsing (GHSA-j95f-988m-3j2f, fixed
+    in 3.30.5) and a `mergeAttributes()` `__proto__` issue (GHSA-cp6q-959q-f8rh, fixed in 3.30.4),
+    which several of this editor's extensions call;
+  - `mermaid` is now `^11.16.1` (was `^11.16.0`): 11.16.0 has five advisories (CSS injection,
+    prototype pollution, and two denial-of-service bugs) reachable from diagrams in a document.
+
+  A host on an older TipTap or Mermaid must update them together with this release (npm reports
+  the peer mismatch). All 23 TipTap packages should stay on one version.
+
+### Changed
+- The development lockfile is refreshed within its ranges (TipTap 3.31.4, React 19.3, Vite 8.3,
+  Vitest 4.1.11), clearing every `npm audit` finding in this repo's own toolchain.
+
 ## [0.4.0] - 2026-09-25
 
 Version history, reworked. Documents opened with existing content showed an empty history, the
@@ -279,6 +298,7 @@ behaviour changes are listed under **Changed**.
 
 - First tagged release of the standalone `inscript-editor` package extracted from Inscript.
 
+[0.4.1]: https://github.com/harshankur/inscript-editor/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/harshankur/inscript-editor/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/harshankur/inscript-editor/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/harshankur/inscript-editor/compare/v0.3.1...v0.3.2
