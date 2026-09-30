@@ -7,7 +7,7 @@ import {
     Palette, Quote, Redo, Strikethrough,
     Subscript as SubscriptIcon, Superscript as SuperscriptIcon,
     Tag, Underline as UnderlineIcon, Undo,
-    Youtube as YoutubeIcon, Table as TableIcon,
+    SquarePlay as YoutubeIcon, Table as TableIcon,
     SquareCheck, BookType, MessageSquareQuote, Link2, Workflow, Sigma, BookOpen,
     Info, Lightbulb, CircleAlert, TriangleAlert, OctagonAlert, TextSelect,
     SlidersHorizontal,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
-import { Filter, Plus, X, Youtube as YoutubeIcon } from 'lucide-react';
+import { Filter, Plus, X, SquarePlay as YoutubeIcon } from 'lucide-react';
 import { InlineNotice } from './InlineNotice.jsx';
 import { extractYoutubeId } from '../utils/youtubeUrl.js';
 import { useInscriptEditorTranslations } from '../hooks/useInscriptEditorTranslations.js';

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { useEditorState } from '@tiptap/react';
-import { AlignCenter, AlignLeft, AlignRight, ExternalLink, Trash2, Youtube as YoutubeIcon } from 'lucide-react';
+import { AlignCenter, AlignLeft, AlignRight, ExternalLink, Trash2, SquarePlay as YoutubeIcon } from 'lucide-react';
 import { ToolbarButton } from '../ToolbarButton.jsx';
 import { SourceField } from './SourceField.jsx';
 import { extractYoutubeId } from '../../utils/youtubeUrl.js';

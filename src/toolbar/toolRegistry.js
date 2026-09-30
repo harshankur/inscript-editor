@@ -19,7 +19,7 @@ import {
     Code, SquareCode, Quote, Minus, RemoveFormatting,
     Info,
     Sigma, Workflow,
-    Image as ImageIcon, Youtube as YoutubeIcon, Table as TableIcon, Tag,
+    Image as ImageIcon, SquarePlay as YoutubeIcon, Table as TableIcon, Tag,
 } from 'lucide-react';
 
 /** Sentinel value used to represent a divider in a serialized config. */
