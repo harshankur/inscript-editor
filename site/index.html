@@ -199,9 +199,7 @@ npm install react react-dom @tiptap/core \
     &lt;/&gt;
   );
 }</pre>
-                    <p class="recipe-sub">Each component ships its own header and collapse control. To let your panel header be the only one, hide theirs with a line of CSS:</p>
-                    <pre class="codeblock"><span class="c">/* hide the embedded component's own header (its first child) */</span>
-.panel &gt; * &gt; :first-child { display: none; }</pre>
+                    <p class="recipe-sub">Each component ships its own header and collapse control. <code>chrome={false}</code> (used above) drops them, along with the border and fixed width, so your panel's header is the only one; no CSS overrides needed. Prefer to keep their header? <code>collapsible={false}</code> removes just the collapse button.</p>
                 </div>
 
                 <p style="text-align:center;margin-top:28px;">
