@@ -10,15 +10,17 @@ describe('DocumentOutline component', () => {
     beforeEach(() => {
         editor = createEditor();
         const store = {};
-        global.localStorage = {
+        // stubGlobal, not assignment: jsdom's window.localStorage is getter-only under Vitest 5.
+        vi.stubGlobal('localStorage', {
             getItem: vi.fn(key => store[key] || null),
             setItem: vi.fn((key, value) => { store[key] = value.toString(); }),
             clear: vi.fn(() => { for (let key in store) delete store[key]; })
-        };
+        });
     });
 
     afterEach(() => {
         editor.destroy();
+        vi.unstubAllGlobals();
     });
 
     it('renders empty state when no headings', () => {
@@ -63,10 +65,10 @@ describe('DocumentOutline component', () => {
     });
 
     it('does not crash when storage access throws (sandboxed iframe, blocked storage)', () => {
-        global.localStorage = {
+        vi.stubGlobal('localStorage', {
             getItem: () => { throw new Error('SecurityError'); },
             setItem: () => { throw new Error('SecurityError'); },
-        };
+        });
         editor.commands.setContent('<h1>Hi</h1>');
         expect(() => render(<DocumentOutline editor={editor} />)).not.toThrow();
         // Toggling still works in memory even though it can't be persisted.

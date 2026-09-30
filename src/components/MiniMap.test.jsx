@@ -63,20 +63,22 @@ describe('MiniMap component', () => {
     beforeEach(() => {
         editor = createEditor();
         const store = {};
-        global.localStorage = {
+        // stubGlobal, not assignment: jsdom's window.localStorage is getter-only under Vitest 5.
+        vi.stubGlobal('localStorage', {
             getItem: vi.fn(key => store[key] || null),
             setItem: vi.fn((key, value) => { store[key] = value.toString(); }),
             clear: vi.fn(() => { for (let key in store) delete store[key]; })
-        };
+        });
         // Mock ResizeObserver
-        global.ResizeObserver = class {
+        vi.stubGlobal('ResizeObserver', class {
             observe() {}
             disconnect() {}
-        };
+        });
     });
 
     afterEach(() => {
         editor.destroy();
+        vi.unstubAllGlobals();
     });
 
     it('renders a titled box per block and a readable heading label', () => {
