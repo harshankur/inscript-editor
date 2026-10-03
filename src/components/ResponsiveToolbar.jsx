@@ -17,6 +17,7 @@ import { ToolbarDropdown } from './ToolbarDropdown.jsx';
 import { ToolbarCustomizer } from './ToolbarCustomizer.jsx';
 import { ColorSelector } from './ColorSelector.jsx';
 import { HighlightSelector } from './HighlightSelector.jsx';
+import { useEditorTransaction } from '../hooks/useEditorTransaction.js';
 import { TEXT_COLOR_PRESETS } from '../constants.js';
 import { FontSizeSelector } from './FontSizeSelector.jsx';
 import { LinkSelector } from './LinkSelector.jsx';
@@ -229,6 +230,9 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
 
     const activeConfig = toolbarConfig ?? TOOLBAR_PRESETS.full;
 
+    // The tools read the editor (active marks, colours, what can be undone), so they are rebuilt
+    // on every transaction, not only when a prop changes.
+    const editorVersion = useEditorTransaction(editor);
     const tools = useMemo(() => {
         if (!editor) return [];
         const toolMap = buildToolMap(editor, {
@@ -237,7 +241,7 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
             onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t
         });
         return configToSlots(activeConfig, toolMap);
-    }, [editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t, activeConfig]);
+    }, [editor, editorVersion, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t, activeConfig]);
 
     // Mirror `tools` into a ref so the resize handler always reads the latest list.
     const toolsRef = useRef(tools);

@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BubbleMenu } from '@tiptap/react/menus';
 import {
@@ -8,6 +9,7 @@ import {
 } from 'lucide-react';
 import { ColorSelector } from '../ColorSelector.jsx';
 import { HighlightSelector } from '../HighlightSelector.jsx';
+import { useEditorTransaction } from '../../hooks/useEditorTransaction.js';
 import { TEXT_COLOR_PRESETS } from '../../constants.js';
 import { FontSizeSelector } from '../FontSizeSelector.jsx';
 import { LinkSelector } from '../LinkSelector.jsx';
@@ -188,6 +190,16 @@ function buildToolMap(editor, t, onAddAbbreviation) {
 export const TextBubbleMenu = ({ editor, isReadonly, bubbleMenuConfig, onAddAbbreviation }) => {
     useInscriptEditorTranslations();
     const { t } = useTranslation('inscript-editor');
+    // The tools' active states are read from the editor while rendering.
+    useEditorTransaction(editor);
+    // Stable identity: TipTap's BubbleMenu dispatches a transaction whenever this prop changes,
+    // so an inline function would dispatch one on every render (and, in a menu that re-renders
+    // on transactions, loop forever).
+    const shouldShow = useCallback(({ editor: current }) => {
+        if (isReadonly || current.isActive('image') || current.isActive('youtube')) return false;
+        const isCellSelection = '$anchorCell' in current.state.selection;
+        return !current.state.selection.empty && !isCellSelection;
+    }, [isReadonly]);
 
     if (!editor) return null;
 
@@ -197,11 +209,7 @@ export const TextBubbleMenu = ({ editor, isReadonly, bubbleMenuConfig, onAddAbbr
     return (
         <BubbleMenu
             editor={editor}
-            shouldShow={({ editor }) => {
-                if (isReadonly || editor.isActive('image') || editor.isActive('youtube')) return false;
-                const isCellSelection = '$anchorCell' in editor.state.selection;
-                return !editor.state.selection.empty && !isCellSelection;
-            }}
+            shouldShow={shouldShow}
             tippyOptions={{ duration: 100, zIndex: 9999, maxWidth: '98vw', interactive: true }}
         >
             <div className="bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl flex items-center p-1 gap-1 flex-wrap overflow-visible max-w-[90vw] custom-scrollbar">

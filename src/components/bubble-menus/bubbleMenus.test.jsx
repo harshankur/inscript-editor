@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createEditor } from '../../../tests/helpers/createEditor.js';
 import { TextBubbleMenu } from './TextBubbleMenu.jsx';
@@ -7,8 +7,14 @@ import { YoutubeBubbleMenu } from './YoutubeBubbleMenu.jsx';
 import { TableBubbleMenu } from './TableBubbleMenu.jsx';
 import { EmbedBubbleMenu } from './EmbedBubbleMenu.jsx';
 
+// Every shouldShow the (mocked) BubbleMenu is rendered with, in order.
+const seenShouldShow = vi.hoisted(() => []);
+
 vi.mock('@tiptap/react/menus', () => ({
-    BubbleMenu: ({ children }) => <div data-testid="bubble-menu">{children}</div>,
+    BubbleMenu: ({ children, shouldShow }) => {
+        seenShouldShow.push(shouldShow);
+        return <div data-testid="bubble-menu">{children}</div>;
+    },
     FloatingMenu: ({ children }) => <div>{children}</div>,
 }));
 
@@ -17,6 +23,35 @@ describe('bubble menus', () => {
 
     afterEach(() => {
         editor?.destroy();
+    });
+
+    // TipTap's BubbleMenu dispatches a transaction whenever its shouldShow prop changes
+    // identity. An inline function therefore dispatched one on every render, and a menu that
+    // re-renders on transactions looped until React gave up ("Maximum update depth exceeded").
+    describe('shouldShow keeps one identity across renders and transactions', () => {
+        it.each([
+            ['TextBubbleMenu', TextBubbleMenu],
+            ['TableBubbleMenu', TableBubbleMenu],
+            ['ImageBubbleMenu', ImageBubbleMenu],
+            ['YoutubeBubbleMenu', YoutubeBubbleMenu],
+            ['EmbedBubbleMenu', EmbedBubbleMenu],
+        ])('%s', (name, Menu) => {
+            editor = createEditor();
+            editor.commands.setContent('<p>hello <strong>bold</strong></p>');
+            seenShouldShow.length = 0;
+            const { rerender } = render(<Menu editor={editor} isReadonly={false} />);
+            act(() => { editor.commands.setTextSelection(3); });
+            act(() => { editor.commands.insertContent('x'); });
+            rerender(<Menu editor={editor} isReadonly={false} />);
+            expect(seenShouldShow.length).toBeGreaterThan(1);
+            expect(new Set(seenShouldShow).size).toBe(1);
+            expect(typeof seenShouldShow[0]).toBe('function');
+
+            // A real change in what it decides (read-only) is a new function, as it must be.
+            rerender(<Menu editor={editor} isReadonly />);
+            expect(new Set(seenShouldShow).size).toBe(2);
+            expect(seenShouldShow.at(-1)({ editor })).toBe(false);
+        });
     });
 
     describe('TextBubbleMenu', () => {
@@ -29,6 +64,16 @@ describe('bubble menus', () => {
         it('renders null without an editor', () => {
             const { container } = render(<TextBubbleMenu editor={null} />);
             expect(container).toBeEmptyDOMElement();
+        });
+
+        it('shows a mark as active once it is toggled, with no re-render from outside', () => {
+            render(<TextBubbleMenu editor={editor} />);
+            const lit = () => screen.getByTitle('Bold').className.includes('inscript-color-accent');
+            expect(lit()).toBe(false);
+            fireEvent.click(screen.getByTitle('Bold'));
+            expect(lit()).toBe(true);
+            act(() => { editor.commands.unsetBold(); });
+            expect(lit()).toBe(false);
         });
 
         it('toggles bold/italic on the current selection', () => {
@@ -200,6 +245,17 @@ describe('bubble menus', () => {
         beforeEach(() => {
             editor = createEditor();
             editor.commands.insertTable({ rows: 2, cols: 2, withHeaderRow: true });
+        });
+
+        it('shows the chosen placement as active as soon as it is clicked', () => {
+            render(<TableBubbleMenu editor={editor} />);
+            const lit = title => screen.getByTitle(title).className.includes('shadow-inner');
+            expect(lit('Align Center')).toBe(true);
+            expect(lit('Align Right')).toBe(false);
+            fireEvent.click(screen.getByTitle('Align Right'));
+            expect(lit('Align Right')).toBe(true);
+            expect(lit('Align Center')).toBe(false);
+            expect(editor.getHTML()).toContain('<table data-align="right"');
         });
 
         it('adds a column via Add Column Right', () => {

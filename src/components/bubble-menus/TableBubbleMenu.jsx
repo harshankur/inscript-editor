@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BubbleMenu } from '@tiptap/react/menus';
 import {
@@ -8,20 +9,27 @@ import {
 import { ToolbarButton } from '../ToolbarButton.jsx';
 import { getTableNode, isHeaderRowActive, isHeaderColumnActive, setTableLayout } from '../../utils/tableHelpers.js';
 import { TABLE_ALIGN } from '../../constants.js';
+import { useEditorTransaction } from '../../hooks/useEditorTransaction.js';
 import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTranslations.js';
 
 export const TableBubbleMenu = ({ editor, isReadonly }) => {
     useInscriptEditorTranslations();
     const { t } = useTranslation('inscript-editor');
+    // The active placement and header toggles are read from the editor while rendering.
+    useEditorTransaction(editor);
+    // Stable identity: TipTap's BubbleMenu dispatches a transaction whenever this prop changes,
+    // so an inline function would dispatch one on every render (and, in a menu that re-renders
+    // on transactions, loop forever).
+    const shouldShow = useCallback(({ editor: current }) => {
+        if (isReadonly) return false;
+        return '$anchorCell' in current.state.selection;
+    }, [isReadonly]);
     if (!editor) return null;
     return (
         <BubbleMenu
             editor={editor}
             pluginKey="tableBubbleMenu"
-            shouldShow={({ editor }) => {
-                if (isReadonly) return false;
-                return '$anchorCell' in editor.state.selection;
-            }}
+            shouldShow={shouldShow}
             tippyOptions={{ duration: 100, zIndex: 9999, maxWidth: '98vw', interactive: true, placement: 'bottom' }}
         >
             <div className="bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl flex items-center p-1 gap-1 flex-wrap overflow-visible max-w-[90vw] custom-scrollbar">

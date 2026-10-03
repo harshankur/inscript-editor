@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ResponsiveToolbar } from './ResponsiveToolbar.jsx';
 import { TOOLBAR_SIZES } from './ToolbarButton.jsx';
@@ -210,5 +210,56 @@ describe('ResponsiveToolbar input tools (abbreviation / citation / wikilink)', (
         expect(() => fireEvent.click(screen.getByTitle('Insert Wikilink'))).not.toThrow();
         expect(promptSpy).not.toHaveBeenCalled(); // guarded before prompting
         promptSpy.mockRestore();
+    });
+});
+
+// The toolbar reads the editor while rendering (active marks, colours). TipTap 3 does not
+// re-render React on transactions, so without its own subscription the buttons showed whatever
+// was true at the last unrelated re-render: Bold never lit up, and nothing followed the cursor.
+describe('ResponsiveToolbar follows the editor without a host re-render', () => {
+    let editor;
+    let originalClientWidth;
+    const isActive = title => screen.getByTitle(title).className.includes('shadow-inner');
+
+    beforeEach(() => {
+        editor = createEditor();
+        editor.commands.setContent('<p>plain <strong>bold</strong></p>');
+        originalClientWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth');
+        stubClientWidth(4000);
+    });
+
+    afterEach(() => {
+        editor.destroy();
+        if (originalClientWidth) Object.defineProperty(HTMLElement.prototype, 'clientWidth', originalClientWidth);
+    });
+
+    it('lights a button when its mark is toggled, and clears it again', () => {
+        render(<ResponsiveToolbar editor={editor} />);
+        act(() => { editor.commands.setTextSelection({ from: 1, to: 6 }); });
+        expect(isActive('Bold')).toBe(false);
+        fireEvent.click(screen.getByTitle('Bold'));
+        expect(editor.isActive('bold')).toBe(true);
+        expect(isActive('Bold')).toBe(true);
+        fireEvent.click(screen.getByTitle('Bold'));
+        expect(isActive('Bold')).toBe(false);
+    });
+
+    it('follows the cursor into and out of formatted text', () => {
+        render(<ResponsiveToolbar editor={editor} />);
+        act(() => { editor.commands.setTextSelection(9); });
+        expect(isActive('Bold')).toBe(true);
+        act(() => { editor.commands.setTextSelection(3); });
+        expect(isActive('Bold')).toBe(false);
+    });
+
+    it('shows the active highlight on its button as the selection changes', () => {
+        editor.commands.setContent('<p>plain <mark data-color="#bbf7d0">green</mark> <mark>default</mark></p>');
+        render(<ResponsiveToolbar editor={editor} />);
+        act(() => { editor.commands.setTextSelection(3); });
+        expect(isActive('Highlight Color')).toBe(false);
+        act(() => { editor.commands.setTextSelection(9); });
+        expect(isActive('Highlight Color')).toBe(true);
+        act(() => { editor.commands.setTextSelection(16); });
+        expect(isActive('Highlight Color')).toBe(true);
     });
 });

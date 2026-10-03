@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { useEditorState } from '@tiptap/react';
@@ -16,12 +17,16 @@ export const ImageBubbleMenu = ({ editor, isReadonly }) => {
             return { src: a.src || '', alt: a.alt || '', width: a.width, align: a.align };
         },
     }) || {};
+    // Stable identity: TipTap's BubbleMenu dispatches a transaction whenever this prop changes,
+    // so an inline function would dispatch one on every render (and a menu that
+    // re-renders on transactions would loop forever).
+    const shouldShow = useCallback(({ editor: current }) => !isReadonly && current.isActive('image'), [isReadonly]);
     if (!editor) return null;
     return (
         <BubbleMenu
             editor={editor}
             pluginKey="imageBubbleMenu"
-            shouldShow={({ editor }) => !isReadonly && editor.isActive('image')}
+            shouldShow={shouldShow}
             tippyOptions={{ duration: 100, zIndex: 9999, maxWidth: '98vw', interactive: true, placement: 'top' }}
         >
             <div className="bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl flex items-center p-1 gap-1 overflow-visible custom-scrollbar">

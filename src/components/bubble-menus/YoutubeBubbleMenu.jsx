@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { useEditorState } from '@tiptap/react';
@@ -22,12 +23,16 @@ export const YoutubeBubbleMenu = ({ editor, isReadonly, onOpenExternal }) => {
             return { id: a['data-youtube-video'] || '', width: a.width, align: a.align };
         },
     }) || {};
+    // Stable identity: TipTap's BubbleMenu dispatches a transaction whenever this prop changes,
+    // so an inline function would dispatch one on every render (and a menu that
+    // re-renders on transactions would loop forever).
+    const shouldShow = useCallback(({ editor: current }) => !isReadonly && current.isActive('youtube'), [isReadonly]);
     if (!editor) return null;
     return (
         <BubbleMenu
             editor={editor}
             pluginKey="youtubeBubbleMenu"
-            shouldShow={({ editor }) => !isReadonly && editor.isActive('youtube')}
+            shouldShow={shouldShow}
             tippyOptions={{ duration: 100, zIndex: 9999, maxWidth: '98vw', interactive: true, placement: 'top' }}
         >
             <div className="bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl flex items-center p-1 gap-1 overflow-visible custom-scrollbar">
