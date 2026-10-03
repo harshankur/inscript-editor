@@ -68,6 +68,7 @@
   "headings": "Heading",
   "highlight": "Highlight",
   "highlightColor": "Highlight Color",
+  "highlightDefault": "Default highlight",
   "historyChangedOutside": "Changed outside the app",
   "historyEmbedPlaceholder": "Embedded content: {{source}}",
   "historyEmpty": "No versions yet. Versions are recorded as you edit.",

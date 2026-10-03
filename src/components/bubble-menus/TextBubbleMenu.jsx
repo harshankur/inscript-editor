@@ -1,12 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import { BubbleMenu } from '@tiptap/react/menus';
 import {
-    Bold, Code, Highlighter, Italic, Palette, Quote,
+    Bold, Code, Italic, Palette, Quote,
     Underline as UnderlineIcon, Strikethrough,
     Subscript as SubscriptIcon, Superscript as SuperscriptIcon,
     TextSelect, RemoveFormatting,
 } from 'lucide-react';
 import { ColorSelector } from '../ColorSelector.jsx';
+import { HighlightSelector } from '../HighlightSelector.jsx';
+import { TEXT_COLOR_PRESETS } from '../../constants.js';
 import { FontSizeSelector } from '../FontSizeSelector.jsx';
 import { LinkSelector } from '../LinkSelector.jsx';
 import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTranslations.js';
@@ -111,15 +113,7 @@ function buildToolMap(editor, t, onAddAbbreviation) {
         highlight: {
             id: 'highlight',
             render: () => (
-                <ColorSelector
-                    icon={Highlighter}
-                    title={t('highlight', 'Highlight')}
-                    activeColor={editor.getAttributes('highlight').color}
-                    onChange={(color) => editor.chain().focus().toggleHighlight({ color }).run()}
-                    onRemove={() => editor.chain().focus().unsetHighlight().run()}
-                    presets={['#fef08a', '#bbf7d0', '#bfdbfe', '#fbcfe8', '#e9d5ff', '#fed7aa', '#fecaca']}
-                    variant="highlight"
-                />
+                <HighlightSelector editor={editor} title={t('highlight', 'Highlight')} />
             )
         },
         color: {
@@ -131,7 +125,7 @@ function buildToolMap(editor, t, onAddAbbreviation) {
                     activeColor={editor.getAttributes('textStyle').color}
                     onChange={(color) => editor.chain().focus().setColor(color).run()}
                     onRemove={() => editor.chain().focus().unsetColor().run()}
-                    presets={['#000000', '#2563eb', '#dc2626', '#16a34a', '#d97706', '#9333ea', '#71717a']}
+                    presets={TEXT_COLOR_PRESETS}
                     variant="text"
                 />
             )

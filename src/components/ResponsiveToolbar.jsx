@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
     AlignCenter, AlignJustify, AlignLeft, AlignRight,
     Bold, ChevronsRight, Code, SquareCode, Minus, RemoveFormatting, Heading1, Heading2, Heading3,
-    Highlighter, Image as ImageIcon, Italic, List, ListOrdered,
+    Image as ImageIcon, Italic, List, ListOrdered,
     Palette, Quote, Redo, Strikethrough,
     Subscript as SubscriptIcon, Superscript as SuperscriptIcon,
     Tag, Underline as UnderlineIcon, Undo,
@@ -16,6 +16,8 @@ import { ToolbarButton, TOOLBAR_SIZES } from './ToolbarButton.jsx';
 import { ToolbarDropdown } from './ToolbarDropdown.jsx';
 import { ToolbarCustomizer } from './ToolbarCustomizer.jsx';
 import { ColorSelector } from './ColorSelector.jsx';
+import { HighlightSelector } from './HighlightSelector.jsx';
+import { TEXT_COLOR_PRESETS } from '../constants.js';
 import { FontSizeSelector } from './FontSizeSelector.jsx';
 import { LinkSelector } from './LinkSelector.jsx';
 import { useInscriptEditorTranslations } from '../hooks/useInscriptEditorTranslations.js';
@@ -67,15 +69,7 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
             id: 'highlight', type: 'custom',
             width: TOOLBAR_SIZES.CUSTOM,
             render: () => (
-                <ColorSelector
-                    icon={Highlighter}
-                    title={t('highlightColor', 'Highlight Color')}
-                    activeColor={editor?.getAttributes('highlight').color}
-                    onChange={(color) => editor.chain().focus().toggleHighlight({ color }).run()}
-                    onRemove={() => editor.chain().focus().unsetHighlight().run()}
-                    presets={['#fef08a', '#bbf7d0', '#bfdbfe', '#fbcfe8', '#e9d5ff', '#fed7aa', '#fecaca']}
-                    variant="highlight"
-                />
+                <HighlightSelector editor={editor} title={t('highlightColor', 'Highlight Color')} />
             )
         },
         color: {
@@ -88,7 +82,7 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
                     activeColor={editor?.getAttributes('textStyle').color}
                     onChange={(color) => editor.chain().focus().setColor(color).run()}
                     onRemove={() => editor.chain().focus().unsetColor().run()}
-                    presets={['#000000', '#2563eb', '#dc2626', '#16a34a', '#d97706', '#9333ea', '#71717a']}
+                    presets={TEXT_COLOR_PRESETS}
                     variant="text"
                 />
             )

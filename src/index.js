@@ -23,6 +23,7 @@ export {
     DEFAULT_TOOLBAR_CONFIG, DEFAULT_BUBBLE_CONFIG,
 } from './toolbar/presets.js';
 export { ColorSelector } from './components/ColorSelector.jsx';
+export { HighlightSelector } from './components/HighlightSelector.jsx';
 export { FontSizeSelector } from './components/FontSizeSelector.jsx';
 export { LinkSelector } from './components/LinkSelector.jsx';
 export { ResponsiveToolbar } from './components/ResponsiveToolbar.jsx';

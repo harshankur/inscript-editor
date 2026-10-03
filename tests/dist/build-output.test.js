@@ -33,6 +33,7 @@ const PUBLIC_SYMBOLS = [
     'PRESET_LABELS',
     'BUBBLE_PRESETS',
     'ColorSelector',
+    'HighlightSelector',
     'FontSizeSelector',
     'LinkSelector',
     'ResponsiveToolbar',

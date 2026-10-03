@@ -468,9 +468,17 @@ export const ColorSelector: (props: {
     activeColor?: string;
     onChange: (color: string) => void;
     onRemove: () => void;
-    presets: string[];
+    presets: readonly string[];
     variant?: 'text' | 'highlight';
+    /** A first swatch for a choice with no colour of its own (the default highlight): how to
+     *  draw it, its label, whether it is the current choice, and what picking it does. */
+    defaultSwatch?: { css: string; title: string; active?: boolean; onSelect: () => void };
 }) => ReactNode;
+
+/** The highlight picker used by the toolbar and the bubble menu. Its first swatch applies the
+ *  default highlight, a plain `<mark>` drawn from the theme's mark token (the one highlight a
+ *  Markdown round trip keeps as `==text==`); the others set a colour. */
+export const HighlightSelector: (props: { editor: Editor | null; title: string }) => ReactNode;
 
 export const FontSizeSelector: (props: { editor: Editor | null }) => ReactNode;
 export const LinkSelector: (props: { editor: Editor | null }) => ReactNode;

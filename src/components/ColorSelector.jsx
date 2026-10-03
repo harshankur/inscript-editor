@@ -3,20 +3,30 @@ import { useTranslation } from 'react-i18next';
 import { XCircle } from 'lucide-react';
 import { ToolbarButton } from './ToolbarButton.jsx';
 
-export const ColorSelector = ({ icon: Icon, title, activeColor, onChange, onRemove, presets, variant = 'text' }) => {
+/**
+ * A colour picker popover: preset swatches, a custom colour, and a reset.
+ *
+ * `defaultSwatch` adds a first swatch for a choice that carries no colour of its own (the
+ * default highlight): `{ css, title, active, onSelect }`, where `css` is how to draw it,
+ * `active` whether it is the current choice, and `onSelect` what picking it does.
+ */
+export const ColorSelector = ({ icon: Icon, title, activeColor, onChange, onRemove, presets, variant = 'text', defaultSwatch }) => {
     const { t } = useTranslation('inscript-editor');
     const [isOpen, setIsOpen] = useState(false);
+    const isDefaultActive = !!defaultSwatch?.active;
+    // What the button's indicator shows: the active colour, or the default swatch when that is active.
+    const indicatorColor = activeColor || (isDefaultActive ? defaultSwatch.css : undefined);
     return (
         <div className="relative">
             <ToolbarButton
                 onClick={() => setIsOpen(!isOpen)}
-                active={!!activeColor}
+                active={!!activeColor || isDefaultActive}
                 title={title}
             >
                 <div className="relative flex items-center justify-center">
                     <Icon size={16} style={{ color: variant === 'text' ? activeColor : undefined }} />
-                    {variant === 'highlight' && activeColor && (
-                        <span className="absolute -bottom-1 left-0 right-0 h-1 rounded-sm" style={{ backgroundColor: activeColor }} />
+                    {variant === 'highlight' && indicatorColor && (
+                        <span className="absolute -bottom-1 left-0 right-0 h-1 rounded-sm" style={{ backgroundColor: indicatorColor }} />
                     )}
                 </div>
             </ToolbarButton>
@@ -26,6 +36,16 @@ export const ColorSelector = ({ icon: Icon, title, activeColor, onChange, onRemo
                     <div className="absolute top-full right-0 md:left-1/2 md:-translate-x-1/2 mt-2 p-3 bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl z-[80] min-w-[200px] animate-in slide-in-from-top-2 fade-in">
                         <div className="text-xs font-medium text-[var(--inscript-color-muted)] mb-2 uppercase tracking-wider">{t('presets', 'Presets')}</div>
                         <div className="grid grid-cols-5 gap-1.5 mb-3">
+                            {defaultSwatch && (
+                                <button
+                                    onClick={() => { defaultSwatch.onSelect(); setIsOpen(false); }}
+                                    className={`w-6 h-6 rounded border ${isDefaultActive ? 'border-white ring-1 ring-white' : 'border-[var(--inscript-color-border-strong)] hover:scale-110 active:scale-95'} transition-all`}
+                                    style={{ backgroundColor: defaultSwatch.css }}
+                                    title={defaultSwatch.title}
+                                    aria-label={defaultSwatch.title}
+                                    aria-pressed={isDefaultActive}
+                                />
+                            )}
                             {presets.map(color => (
                                 <button
                                     key={color}
