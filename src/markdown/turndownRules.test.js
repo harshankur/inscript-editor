@@ -89,6 +89,57 @@ describe('applyInscriptEditorTurndownRules (real TurndownService)', () => {
         expect(toMd('<p><img src="a.png" alt="A" data-width="100%" data-align="center"></p>')).toBe('![A](a.png)');
     });
 
+    describe('formatting Markdown has no syntax for', () => {
+        it.each([
+            ['a plain highlight', '<p>a <mark>hi</mark> c</p>', 'a <mark>hi</mark> c'],
+            ['subscript and superscript', '<p>H<sub>2</sub>O x<sup>2</sup></p>', 'H<sub>2</sub>O x<sup>2</sup>'],
+            ['underline', '<p>an <u>underlined</u> word</p>', 'an <u>underlined</u> word'],
+        ])('keeps %s as its own tag', (label, html, md) => {
+            expect(toMd(editorHtml(html))).toBe(md);
+        });
+
+        it('keeps a coloured highlight with its colour, and Markdown inside it as Markdown', () => {
+            const md = toMd(editorHtml('<p>a <mark data-color="#bbf7d0">hi <strong>there</strong></mark> c</p>'));
+            // The editor nests bold outside the highlight, so the bold stays Markdown around it.
+            expect(md).toMatch(/^a <mark data-color="#bbf7d0" style="[^"]*background-color[^"]*">hi<\/mark> \*\*<mark data-color="#bbf7d0" style="[^"]*">there<\/mark>\*\* c$/);
+        });
+
+        it('keeps text colour and font size (a styled span)', () => {
+            const md = toMd(editorHtml('<p><span style="color: #dc2626">red</span> and <span style="font-size: 24px">big</span></p>'));
+            expect(md).toMatch(/^<span style="color: [^"]+">red<\/span> and <span style="font-size: 24px;?">big<\/span>$/);
+        });
+
+        it.each(['center', 'right', 'justify'])('keeps a %s-aligned paragraph and heading as HTML', (align) => {
+            const md = toMd(editorHtml(`<p style="text-align: ${align}">para <strong>bold</strong></p><h2 style="text-align: ${align}">head</h2>`));
+            expect(md).toBe(`<p style="text-align: ${align};">para <strong>bold</strong></p>\n\n<h2 style="text-align: ${align};">head</h2>`);
+        });
+
+        it('leaves a default-aligned paragraph and heading as plain Markdown', () => {
+            expect(toMd('<p style="text-align: left">para</p><h2 style="text-align: start">head</h2><p>plain</p>')).toBe('para\n\n## head\n\nplain');
+        });
+
+        it('writes nothing for an empty highlight', () => {
+            expect(toMd('<p>a<mark></mark>b <mark> </mark>c</p>')).toBe('ab c');
+        });
+
+        it('still gives citations, inline math and footnote references their own rules', () => {
+            const md = toMd('<p><span class="citation" data-key="k" style="color: red">[k]</span> <span class="math-inline" style="x: y">x</span> <sup><a data-footnote-ref href="#fn-1">1</a></sup></p>');
+            expect(md).toContain('<span class="citation" data-key="k" style="color: red">[k]</span>');
+            expect(md).toContain('<span class="math-inline" style="x: y">x</span>');
+            expect(md).toContain('<sup><a data-footnote-ref="" href="#fn-1">1</a></sup>');
+        });
+
+        it('round-trips through the editor: what was saved loads back as the same document', () => {
+            const original = editorHtml('<p>H<sub>2</sub>O, x<sup>2</sup>, <u>u</u>, <mark>plain</mark>, <mark data-color="#bbf7d0">green</mark>, <span style="color: #dc2626">red</span></p><p style="text-align: center">mid</p>');
+            const md = toMd(original);
+            editor.destroy();
+            // A Markdown renderer passes inline and block HTML through, wrapping the first line in <p>.
+            const [first, second] = md.split('\n\n');
+            editor = createEditor({ content: `<p>${first}</p>${second}` });
+            expect(editor.getHTML()).toBe(original);
+        });
+    });
+
     it('lets a host rule registered afterwards win (e.g. a YouTube shortcode)', () => {
         const td = makeTurndown();
         td.addRule('youtube', {

@@ -14,6 +14,36 @@ function ruleMatches(rule, node, options) {
 const raw = (content, node) => node.outerHTML;
 const rawBlock = (content, node) => `\n\n${node.outerHTML}\n\n`;
 
+// --- Formatting Markdown has no syntax for ---------------------------------------------------
+
+/** Inline formatting the toolbar offers that Markdown cannot write: kept as its own HTML tag. */
+const KEPT_INLINE_TAGS = ['mark', 'sub', 'sup', 'u'];
+/** Alignments that are the page default, so a block carrying one is still plain Markdown. */
+const DEFAULT_TEXT_ALIGNMENTS = ['left', 'start'];
+const TEXT_ALIGN_PATTERN = /(?:^|;)\s*text-align\s*:\s*([a-z-]+)/i;
+const ALIGNABLE_BLOCK_PATTERN = /^(P|H[1-6])$/;
+
+/**
+ * The element's own tags around its already-converted content, attributes included
+ * (`<mark data-color="…" style="…">` + content + `</mark>`), so Markdown inside it stays Markdown.
+ * An element with nothing in it writes nothing.
+ */
+function keepInlineTag(content, node) {
+    if (!content.trim()) return '';
+    const shell = node.cloneNode(false).outerHTML;
+    const closeAt = shell.lastIndexOf('</');
+    return `${shell.slice(0, closeAt)}${content}${shell.slice(closeAt)}`;
+}
+
+/** The non-default `text-align` a paragraph or heading carries, or null. */
+function blockTextAlign(node) {
+    if (!ALIGNABLE_BLOCK_PATTERN.test(node.nodeName)) return null;
+    const match = TEXT_ALIGN_PATTERN.exec(node.getAttribute('style') || '');
+    if (!match) return null;
+    const align = match[1].toLowerCase();
+    return DEFAULT_TEXT_ALIGNMENTS.includes(align) ? null : align;
+}
+
 // --- Tables ----------------------------------------------------------------------------
 
 const closestTable = node => {
@@ -97,6 +127,28 @@ export function applyInscriptEditorTurndownRules(turndownService) {
         claimed.push(rule);
         turndownService.addRule(key, rule);
     };
+
+    // Registered first, so every more specific rule below (citations and inline math are spans,
+    // footnote references are <sup>) wins over these: turndown tries the last rule added first.
+    //
+    // Highlight, subscript, superscript and underline have no Markdown syntax, and without a rule
+    // turndown keeps only their text ("H<sub>2</sub>O" saved as "H2O"). They keep their tag, and a
+    // coloured highlight its colour; what is inside still becomes Markdown.
+    add('inscriptInlineFormat', {
+        filter: KEPT_INLINE_TAGS,
+        replacement: keepInlineTag,
+    });
+    // Text colour and font size are a styled <span>: kept the same way.
+    add('inscriptStyledSpan', {
+        filter: node => node.nodeName === 'SPAN' && node.hasAttribute('style'),
+        replacement: keepInlineTag,
+    });
+    // A centred, right-aligned or justified paragraph or heading keeps its alignment as HTML;
+    // one with the default alignment stays plain Markdown.
+    add('inscriptAlignedBlock', {
+        filter: node => blockTextAlign(node) !== null,
+        replacement: rawBlock,
+    });
 
     // Preserve Mermaid
     add('inscriptMermaid', {
