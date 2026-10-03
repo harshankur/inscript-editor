@@ -316,6 +316,11 @@ img.ProseMirror-separator {
 /* Tiptap Table Styles */
 .ProseMirror table {
   @apply border-collapse table-fixed my-6 overflow-hidden shadow-xs;
+  /* Centred unless placed: the default placement is not written to the saved HTML, so this is
+     what centres an unplaced table wherever these rules apply (a placed one carries its own
+     inline margins, which win). */
+  margin-left: auto;
+  margin-right: auto;
   border: 1px solid var(--inscript-color-table-border, #e4e4e7);
   border-radius: var(--inscript-radius, 0.5rem);
 }

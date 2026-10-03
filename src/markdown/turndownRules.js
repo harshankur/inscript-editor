@@ -1,3 +1,5 @@
+import { DEFAULT_TABLE_ALIGN, TABLE_ALIGN_ATTRIBUTE } from '../constants.js';
+
 /**
  * Does a turndown rule's filter match this node? Mirrors turndown's own matching: a tag
  * name, a list of tag names, or a predicate `(node, options) => boolean`.
@@ -31,8 +33,8 @@ const tableRows = table => Array.from(table.rows || []);
 function isGfmTable(table) {
     if (table.__inscriptGfm !== undefined) return table.__inscriptGfm;
     const verdict = (() => {
-        const align = table.getAttribute('data-align');
-        if (align && align !== 'center') return false;
+        const align = table.getAttribute(TABLE_ALIGN_ATTRIBUTE);
+        if (align && align !== DEFAULT_TABLE_ALIGN) return false;
         const rows = tableRows(table);
         if (rows.length === 0) return false;
         const width = rows[0].cells.length;
