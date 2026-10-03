@@ -37,6 +37,35 @@ describe('task lists from GFM-rendered HTML', () => {
         expect(editor.state.doc.firstChild.type.name).toBe('bulletList');
     });
 
+    // officeParser's editor-bound HTML: a declared task list whose items carry data-checked but no
+    // data-type="taskItem". It used to load as one EMPTY task item plus a plain bullet list.
+    it('reads items of a declared task list that lack data-type="taskItem", keeping their state', () => {
+        editor = createEditor({ content: '<ul data-type="taskList">\n<li data-checked="false" style="text-align: left"><label><input type="checkbox"><span></span></label><div>open task</div></li>\n<li data-checked="true" style="text-align: left"><label><input type="checkbox" checked><span></span></label><div>done task</div></li></ul>' });
+        expect(items(editor)).toEqual([['open task', false], ['done task', true]]);
+        expect(editor.state.doc.firstChild.type.name).toBe('taskList');
+        const types = [];
+        editor.state.doc.descendants(n => { types.push(n.type.name); });
+        expect(types).not.toContain('bulletList'); // no stray plain list holding the texts
+        // Serialized in the editor's own shape, so the next load needs no special handling.
+        expect(editor.getHTML()).toContain('<ul data-type="taskList"><li data-checked="false" data-type="taskItem"><label><input type="checkbox"><span></span></label><div><p>open task</p></div></li><li data-checked="true" data-type="taskItem"><label><input type="checkbox" checked="checked"><span></span></label><div><p>done task</p></div></li></ul>');
+    });
+
+    it('reads the checked state from the label checkbox when data-checked is absent too', () => {
+        editor = createEditor({ content: '<ul data-type="taskList"><li><label><input type="checkbox" checked><span></span></label><div>done</div></li><li><label><input type="checkbox"><span></span></label><div>open</div></li><li><div>bare</div></li></ul>' });
+        expect(items(editor)).toEqual([['done', true], ['open', false], ['bare', false]]);
+    });
+
+    it('lets data-checked win over the checkbox inside the item', () => {
+        editor = createEditor({ content: '<ul data-type="taskList"><li data-checked="false"><label><input type="checkbox" checked><span></span></label><div>stated</div></li><li data-checked=""><label><input type="checkbox"><span></span></label><div>empty means checked</div></li></ul>' });
+        expect(items(editor)).toEqual([['stated', false], ['empty means checked', true]]);
+    });
+
+    it('does not turn items of an ordinary list into task items', () => {
+        editor = createEditor({ content: '<ul><li data-checked="true"><label><input type="checkbox" checked><span></span></label><div>not a task list</div></li></ul>' });
+        expect(editor.state.doc.firstChild.type.name).toBe('bulletList');
+        expect(items(editor)).toEqual([]);
+    });
+
     it("still reads the editor's own data-type shape", () => {
         editor = createEditor({ content: '<ul data-type="taskList"><li data-type="taskItem" data-checked="true"><p>Done</p></li></ul>' });
         expect(items(editor)).toEqual([['Done', true]]);
