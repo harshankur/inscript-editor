@@ -31,11 +31,14 @@ export const BibliographyPanel = ({ editor }) => {
     useEffect(() => {
         if (!editor) return;
 
-        editor.on('update', extractCitations);
+        // Any doc change, not only 'update': TipTap skips 'update' for content set with
+        // emitUpdate: false (a quiet load, a version restore), and those change the citations too.
+        const onTransaction = ({ transaction }) => { if (transaction.docChanged) extractCitations(); };
+        editor.on('transaction', onTransaction);
         extractCitations();
 
         return () => {
-            editor.off('update', extractCitations);
+            editor.off('transaction', onTransaction);
         };
     }, [editor]);
 

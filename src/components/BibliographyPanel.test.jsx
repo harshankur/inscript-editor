@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import { BibliographyPanel } from './BibliographyPanel.jsx';
 import { createEditor } from '../../tests/helpers/createEditor.js';
 
@@ -18,6 +18,15 @@ describe('BibliographyPanel component', () => {
     it('renders empty state correctly', () => {
         render(<BibliographyPanel editor={editor} />);
         expect(screen.getByText('No citations in document')).toBeInTheDocument();
+    });
+
+    it('refreshes after content set with emitUpdate: false (a quiet load, a version restore)', () => {
+        render(<BibliographyPanel editor={editor} />);
+        expect(screen.getByText('No citations in document')).toBeInTheDocument();
+        act(() => {
+            editor.commands.setContent('<p><span class="citation" data-key="quiet" data-label="Quiet, 2026">[Quiet, 2026]</span></p>', { emitUpdate: false });
+        });
+        expect(screen.getByText('@quiet')).toBeInTheDocument();
     });
 
     it('lists citations and allows navigation', () => {
