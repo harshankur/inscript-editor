@@ -74,6 +74,13 @@ maybeDescribe('dist build output', () => {
         expect(css).toContain('.ProseMirror');
     });
 
+    it('compiles the history panel\'s container queries (its layout follows its own width)', () => {
+        const css = fs.readFileSync(path.join(DIST_DIR, 'styles', 'inscript-editor.css'), 'utf-8');
+        expect(css).toMatch(/container-type:\s*inline-size/);
+        // @3xl is 48rem: from there the version list and both previews sit side by side.
+        expect(css).toMatch(/@container[^{]*\(\s*(min-width:\s*48rem|width\s*>=\s*48rem)\s*\)/);
+    });
+
     it('the content-only stylesheet ships every @keyframes its rules animate with', () => {
         const css = fs.readFileSync(path.join(DIST_DIR, 'styles', 'content.css'), 'utf-8');
         expect(css).toContain('@keyframes ProseMirror-cursor-blink');

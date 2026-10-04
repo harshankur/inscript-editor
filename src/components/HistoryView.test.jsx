@@ -177,3 +177,40 @@ describe('HistoryView (kinds, empty state, references, previews)', () => {
         }
     });
 });
+
+// A host rarely gives the editor the whole window, so the panel is laid out by its own width
+// (CSS container queries), never by the viewport: with viewport breakpoints a 330px pane in a
+// wide window got the version list and both previews side by side, the previews 0px wide.
+// jsdom has no layout, so what can be pinned here is the mechanism; tests/dist checks the
+// compiled rules, and the widths were measured in a real browser.
+describe('HistoryView layout is sized by its container', () => {
+    const VIEWPORT_VARIANT = /(^|\s)(sm|md|lg|xl|2xl):/;
+    const classesOf = container => Array.from(container.querySelectorAll('[class]')).map(el => el.getAttribute('class'));
+
+    it('is a query container', () => {
+        const { container } = render(<HistoryView history={kinded} currentIndex={1} onSelect={() => {}} />);
+        const root = container.querySelector('[data-history-view]');
+        expect(root).not.toBeNull();
+        expect(root.className.split(/\s+/)).toContain('@container');
+        expect(root).toBe(container.firstElementChild);
+    });
+
+    it('switches to the side-by-side layout with a container variant, not a viewport one', () => {
+        const { container } = render(<HistoryView history={kinded} currentIndex={1} onSelect={() => {}} />);
+        const layout = container.querySelector('[data-history-view]').firstElementChild;
+        expect(layout.className.split(/\s+/)).toEqual(expect.arrayContaining(['flex-col', '@3xl:flex-row']));
+    });
+
+    it.each([
+        ['with versions, in preview mode', kinded, null],
+        ['in text mode', kinded, 'Text'],
+        ['with metadata rows', history, 'Source'],
+        ['empty', [], null],
+    ])('uses no viewport breakpoint anywhere (%s)', (label, entries, mode) => {
+        const { container } = render(<HistoryView history={entries} currentIndex={entries.length - 1} onSelect={() => {}} />);
+        if (mode) fireEvent.click(screen.getByText(mode));
+        const offenders = classesOf(container).filter(cls => VIEWPORT_VARIANT.test(cls));
+        expect(offenders).toEqual([]);
+    });
+});
+
