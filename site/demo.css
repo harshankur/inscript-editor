@@ -45,6 +45,9 @@
 .dark .demo-railbtn:hover { background: #27272a; color: #f4f4f5; }
 .demo-railbtn.active { background: color-mix(in srgb, #10b981 15%, transparent); color: #059669; }
 .dark .demo-railbtn.active { color: #34d399; }
+/* Separates the panel toggles from the button that swaps the editor for the version history. */
+.demo-rail-sep { width: 20px; height: 1px; margin: 4px 0; background: #e4e4e7; }
+.dark .demo-rail-sep { background: #27272a; }
 
 /* Panel: opens beside the rail when a tool is active. One width, one header. */
 .demo-panel {

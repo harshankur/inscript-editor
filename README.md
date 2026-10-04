@@ -12,7 +12,8 @@ A standalone, TipTap-based rich text editor for React. Extracted from [Inscript]
 - **Images** with inline resizing, alignment, and a media-library modal (bring your own upload/list backend).
 - **Tables** with per-cell/row/column controls, header row/column toggles, and layout alignment.
 - **YouTube embeds** by URL or search, with strict ID validation and a placeholder for legacy/corrupt content instead of a broken embed.
-- **Version history** with a visual/text/source diff view and one-click restore.
+- **Version history**: append-only versions with undo, redo and one-click restore, compared in a visual/text/source diff that fits whatever width the editor has.
+- **Markdown round trips**: turndown rules that keep what Markdown cannot say (highlights, sub/superscript, embeds, citations, comments) and write checklists and tables as GFM, so a save loses nothing.
 - **Responsive toolbar** that collapses overflowing tools into a "More" menu based on measured width.
 - **i18n-ready**: English out of the box (safe even if you never touch i18next), and add any language from your own app with one call.
 - Ships as ESM + CJS, with hand-written TypeScript types.
@@ -35,6 +36,12 @@ npm install react react-dom \
   @tiptap/extension-task-list @tiptap/extension-text-align @tiptap/extension-text-style \
   @tiptap/extension-underline lowlight lucide-react diff react-i18next i18next
 ```
+
+Minimum versions: every `@tiptap/*` package at **3.30.5** or later (keep them all on one version), and
+`mermaid` at **11.16.1** or later if you use diagrams. Earlier releases have published security
+advisories in code the editor runs. The current majors of the other peers are accepted alongside the
+previous ones: `lucide-react` 0.577 or 1.x, `i18next` 25 or 26, `react-i18next` 16 or 17, `diff` 8 or 9,
+`katex` 0.16 to 0.18, `mermaid` 11 or 12.
 
 ### Optional peer dependencies
 
@@ -139,6 +146,10 @@ survives the recreation, content and pending edits included. A `documentKey` cha
 history when it renders, so load the new document **after** that render (in an effect keyed on the
 document, deferred as below), not in the same event handler that switches the key.
 
+A replaced editor never costs the document. Whether you recreate it, or React tears it down and
+brings it back (an `<Activity>` hidden and shown, Fast Refresh in development), the replacement
+gets the content back, typing that was not yet recorded included, and the history is untouched.
+
 > **Calling `loadContent` from `useEffect`?** Nodes rendered by React (embeds, admonitions,
 > footnotes, math, mermaid, wikilinks) mount through `flushSync`, which React refuses (and logs
 > "flushSync was called from inside a lifecycle method") during its commit phase. Load from an event
@@ -161,6 +172,49 @@ Versions are an append-only list with a pointer:
   you can persist a document's stack and hand it back to `loadContent`.
 - A cap keeps memory bounded: `maxHistory` (default 200 versions) and `maxHistoryBytes` (default
   about 20 MB of HTML). The oldest versions go first; the baseline and the active version never do.
+- The history panel sizes itself to the space it is given, not the window: below 48rem of its own
+  width the version list sits on top and the two previews are stacked; from 48rem they sit side by
+  side. Its previews are inert (an embed shows a placeholder naming its source, and nothing in a
+  version can run).
+
+## Saving as Markdown
+
+`getHTML()` is the editor's own format. To store Markdown, convert it with
+[turndown](https://github.com/mixmark-io/turndown) and let the editor add its rules, so nothing the
+editor can hold is lost on the way:
+
+```js
+import TurndownService from 'turndown';
+import { gfm } from 'turndown-plugin-gfm';
+import { applyInscriptEditorTurndownRules } from 'inscript-editor';
+
+const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+turndown.use(gfm);
+applyInscriptEditorTurndownRules(turndown); // after use(gfm), so these rules win
+const markdown = turndown.turndown(editor.getHTML());
+```
+
+What the rules do:
+
+| In the editor | Written as |
+| --- | --- |
+| Checklists | GFM task items (`- [x] done`) |
+| Tables | GFM tables; a table GFM cannot express (merged cells, a header column, resized columns, several paragraphs in a cell, left or right placement) stays HTML |
+| Highlight, subscript, superscript, underline, text colour, font size | Their own HTML tag around Markdown content (`H<sub>2</sub>O`) |
+| Centred, right-aligned or justified paragraphs and headings | An HTML block |
+| Math, Mermaid, admonitions, definition lists, footnotes, abbreviations, wikilinks, citations, embeds, YouTube, resized or aligned images | HTML that loads back as the same node |
+| Source comments | A real `<!-- comment -->` |
+
+Loading goes the other way with no extra step: real `<!-- -->` comments and the task lists Markdown
+renderers produce (`<li><input type="checkbox"> …`) parse into the editor's own nodes.
+
+Two things about the HTML the editor saves:
+
+- A table nobody placed is a bare `<table>`. Only a table set left or right carries `data-align` and
+  its margins. The editor's stylesheet centres an unplaced table; if you render saved HTML with your
+  own CSS and want the same, give tables `margin-inline: auto`.
+- The highlight picker's first swatch is the default highlight: a plain `<mark>` drawn from the
+  `markBg` / `markText` theme tokens. Any other swatch writes its colour onto the mark.
 
 ## Internationalization
 
@@ -246,7 +300,7 @@ The history panel's previews are inert: embeds show a placeholder naming their s
 
 ### Extensions
 
-`Youtube`, `FontSize`, `CustomTable`, `CustomImage` — TipTap extensions used internally, exported so you can build a headless editor with the same schema (e.g. for tests) via `@tiptap/core`'s `Editor`.
+`Youtube`, `FontSize`, `CustomTable`, `CustomImage`, `Citation`, `HtmlComment`, `Embed`: TipTap extensions used internally, exported so you can build a headless editor with the same schema (e.g. for tests) via `@tiptap/core`'s `Editor`.
 
 ### Utilities
 
@@ -256,7 +310,16 @@ The history panel's previews are inert: embeds show a placeholder naming their s
 
 ### Individually-exported components
 
-Every piece is also exported standalone if you want to compose your own layout instead of `<InscriptEditor>`: `ToolbarButton`, `ColorSelector`, `FontSizeSelector`, `LinkSelector`, `ResponsiveToolbar`, `ImageSelectorModal`, `YoutubeEmbedModal`, `HistoryView`, `TextBubbleMenu`, `TableBubbleMenu`, `ImageBubbleMenu`, `YoutubeBubbleMenu`.
+Every piece is also exported standalone if you want to compose your own layout instead of `<InscriptEditor>`:
+
+- Toolbar: `ResponsiveToolbar`, `ToolbarButton`, `ToolbarDropdown`, `ToolbarCustomizer`, `ColorSelector`, `HighlightSelector`, `FontSizeSelector`, `LinkSelector`.
+- Menus on a selection: `TextBubbleMenu`, `TableBubbleMenu`, `ImageBubbleMenu`, `YoutubeBubbleMenu`, `EmbedBubbleMenu`, `SourceField`.
+- Panels: `DocumentOutline`, `MiniMap`, `BibliographyPanel`, `HistoryView`.
+- Modals: `ImageSelectorModal`, `YoutubeEmbedModal`.
+
+These read the editor while rendering. The exported toolbar and bubble menus keep themselves current;
+in a component of your own, use TipTap's `useEditorState` to re-render when the editor changes
+(TipTap 3 does not re-render React on transactions).
 
 ## Styling
 
@@ -286,7 +349,8 @@ the editor's components use, by scanning the package:
 ```js
 // Tailwind v3 (tailwind.config.js): contentGlob resolves the package wherever it is installed.
 import { contentGlob } from 'inscript-editor/tailwind-content';
-export default { content: ['./src/**/*.{js,jsx,ts,tsx}', contentGlob] };
+import containerQueries from '@tailwindcss/container-queries'; // built into v4; the history panel uses them
+export default { content: ['./src/**/*.{js,jsx,ts,tsx}', contentGlob], plugins: [containerQueries] };
 ```
 
 Dark mode follows Tailwind's `dark:` class strategy — add/remove a `dark` class on an ancestor element (e.g. `<html>`) to toggle it.
@@ -427,6 +491,9 @@ npm run test:dist # build, then check the built output (also exercises watch-mod
 npm run coverage  # vitest with coverage report
 npm run clean     # empty dist/ (prepublishOnly does this before its build)
 ```
+
+Working on this repo needs Node 22.12 or later (Vitest 5); CI runs on Node 24. That is a requirement
+of the development tooling only, not of apps that use the package.
 
 ### Developing against a host app
 

@@ -37,6 +37,9 @@ const FEATURES = [
     ['Version history & diff', 'Append-only versions with undo, redo and one-click restore, a visual/text/source diff, and a save hook that hears every change.', '<path d="M3 3v6h6M3 9a9 9 0 1 0 3-6.7L3 5"/><path d="M12 7v5l3 3"/>'],
     ['Followable minimap', 'A spatial outline with readable heading labels, real image thumbnails and a draggable, fit-to-panel viewport.', '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/><path d="M6 8h5M6 12h5M6 16h3"/>'],
     ['i18n-ready', 'Every string carries an English default and auto-registers into your i18next, so it works out of the box. Add any language from your own app with a one-call override.', '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/>'],
+    ['Markdown round trips', 'Turndown rules that keep what Markdown cannot say: checklists and tables as GFM, and highlights, sub/superscript, embeds, citations and comments as HTML, so a save loses nothing.', '<path d="M3 5h18v14H3z"/><path d="M7 15V9l2.5 3L12 9v6M15 12l2 3 2-3M17 9v6"/>'],
+    ['Themeable', 'One theme prop, or the --inscript-* CSS variables behind it, restyles every colour, surface, radius and font, with WCAG AA defaults in light and dark.', '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18c1.7 0 2-1.3 1.2-2.3-.9-1.1-.2-2.7 1.3-2.7H17a4 4 0 0 0 4-4"/><circle cx="8" cy="10" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16" cy="10" r="1"/>'],
+    ['Private by default', 'Third-party embeds wait behind a click until you trust their host, and version previews never load them at all.', '<rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'],
 ];
 const grid = document.getElementById('feature-grid');
 if (grid) {

@@ -3,7 +3,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import '../dist/styles/inscript-editor.css';
 import './demo.css';
-import { ListTree, Map as MapIcon, Palette, X } from 'lucide-react';
+import { History, ListTree, Map as MapIcon, Palette, X } from 'lucide-react';
 import {
     useInscriptEditor, InscriptEditor, MiniMap, DocumentOutline, extractYoutubeId,
     DEFAULT_TOOLBAR_CONFIG, DEFAULT_BUBBLE_CONFIG,
@@ -93,7 +93,7 @@ function ThemeControls({ theme, setTheme }) {
     );
 }
 
-function DemoSidebar({ editor, theme, setTheme, showOutline = true, showMiniMap = true }) {
+function DemoSidebar({ editor, theme, setTheme, showOutline = true, showMiniMap = true, showHistory = false, onToggleHistory }) {
     // Build the visible panel set: outline/minimap are gated by the host flags, the
     // theme editor is always available.
     const panels = {};
@@ -141,6 +141,19 @@ function DemoSidebar({ editor, theme, setTheme, showOutline = true, showMiniMap 
                         <p.icon size={16} />
                     </button>
                 ))}
+                {/* Set apart from the panel toggles above: this one swaps the editor itself for the
+                    version history, it does not open a side panel. */}
+                <span className="demo-rail-sep" aria-hidden="true" />
+                <button
+                    type="button"
+                    className={`demo-railbtn ${showHistory ? 'active' : ''}`}
+                    onClick={onToggleHistory}
+                    title="Version history"
+                    aria-label="Version history"
+                    aria-pressed={showHistory}
+                >
+                    <History size={16} />
+                </button>
             </div>
         </>
     );
@@ -231,6 +244,12 @@ export function Demo({ focusMode = false, showMiniMap = true, showOutline = true
     const [bubbleConfig, setBubbleConfig] = React.useState(DEFAULT_BUBBLE_CONFIG);
     // Live theme object driven by the Theme panel; empty = the built-in look.
     const [theme, setTheme] = React.useState({});
+    // The version history panel takes the editor's place while open (?tab=history opens it,
+    // for screenshots). Every edit you make in the demo becomes a version you can compare with
+    // the sample and restore.
+    const [showHistory, setShowHistory] = React.useState(() => {
+        try { return new URLSearchParams(location.search).get('tab') === 'history'; } catch { return false; }
+    });
 
     // In focus mode, drop the caret into a paragraph so one block reads at full opacity
     // and the rest dim — the real focus-mode look (otherwise, with no selection, every
@@ -261,6 +280,8 @@ export function Demo({ focusMode = false, showMiniMap = true, showOutline = true
                     editor={editor}
                     {...api}
                     focusMode={focusMode}
+                    showDiff={showHistory && !focusMode}
+                    onHistorySelect={(index) => { api.restoreVersion(index, { reason: 'restore' }); setShowHistory(false); }}
                     theme={theme}
                     toolbarConfig={enableCustomizer ? toolbarConfig : undefined}
                     onToolbarConfigChange={enableCustomizer ? setToolbarConfig : undefined}
@@ -270,7 +291,12 @@ export function Demo({ focusMode = false, showMiniMap = true, showOutline = true
                 />
             </div>
             {/* A single right-hand sidebar: outline, minimap and the live theme editor, one open at a time. */}
-            {!focusMode && <DemoSidebar editor={editor} theme={theme} setTheme={setTheme} showOutline={showOutline} showMiniMap={showMiniMap} />}
+            {!focusMode && (
+                <DemoSidebar
+                    editor={editor} theme={theme} setTheme={setTheme} showOutline={showOutline} showMiniMap={showMiniMap}
+                    showHistory={showHistory} onToggleHistory={() => setShowHistory((open) => !open)}
+                />
+            )}
         </div>
     );
 }

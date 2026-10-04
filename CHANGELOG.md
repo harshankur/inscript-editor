@@ -5,27 +5,34 @@ All notable changes to `inscript-editor` are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (pre-1.0: minor versions may
 carry small breaking changes, called out below).
 
-## [0.4.1] - 2026-09-30
-
-### Security
-- **Raised the minimum TipTap and Mermaid versions to patched releases.** The peer ranges allowed
-  versions with published advisories, and the editor exercises both code paths:
-  - every `@tiptap/*` peer is now `^3.30.5` (was as low as `^3.20.4`). Earlier `@tiptap/core`
-    releases have a high-severity ReDoS in its Markdown attribute parsing (GHSA-j95f-988m-3j2f, fixed
-    in 3.30.5) and a `mergeAttributes()` `__proto__` issue (GHSA-cp6q-959q-f8rh, fixed in 3.30.4),
-    which several of this editor's extensions call;
-  - `mermaid` is now `^11.16.1` (was `^11.16.0`): 11.16.0 has five advisories (CSS injection,
-    prototype pollution, and two denial-of-service bugs) reachable from diagrams in a document.
-
-  A host on an older TipTap or Mermaid must update them together with this release (npm reports
-  the peer mismatch). All 23 TipTap packages should stay on one version.
+## [0.5.0] - 2026-10-04
 
 ### Added
 - Support for the current majors of the optional and UI peers. The peer ranges now also accept
   `lucide-react` 1.x, `i18next` 26, `react-i18next` 17, `diff` 9, `katex` 0.18 and `mermaid` 12; the
   test suite passes on both the previous and the new major of each.
+- A default highlight. The highlight picker's first swatch applies a plain `<mark>` with no colour of
+  its own, drawn from the theme's mark token (`markBg` / `markText`). It is the one highlight a
+  Markdown round trip can keep as `==text==`; every other swatch still sets a colour. Exported as
+  `<HighlightSelector>`, with a `defaultSwatch` prop on `<ColorSelector>` for building your own.
+- The homepage demo and the embed page can open the version history panel: a clock button in the
+  right rail (or `?tab=history`), so every edit you make there becomes a version you can compare
+  and restore.
+- README: a "Saving as Markdown" section for `applyInscriptEditorTurndownRules`, the minimum peer
+  versions, and the complete lists of exported extensions and components.
 
 ### Changed
+- **A table nobody placed no longer carries placement markup.** `getHTML()` wrote
+  `data-align="center"` and centring margins on every table, which was read downstream as column
+  alignment (every Markdown column saved as `:---:`). An unplaced table is now a bare `<table>`; a
+  table set left or right still writes `data-align` and its margins. Documents saved earlier load
+  the same, and the stylesheet centres an unplaced table wherever the content rules apply. A host
+  that renders saved HTML with its own CSS and wants unplaced tables centred needs
+  `margin-inline: auto` on them.
+- `applyInscriptEditorTurndownRules` keeps the formatting Markdown has no syntax for instead of
+  dropping it: highlight (with its colour), subscript, superscript, underline, text colour and font
+  size keep their HTML tag around Markdown content ("H<sub>2</sub>O" was saved as "H2O"), and a
+  centred, right-aligned or justified paragraph or heading is kept as an HTML block.
 - The YouTube toolbar tool, bubble menu and modal use lucide's `SquarePlay` icon instead of its
   `Youtube` brand icon, which lucide-react 1.0 removed (with every brand icon). `SquarePlay` exists
   in both 0.577 and 1.x, so the icon renders whichever lucide the host has.
@@ -37,6 +44,55 @@ carry small breaking changes, called out below).
   (TipTap 3.31.4, React 19.3, Vite 8.3), clearing every `npm audit` finding in this repo's own
   toolchain. This repo still develops against Mermaid 11: Mermaid 12.0.0 depends on a `lodash-es`
   with open advisories (through chevrotain), which a host that chooses Mermaid 12 inherits.
+
+### Fixed
+- **Breaking: raised the minimum TipTap and Mermaid versions to patched releases.** The peer ranges allowed
+  versions with published advisories, and the editor exercises both code paths:
+  - every `@tiptap/*` peer is now `^3.30.5` (was as low as `^3.20.4`). Earlier `@tiptap/core`
+    releases have a high-severity ReDoS in its Markdown attribute parsing (GHSA-j95f-988m-3j2f, fixed
+    in 3.30.5) and a `mergeAttributes()` `__proto__` issue (GHSA-cp6q-959q-f8rh, fixed in 3.30.4),
+    which several of this editor's extensions call;
+  - `mermaid` is now `^11.16.1` (was `^11.16.0`): 11.16.0 has five advisories (CSS injection,
+    prototype pollution, and two denial-of-service bugs) reachable from diagrams in a document.
+
+  A host on an older TipTap or Mermaid must update them together with this release (npm reports
+  the peer mismatch). All 23 TipTap packages should stay on one version.
+- **The open document could be blanked.** Two ways, both through the logic that hands a
+  document from an editor to its replacement:
+  - In development (React StrictMode with Fast Refresh), editing the file of the component that
+    hosts the editor emptied the document, or reverted it to what it was at mount. StrictMode
+    builds and discards an extra editor a moment after mount; that destruction was taken for the
+    live editor's, and the live document as it then stood was kept as a leftover and applied on
+    the next effect re-run. Each editor now reports its own destruction, and a leftover is only
+    ever given to a different editor.
+  - When React tore the effects down and TipTap destroyed the editor meanwhile (an `<Activity>`
+    hidden, then shown), the replacement editor came back empty under an intact history. It now
+    gets the document back, including typing that had not been recorded yet.
+
+  An empty editor is also never trusted over a recorded document: without a leftover that can be
+  believed, a replacement editor is given the active version.
+- Effects re-running on the same editor (StrictMode, Fast Refresh) no longer drop a pending edit
+  or arm a commit for unchanged metadata.
+- **The history panel is laid out by its own width, not the viewport's.** In a narrow editor pane
+  inside a wide window (a library on one side, an outline on the other) it still put the version
+  list and both previews side by side, leaving the previews no width at all. It now uses container
+  queries: below 48rem of panel width the list sits on top with the two previews stacked under
+  it, each at full width.
+- **Toolbar buttons show the editor's state.** The toolbar and the text and table bubble menus read
+  the editor while rendering, but nothing re-rendered them when it changed (TipTap 3 does not
+  re-render React on transactions), so Bold never lit up when clicked and no button followed the
+  cursor. They now follow every change. The bubble menus also stopped dispatching a needless
+  transaction on every render.
+- **Table placement works in the editor.** The left/centre/right margins were set on the
+  full-width wrapper around the table instead of the table, so a narrow table sat at the left
+  whatever its placement, while the saved HTML said otherwise. Placement now moves the table, for
+  tables in the document the editor was created with too.
+- Task items lacking `data-type="taskItem"` inside a declared task list (`ul[data-type="taskList"]`,
+  as officeParser's editor-bound HTML wrote them) loaded as one empty task item followed by a plain
+  bullet list, losing the checked state. Every item of a declared task list is now a task item,
+  with its state read from `data-checked` or its checkbox.
+- `<BibliographyPanel>` refreshes after content set with `emitUpdate: false` (a quiet load, a
+  version restore), like the outline and minimap.
 
 ## [0.4.0] - 2026-09-25
 
@@ -312,7 +368,7 @@ behaviour changes are listed under **Changed**.
 
 - First tagged release of the standalone `inscript-editor` package extracted from Inscript.
 
-[0.4.1]: https://github.com/harshankur/inscript-editor/compare/v0.4.0...v0.4.1
+[0.5.0]: https://github.com/harshankur/inscript-editor/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/harshankur/inscript-editor/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/harshankur/inscript-editor/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/harshankur/inscript-editor/compare/v0.3.1...v0.3.2
