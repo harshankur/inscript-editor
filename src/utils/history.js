@@ -139,6 +139,26 @@ export function capHistory(history, index, { maxHistory = DEFAULT_MAX_HISTORY, m
 }
 
 /**
+ * The document a replacement editor should hold, when an editor is replaced for the same
+ * document: `{ html, hasUncommittedEdit }`, or null when there is nothing to restore.
+ *
+ * What the outgoing editor left (`carry`: `{ html, from, isEmpty, hasUncommittedEdit }`) is
+ * used unless it cannot be trusted. It must have been read from a different instance than the
+ * replacement, and an EMPTY document is believed only when the emptiness is known: it is the
+ * last synced state, or an edit was still pending. An editor that was simply never given its
+ * content must not blank a document. Without a trusted leftover, the active version is the
+ * document.
+ */
+export function documentForReplacement({ carry, replacement, lastSyncedHtml, activeEntry }) {
+    const trusted = !!carry && carry.from !== replacement && (
+        !carry.isEmpty || !!carry.hasUncommittedEdit || carry.html === lastSyncedHtml
+    );
+    if (trusted) return { html: carry.html, hasUncommittedEdit: !!carry.hasUncommittedEdit };
+    if (activeEntry) return { html: activeEntry.html, hasUncommittedEdit: false };
+    return null;
+}
+
+/**
  * A key for the serializable part of editorOptions: changing it recreates the editor so the
  * new options apply. Functions count by presence only (their identity changes every render;
  * the hook reads the live ones through refs), and the internal refs are skipped.
