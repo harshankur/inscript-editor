@@ -1,28 +1,28 @@
-// Fire-and-forget page-view ping to the self-hosted viewcounter. Call trackPageView()
-// once from the site entry. Never blocks rendering and swallows all errors.
+// Page views on the self-hosted viewcounter, through its tracker script. Call
+// trackPageView() once from the site entry: it adds the script tag, and the tracker then
+// counts the view, how long the page was visible, how far it was scrolled, and clicks on
+// links out and downloads. It stores nothing on the device. Never blocks rendering (the
+// script loads async) and a failed load is simply a view not counted.
 //
 // Exported as a called function (not a bare side-effect import) on purpose: the root
 // package.json marks every non-CSS module side-effect-free, so a side-effect-only
 // `import './track.js'` would be tree-shaken out of the bundle. Calling an exported
 // function keeps it in.
 //
-// Skips localhost/dev: the viewcounter only accepts requests from the production origin
-// (https://inscript-editor.harshankur.com) and 403s anything else, so firing from a dev
-// server is pointless. Stays a normal CORS fetch because the server checks the Origin
-// header (do not switch to <img> or sendBeacon).
+// Only the production site counts. Anywhere else (the dev server, a preview build, a LAN
+// address) the script is not even requested, and data-hosts makes the tracker itself hold
+// to the same rule. The viewcounter also refuses any other origin.
+const TRACKER_SRC = 'https://views.harshankur.com/tracker.js';
+const APP_ID = 'inscript-editor';
+const PRODUCTION_HOST = 'inscript-editor.harshankur.com';
+
 export function trackPageView() {
-    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
-    let sessionId;
-    try {
-        sessionId = sessionStorage.getItem('vc-session') || crypto.randomUUID();
-        sessionStorage.setItem('vc-session', sessionId);
-    } catch { sessionId = crypto.randomUUID(); }
-    fetch('https://views.harshankur.com/registerView?' + new URLSearchParams({
-        appId: 'inscript-editor',
-        deviceSize: innerWidth < 768 ? 'small' : innerWidth < 1200 ? 'medium' : 'large',
-        page: location.pathname,
-        title: document.title.slice(0, 200),
-        referrer: document.referrer,
-        sessionId,
-    }), { keepalive: true }).catch(() => {});
+    if (location.hostname !== PRODUCTION_HOST) return;
+    if (document.querySelector(`script[src="${TRACKER_SRC}"]`)) return;
+    const script = document.createElement('script');
+    script.src = TRACKER_SRC;
+    script.async = true;
+    script.dataset.app = APP_ID;
+    script.dataset.hosts = PRODUCTION_HOST;
+    document.head.append(script);
 }
