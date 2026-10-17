@@ -4,12 +4,12 @@
 // visitor whether the site may count in more detail. Only after "Allow" does it load the
 // tracker, which then also counts how long the page was visible, how far it was scrolled, and
 // clicks on links out and downloads. The answer is the one thing kept on the device, in
-// localStorage, and the footer's "Datenschutz-Einstellungen" link (data-viewcounter-consent)
+// localStorage, and the footer's "Privacy settings" link (data-viewcounter-consent)
 // opens the prompt again to change it. Never blocks rendering (the script loads async) and a
 // failed load is simply a visit not counted in detail.
 //
 // The embed page loads none of this: it is counted at the edge only. Its own
-// "Datenschutz-Einstellungen" link opens this page at SETTINGS_HASH, where the prompt opens.
+// "Privacy settings" link opens this page at SETTINGS_HASH, where the prompt opens.
 //
 // Exported as a called function (not a bare side-effect import) on purpose: the root
 // package.json marks every non-CSS module side-effect-free, so a side-effect-only
