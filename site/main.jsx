@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { trackPageView } from './track.js';
 import { Demo } from './demoApp.jsx';
 
-// Count this homepage view (loads the viewcounter tracker; a no-op off the live site).
+// Ask before counting this homepage in detail (loads the viewcounter's consent prompt; a no-op off the live site).
 trackPageView();
 
 // ── Theme (persisted; the same `dark` class drives the page and the editor) ──
