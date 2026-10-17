@@ -5,7 +5,7 @@ import '../dist/styles/inscript-editor.css';
 import './demo.css';
 import { History, ListTree, Map as MapIcon, Palette, X } from 'lucide-react';
 import {
-    useInscriptEditor, InscriptEditor, MiniMap, DocumentOutline, extractYoutubeId,
+    useInscriptEditor, InscriptEditor, MiniMap, DocumentOutline, YoutubeEmbedModal,
     DEFAULT_TOOLBAR_CONFIG, DEFAULT_BUBBLE_CONFIG,
 } from '../src/index.js';
 
@@ -208,6 +208,14 @@ export const SAMPLE = `
 <p>By the third morning the rhythm of ferries and quiet villages has become the whole point, and the itinerary matters less than the light.</p>
 `;
 
+// This site's section of the shared privacy notice, which names YouTube.
+const PRIVACY_URL = 'https://harshankur.com/datenschutz#inscript-editor';
+
+// Every video (the sample's, and any added) asks for consent then and there: nothing is loaded
+// from YouTube until the visitor presses "Load video", and then the official player loads from
+// www.youtube.com. Neither page contacts YouTube, or anyone else, on load.
+const YOUTUBE_OPTIONS = { facade: 'local', privacyUrl: PRIVACY_URL };
+
 export function Demo({ focusMode = false, showMiniMap = true, showOutline = true, enableCustomizer = true }) {
     // Host insert handlers, provided ONCE via editorOptions so they drive both the toolbar
     // buttons AND the "/" menu (whose Image/YouTube entries appear only when the handler is
@@ -217,10 +225,12 @@ export function Demo({ focusMode = false, showMiniMap = true, showOutline = true
         const url = window.prompt('Image URL');
         if (url && editorRef.current) editorRef.current.chain().focus().setImage({ src: url }).run();
     }, []);
-    const onAddYoutube = React.useCallback(() => {
-        const url = window.prompt('YouTube URL or video ID');
-        const id = url && extractYoutubeId(url);
-        if (id && editorRef.current) editorRef.current.chain().focus().setYoutubeVideo({ 'data-youtube-video': id }).run();
+    // YouTube opens the library's modal, whose live preview asks for consent the same way.
+    const [youtubeModalOpen, setYoutubeModalOpen] = React.useState(false);
+    const onAddYoutube = React.useCallback(() => setYoutubeModalOpen(true), []);
+    const insertYoutube = React.useCallback((id) => {
+        setYoutubeModalOpen(false);
+        editorRef.current?.chain().focus().setYoutubeVideo({ 'data-youtube-video': id }).run();
     }, []);
 
     const api = useInscriptEditor({
@@ -228,7 +238,7 @@ export function Demo({ focusMode = false, showMiniMap = true, showOutline = true
         // Created with the sample, which becomes the "Opened" version in the history panel.
         initialContent: SAMPLE,
         title: 'The Fjords of Western Norway',
-        editorOptions: { onShowMediaLibrary, onAddYoutube },
+        editorOptions: { onShowMediaLibrary, onAddYoutube, youtube: YOUTUBE_OPTIONS },
     });
     const { editor } = api;
     editorRef.current = editor;
@@ -297,6 +307,12 @@ export function Demo({ focusMode = false, showMiniMap = true, showOutline = true
                     showHistory={showHistory} onToggleHistory={() => setShowHistory((open) => !open)}
                 />
             )}
+            <YoutubeEmbedModal
+                isOpen={youtubeModalOpen}
+                onClose={() => setYoutubeModalOpen(false)}
+                onConfirm={insertYoutube}
+                privacyUrl={PRIVACY_URL}
+            />
         </div>
     );
 }
