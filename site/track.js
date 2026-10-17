@@ -22,7 +22,7 @@
 const CONSENT_SRC = 'https://views.harshankur.com/consent.js';
 const APP_ID = 'inscript-editor';
 const PRODUCTION_HOST = 'inscript-editor.harshankur.com';
-const PRIVACY_URL = 'https://harshankur.com/datenschutz#inscript-editor';
+const PRIVACY_URL = 'https://harshankur.com/datenschutz#en-inscript-editor'; // the prompt is in English
 /** Opens the prompt when the page is opened with it, as the embed page's link does. */
 const SETTINGS_HASH = '#datenschutz-einstellungen';
 
