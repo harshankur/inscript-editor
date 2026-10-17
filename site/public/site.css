@@ -211,3 +211,6 @@ html.dark .codeblock .k { color: var(--brand); }
 .ftr a { color: var(--ink-soft); }
 .ftr a:hover { color: var(--ink); }
 .ftr .sp { margin-left: auto; }
+.ftr-legal { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line-soft); text-align: center; font-size: 13px; }
+.ftr-legal p { margin: 0; }
+.ftr-legal .ftr-links { display: flex; justify-content: center; gap: 18px; margin-bottom: 6px; }

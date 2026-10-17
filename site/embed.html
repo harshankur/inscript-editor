@@ -7,13 +7,31 @@
     <style>
         html, body { margin: 0; height: 100%; background: #fff; }
         html.dark, html.dark body { background: #09090b; }
-        #root { height: 100vh; display: flex; flex-direction: column; }
+        /* The editor fills the viewport above the legal line. */
+        body { display: flex; flex-direction: column; }
+        #root { flex: 1; min-height: 0; display: flex; flex-direction: column; }
         /* The editor composes toolbar + content; give the content area room to scroll. */
         #root > .im-demo { flex: 1; min-height: 0; }
+        /* The legal line every page carries, kept to a slim strip under the editor. */
+        .legal { flex: none; padding: 4px 12px 5px; border-top: 1px solid #e4e4e7; text-align: center; font: 11.5px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #71717a; }
+        .legal p { margin: 0; }
+        .legal .legal-links a + a { margin-left: 14px; }
+        .legal a { color: #3f3f46; }
+        .legal a:hover { color: #09090b; }
+        html.dark .legal { border-top-color: #27272a; color: #a1a1aa; }
+        html.dark .legal a { color: #d4d4d8; }
+        html.dark .legal a:hover { color: #fafafa; }
     </style>
 </head>
 <body>
     <div id="root"></div>
+    <footer class="legal">
+        <p class="legal-links">
+            <a href="https://harshankur.com/impressum" target="_blank" rel="noopener">Impressum</a>
+            <a href="https://harshankur.com/datenschutz#inscript-editor" target="_blank" rel="noopener">Datenschutz</a>
+        </p>
+        <p>Inscript-Editor © 2026 <a href="https://harshankur.com" target="_blank" rel="noopener">Harsh Ankur</a></p>
+    </footer>
     <script type="module" src="./embed.jsx"></script>
 </body>
 </html>
