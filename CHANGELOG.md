@@ -5,6 +5,54 @@ All notable changes to `inscript-editor` are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (pre-1.0: minor versions may
 carry small breaking changes, called out below).
 
+## [0.6.0] - 2026-10-17
+
+### Added
+- **A YouTube consent placeholder.** `editorOptions.youtube.facade` now also takes a mode:
+  `'local'` shows a placeholder drawn by the editor that asks for consent then and there. It
+  keeps the video's size and says, under a "YouTube video" heading, that playing the video loads
+  it from YouTube, which then receives data such as the visitor's IP address and may set cookies,
+  with a "Load video" button. Nothing is requested from any other host until the button is
+  pressed, and then the official player loads from www.youtube.com. The press is the consent, for
+  that video only, and nothing is remembered. One press loads the player, by mouse or by Enter or
+  Space, in an editable or a read-only editor; a click elsewhere on the placeholder still selects
+  the video. The thumbnail facade (`true`, or the new name `'thumbnail'`) is unchanged, and any
+  other truthy value still turns it on. The default stays `false` (the player loads straight
+  away), and the saved HTML is the same in every mode.
+- `editorOptions.youtube.privacyUrl`: the host's privacy notice, linked from the consent
+  placeholder in a new tab (`rel="noopener"`). Only an http(s) URL is linked; unset, there is no
+  link.
+- `editorOptions.onOpenExternal`, passed once like the other host handlers: it opens a video's
+  privacy link and the media bubble menus' "open" actions, for a desktop webview where a new tab
+  cannot open. The `<InscriptEditor onOpenExternal>` prop overrides it, and now opens the privacy
+  link too.
+- `<YoutubeEmbedModal>` takes `privacyUrl` and `onOpenExternal` props for its live preview's
+  consent placeholder.
+- Translatable labels: `youtubeConsentTitle`, `youtubeConsentText`, `youtubeConsentLoad`,
+  `youtubeConsentLoadPreview` and `youtubeConsentPrivacy` for the placeholder, `youtubeLoadVideo`
+  for the thumbnail facade's button (fixed English before) and `pasteLinkToEmbed` for the modal.
+- The site (homepage and embed page) links the Impressum and the privacy notice and carries the
+  copyright line, and counts page views with the viewcounter's tracker script, which stores
+  nothing on the device.
+
+### Changed
+- `<YoutubeEmbedModal>`'s live preview no longer loads YouTube's player as soon as a valid ID is
+  typed: it shows the same consent placeholder, and loads the preview when "Load preview" is
+  pressed, for that video only.
+- `<YoutubeEmbedModal>` offers its search tab only when `onSearch` is given. Without it the tab
+  could not search, so the modal now shows just the link field.
+- The site's demo asks for consent before its video loads, linking its section of the privacy
+  notice, so neither page contacts YouTube, or any other host, when it opens. Adding a video
+  opens the library's modal instead of a browser prompt.
+
+### Fixed
+- In a read-only editor, the first click on a loaded YouTube player, or on the thumbnail facade,
+  only selected the video, which has no menu there; it now plays the video (or loads it).
+- A YouTube facade showed the old video after the video's URL was changed before it was clicked,
+  and clicking it put back a width or alignment set in the meantime.
+- Changing a YouTube video's width or alignment reloaded the player (stopping a playing video),
+  because the iframe's address was set again on every change.
+
 ## [0.5.0] - 2026-10-04
 
 ### Added

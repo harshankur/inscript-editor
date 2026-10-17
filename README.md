@@ -11,7 +11,7 @@ A standalone, TipTap-based rich text editor for React. Extracted from [Inscript]
 - **Rich text editing** built on [TipTap v3](https://tiptap.dev) — bold/italic/underline/strike, headings, lists, blockquotes, code blocks, sub/superscript, text alignment, font size, text/highlight color, and links.
 - **Images** with inline resizing, alignment, and a media-library modal (bring your own upload/list backend).
 - **Tables** with per-cell/row/column controls, header row/column toggles, and layout alignment.
-- **YouTube embeds** by URL or search, with strict ID validation and a placeholder for legacy/corrupt content instead of a broken embed.
+- **YouTube embeds** by URL or search, with strict ID validation, a placeholder for legacy/corrupt content instead of a broken embed, and an optional consent placeholder that contacts YouTube only once the visitor agrees ([YouTube options](#youtube-options)).
 - **Version history**: append-only versions with undo, redo and one-click restore, compared in a visual/text/source diff that fits whatever width the editor has.
 - **Markdown round trips**: turndown rules that keep what Markdown cannot say (highlights, sub/superscript, embeds, citations, comments) and write checklists and tables as GFM, so a save loses nothing.
 - **Responsive toolbar** that collapses overflowing tools into a "More" menu based on measured width.
@@ -264,7 +264,7 @@ i18n.addResourceBundle('en', 'inscript-editor', { insertImage: 'Add Image' }, tr
 | `categories` | `string[]` | `[]` | Live categories, same live-ref treatment as `title`. |
 | `isReadonly` | `boolean` | `false` | Disables editing without recreating the editor. |
 | `onContentChange` | `(entry, { reason }) => void` | `null` | Called for every change the user causes: an edit (~1s after typing settles), an undo, a redo or a restore, with the now-active entry and `reason` (`'edit'`, `'undo'`, `'redo'`, `'restore'`). Never called for a load. |
-| `editorOptions` | `EditorBuildOptions` | `{}` | Per-editor feature toggles plus the host handlers `onAddCitation` / `onAddWikilink` / `onAddAbbreviation` / `onShowMediaLibrary` / `onAddYoutube`. Pass each host handler **once** here and it drives both the slash menu and the toolbar/bubble buttons (the matching `<InscriptEditor>` props are optional per-call overrides). Options apply at construction: changing their serializable part recreates the editor (keeping the document); functions are read live, so a new function identity never recreates it. |
+| `editorOptions` | `EditorBuildOptions` | `{}` | Per-editor feature toggles plus the host handlers `onAddCitation` / `onAddWikilink` / `onAddAbbreviation` / `onShowMediaLibrary` / `onAddYoutube` / `onOpenExternal`. Pass each host handler **once** here and it drives both the slash menu and the toolbar/bubble buttons (the matching `<InscriptEditor>` props are optional per-call overrides). Options apply at construction: changing their serializable part recreates the editor (keeping the document); functions are read live, so a new function identity never recreates it. |
 | `maxHistory` | `number` | `200` | Most versions kept. |
 | `maxHistoryBytes` | `number` | ~20 MB | Most HTML kept across versions (in characters). |
 
@@ -274,6 +274,26 @@ Returns `{ editor, history, historyIndex, isDirty, canUndo, canRedo, loadContent
 - `flush()`: commit pending typing now and return `{ history, historyIndex }` synchronously (before switching documents).
 - `undo()` / `redo()`: step through versions; each notifies the host.
 - `restoreVersion(index, { reason })`: `'restore'` appends a `restored` version (the history panel); `'undo'`/`'redo'`, or no reason, move the pointer.
+
+#### YouTube options
+
+`editorOptions.youtube` controls when a video's player loads:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `facade` | `boolean \| 'thumbnail' \| 'local'` | `false` | Click-to-load. `false`: the player loads straight away. `true` or `'thumbnail'`: YouTube's thumbnail (fetched from `i.ytimg.com`) with a play button until the video is clicked. `'local'`: a consent placeholder drawn by the editor, so nothing is requested from another host until the visitor agrees (below). The placeholder is only on screen; the saved HTML is the same in every mode. |
+| `privacyUrl` | `string` | none | Your privacy notice, linked from the consent placeholder. Only an `http(s)` URL is linked; without one there is no link. |
+
+With `facade: 'local'`, every video asks for consent then and there. The placeholder keeps the video's size and shows a heading ("YouTube video"), a short text saying that playing the video loads it from YouTube, which then receives data such as the visitor's IP address and may set cookies, a **Load video** button and, when `privacyUrl` is set, a **Privacy notice** link (new tab, `rel="noopener"`). Pressing the button (by click, Enter or Space, in an editable or a read-only editor) is the consent, for that video only: the official player then loads from `www.youtube.com/embed/<id>`. Nothing is remembered. The rest of the placeholder still selects the video, so its bubble menu opens as before. The labels are translatable (`youtubeConsentTitle`, `youtubeConsentText`, `youtubeConsentLoad`, `youtubeConsentPrivacy`).
+
+```jsx
+const privacyUrl = 'https://example.com/privacy#youtube';
+useInscriptEditor({ editorOptions: { youtube: { facade: 'local', privacyUrl } } });
+// and, if you use the modal, the same for its live preview ("Load preview"):
+<YoutubeEmbedModal privacyUrl={privacyUrl} isOpen={open} onClose={close} onConfirm={insert} />
+```
+
+The privacy link opens through `onOpenExternal` when you give one (in `editorOptions`, or as an `<InscriptEditor>` prop), for a desktop webview where a new tab cannot open. Documents saved with a `youtube-nocookie.com` player load back as an ordinary video and are saved again on `www.youtube.com`.
 
 ### `<InscriptEditor />`
 
@@ -293,6 +313,7 @@ Returns `{ editor, history, historyIndex, isDirty, canUndo, canRedo, loadContent
 | `onHistorySelect` | `(index, entry) => void` | Called when a version is chosen for restore in `<HistoryView>`. Defaults to `restoreVersion(index, { reason: 'restore' })`. |
 | `restoreVersion`, `loadContent`, `flush`, `undo`, `redo`, `markSaved` | | From `useInscriptEditor`, exposed through the imperative ref too. |
 | `theme` | `InscriptEditorTheme` | Colors, surfaces, borders, radii, spacing and fonts for the whole editor. See [Theming](#theming). |
+| `onOpenExternal` | `(url) => void` | Opens an external URL: a video's privacy link and the media bubble menus' "open" actions. For a desktop webview where a new tab cannot open. Overrides `editorOptions.onOpenExternal`; with neither, the browser opens it. |
 
 **Imperative ref**: `ref.current.getHTML()`, `.getText()`, `.loadContent(html, options)`, `.flush()`, `.undo()`, `.redo()`, `.restoreVersion(index, options)`, `.markSaved()`, and `.setContent(html)`, which records an **edit** (use `loadContent` to open a document).
 
