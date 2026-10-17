@@ -74,8 +74,16 @@ export interface EditorBuildOptions {
     /** Host-supplied embed trust (alternative to the object form of `embed`). */
     isEmbedTrusted?: (src: string) => boolean;
     trustedEmbedHosts?: string[];
-    /** YouTube node options, e.g. `{ facade: true }` for thumbnail-then-load. */
-    youtube?: { facade?: boolean };
+    /** YouTube node options.
+     *  - `facade`: click-to-load. `true` or `'thumbnail'` shows YouTube's thumbnail (fetched from
+     *    i.ytimg.com) until the video is clicked; `'local'` shows a consent placeholder drawn by
+     *    the editor ("YouTube video", what loading it sends to YouTube, a "Load video" button), so
+     *    nothing is requested from another host until the visitor presses the button, and then
+     *    the player loads from www.youtube.com. Default `false`: the player loads straight away.
+     *  - `privacyUrl`: the host's privacy notice, linked from the consent placeholder (new tab,
+     *    `rel="noopener"`, or `onOpenExternal` when given). Only an http(s) URL is linked;
+     *    unset, there is no link. */
+    youtube?: { facade?: boolean | 'thumbnail' | 'local'; privacyUrl?: string };
     /** Opt-in wikilinks. `resolver` runs when a link renders; when the host's pages change
      *  (a target gets created), call `editor.commands.refreshWikilinks()` to re-resolve them. */
     wikilink?: { enabled?: boolean; resolver?: (page: string) => WikilinkResolution | null };
@@ -97,6 +105,10 @@ export interface EditorBuildOptions {
     onAddCitation?: () => void;
     onAddWikilink?: () => void;
     onAddAbbreviation?: () => void;
+    /** Open an external URL: a video's privacy link and the media bubble menus' "open" actions.
+     *  For hosts where a new tab cannot open (a desktop webview); unset, the browser opens it.
+     *  `<InscriptEditor onOpenExternal>` overrides it. */
+    onOpenExternal?: (url: string) => void;
     [key: string]: unknown;
 }
 
@@ -351,9 +363,10 @@ export interface InscriptEditorProps {
     focusMaxWidth?: string;
     /** Dim non-focused paragraphs in focus mode (default true). False = narrow column only, no dimming. */
     focusDim?: boolean;
-    /** Open an external URL (a media node's "open in new tab" action). Supply this on hosts where
-     *  window.open is blocked/inert (e.g. a Tauri desktop webview) to route through the host's opener.
-     *  When omitted, the editor falls back to window.open. */
+    /** Open an external URL (a media node's "open in new tab" action, a video's privacy link).
+     *  Supply this on hosts where window.open is blocked/inert (e.g. a Tauri desktop webview) to
+     *  route through the host's opener. Overrides `editorOptions.onOpenExternal`. When neither is
+     *  given, the editor falls back to window.open (and a link to the browser). */
     onOpenExternal?: (url: string) => void;
     ref?: Ref<InscriptEditorRefHandle>;
 }
@@ -554,7 +567,13 @@ export const YoutubeEmbedModal: (props: {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: (id: string) => void;
+    /** Your YouTube search. Without it the modal offers no search tab, only the link field. */
     onSearch?: (query: string) => Promise<YoutubeSearchResult[]>;
+    /** Linked from the live preview's consent placeholder, which loads nothing until "Load
+     *  preview" is pressed. Pass the same value as `editorOptions.youtube.privacyUrl`. */
+    privacyUrl?: string;
+    /** Opens the privacy link where a new tab cannot (a desktop webview); unset, the browser does. */
+    onOpenExternal?: (url: string) => void;
 }) => ReactNode;
 
 /** The version history panel. Previews are inert (embeds become placeholders, nothing runs). */

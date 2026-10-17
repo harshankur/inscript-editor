@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useInscriptEditor } from '../../src/hooks/useInscriptEditor.js';
 import { InscriptEditor } from '../../src/InscriptEditor.jsx';
@@ -100,5 +100,49 @@ describe('host handlers: editorOptions is the single source of truth', () => {
         fireEvent.click(screen.getByTitle('Citation'));
         expect(promptSpy).toHaveBeenCalled();
         promptSpy.mockRestore();
+    });
+
+    describe('the external-link opener (onOpenExternal)', () => {
+        const VIDEO = 'dQw4w9WgXcQ';
+        const PRIVACY_URL = 'https://example.com/datenschutz#video';
+        const consentOptions = extra => ({ youtube: { facade: 'local', privacyUrl: PRIVACY_URL }, ...extra });
+        const followPrivacyLink = (container) => {
+            const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+            container.querySelector('[data-youtube-consent] a').dispatchEvent(event);
+            return event;
+        };
+        const insertVideo = (editor) => editor.commands.insertContent({ type: 'youtube', attrs: { 'data-youtube-video': VIDEO } });
+
+        it("<InscriptEditor onOpenExternal> opens a video's privacy link, over editorOptions.onOpenExternal", () => {
+            const fromOptions = vi.fn();
+            const fromProp = vi.fn();
+            const editorRef = { current: null };
+            const { container } = render(<Harness editorOptions={consentOptions({ onOpenExternal: fromOptions })} editorRef={editorRef} onOpenExternal={fromProp} />);
+            act(() => { insertVideo(editorRef.current); });
+            expect(followPrivacyLink(container).defaultPrevented).toBe(true);
+            expect(fromProp).toHaveBeenCalledWith(PRIVACY_URL);
+            expect(fromOptions).not.toHaveBeenCalled();
+        });
+
+        it("editorOptions.onOpenExternal opens a video's privacy link when no prop is given", () => {
+            const fromOptions = vi.fn();
+            const editorRef = { current: null };
+            const { container } = render(<Harness editorOptions={consentOptions({ onOpenExternal: fromOptions })} editorRef={editorRef} />);
+            act(() => { insertVideo(editorRef.current); });
+            followPrivacyLink(container);
+            expect(fromOptions).toHaveBeenCalledWith(PRIVACY_URL);
+        });
+
+        it('editorOptions.onOpenExternal also drives the YouTube bubble menu', () => {
+            const fromOptions = vi.fn();
+            const editorRef = { current: null };
+            render(<Harness editorOptions={{ onOpenExternal: fromOptions }} editorRef={editorRef} />);
+            act(() => {
+                insertVideo(editorRef.current);
+                editorRef.current.commands.setNodeSelection(0);
+            });
+            fireEvent.click(screen.getByTitle('Open in YouTube'));
+            expect(fromOptions).toHaveBeenCalledWith(`https://www.youtube.com/watch?v=${VIDEO}`);
+        });
     });
 });

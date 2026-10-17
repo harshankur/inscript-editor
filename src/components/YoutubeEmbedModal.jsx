@@ -1,20 +1,64 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { Filter, Plus, X, SquarePlay as YoutubeIcon } from 'lucide-react';
 import { InlineNotice } from './InlineNotice.jsx';
-import { extractYoutubeId } from '../utils/youtubeUrl.js';
+import { extractYoutubeId, youtubeEmbedUrl } from '../utils/youtubeUrl.js';
+import { buildYoutubeConsent, YOUTUBE_CONSENT_DEFAULTS } from '../utils/youtubeConsent.js';
 import { useInscriptEditorTranslations } from '../hooks/useInscriptEditorTranslations.js';
 
-export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch }) => {
+// The query the live preview's player is loaded with.
+const PREVIEW_PLAYER_QUERY = '?controls=0&modestbranding=1';
+
+// The same consent placeholder the editor's videos show (facade: 'local'), mounted into React.
+// It is plain DOM built once per set of labels; the callbacks are read through refs, so a new
+// function identity never rebuilds it.
+function YoutubeConsentPreview({ labels, onLoad, privacyUrl, onOpenExternal }) {
+    const hostRef = useRef(null);
+    const onLoadRef = useRef(onLoad);
+    const openerRef = useRef(onOpenExternal);
+    useEffect(() => { onLoadRef.current = onLoad; }, [onLoad]);
+    useEffect(() => { openerRef.current = onOpenExternal; }, [onOpenExternal]);
+    const { title, text, load, privacy } = labels;
+    useEffect(() => {
+        const element = buildYoutubeConsent({
+            labels: { title, text, load, privacy },
+            onLoad: () => onLoadRef.current(),
+            privacyUrl,
+            getOpenExternal: () => openerRef.current,
+        });
+        hostRef.current.appendChild(element);
+        return () => element.remove();
+    }, [title, text, load, privacy, privacyUrl]);
+    // display: contents, so the placeholder fills the preview box itself.
+    return <div ref={hostRef} className="contents" />;
+}
+
+// The live preview loads nothing until the user presses "Load preview" on its consent
+// placeholder, for that video only. privacyUrl links the host's privacy notice from it, as
+// editorOptions.youtube.privacyUrl does for the editor's videos; onOpenExternal opens that link
+// where a new tab cannot (a desktop webview). The search tab shows only when onSearch is given.
+export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch, privacyUrl, onOpenExternal }) => {
     useInscriptEditorTranslations();
     const { t } = useTranslation('inscript-editor');
-    const [activeTab, setActiveTab] = useState('link'); // 'link' or 'search'
+    const canSearch = typeof onSearch === 'function';
+    const [selectedTab, setActiveTab] = useState('link'); // 'link' or 'search'
+    const activeTab = canSearch ? selectedTab : 'link';
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [searching, setSearching] = useState(false);
     const [searchError, setSearchError] = useState(null);
     const [linkInput, setLinkInput] = useState('');
     const [previewId, setPreviewId] = useState(null);
+    // The video the user agreed to load in the preview; a different ID asks again.
+    const [consentedId, setConsentedId] = useState(null);
+    // After "Load preview", focus moves from the button (now gone) to the player.
+    const previewFrameRef = useRef(null);
+    const focusPreviewRef = useRef(false);
+    useEffect(() => {
+        if (!focusPreviewRef.current || !previewFrameRef.current) return;
+        focusPreviewRef.current = false;
+        previewFrameRef.current.focus();
+    }, [consentedId]);
 
     useEffect(() => {
         if (!isOpen) {
@@ -23,12 +67,13 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch }) => {
             setSearchError(null);
             setLinkInput('');
             setPreviewId(null);
+            setConsentedId(null);
         }
     }, [isOpen]);
 
     const handleSearch = async (e) => {
         if (e) e.preventDefault();
-        if (!query.trim() || !onSearch) return;
+        if (!query.trim() || !canSearch) return;
 
         setSearching(true);
         setSearchError(null);
@@ -61,7 +106,9 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch }) => {
                         </div>
                         <div>
                             <h3 className="text-lg font-bold">{t('embedYoutube', 'Embed YouTube Video')}</h3>
-                            <p className="text-xs text-[var(--inscript-color-muted)]">{t('searchOrPasteLink', 'Search or paste a link to embed')}</p>
+                            <p className="text-xs text-[var(--inscript-color-muted)]">
+                                {canSearch ? t('searchOrPasteLink', 'Search or paste a link to embed') : t('pasteLinkToEmbed', 'Paste a link to embed')}
+                            </p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-[var(--inscript-color-hover)] rounded-lg text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)] transition-colors">
@@ -69,21 +116,23 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch }) => {
                     </button>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex px-6 pt-2 border-b border-[var(--inscript-color-border)] gap-6">
-                    <button
-                        onClick={() => setActiveTab('link')}
-                        className={`py-3 text-sm font-medium border-b-2 transition-all ${activeTab === 'link' ? 'border-[var(--inscript-color-accent)] text-[var(--inscript-color-accent)]' : 'border-transparent text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)]'}`}
-                    >
-                        {t('directLink', 'Direct Link')}
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('search')}
-                        className={`py-3 text-sm font-medium border-b-2 transition-all ${activeTab === 'search' ? 'border-[var(--inscript-color-accent)] text-[var(--inscript-color-accent)]' : 'border-transparent text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)]'}`}
-                    >
-                        {t('searchYoutubeExperimental', 'Search YouTube (Experimental)')}
-                    </button>
-                </div>
+                {/* Tabs (only with a search to offer: without one there is just the link) */}
+                {canSearch && (
+                    <div className="flex px-6 pt-2 border-b border-[var(--inscript-color-border)] gap-6">
+                        <button
+                            onClick={() => setActiveTab('link')}
+                            className={`py-3 text-sm font-medium border-b-2 transition-all ${activeTab === 'link' ? 'border-[var(--inscript-color-accent)] text-[var(--inscript-color-accent)]' : 'border-transparent text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)]'}`}
+                        >
+                            {t('directLink', 'Direct Link')}
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('search')}
+                            className={`py-3 text-sm font-medium border-b-2 transition-all ${activeTab === 'search' ? 'border-[var(--inscript-color-accent)] text-[var(--inscript-color-accent)]' : 'border-transparent text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)]'}`}
+                        >
+                            {t('searchYoutubeExperimental', 'Search YouTube (Experimental)')}
+                        </button>
+                    </div>
+                )}
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
@@ -187,13 +236,30 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch }) => {
                             {previewId ? (
                                 <div className="space-y-3">
                                     <label className="text-xs font-bold text-[var(--inscript-color-muted)] uppercase tracking-widest block">{t('livePreview', 'Live Preview')}</label>
-                                    <div className="aspect-video rounded-xl overflow-hidden bg-black ring-1 ring-[var(--inscript-color-border)] relative shadow-2xl">
-                                        <iframe
-                                            src={`https://www.youtube.com/embed/${previewId}?controls=0&modestbranding=1`}
-                                            className="w-full h-full"
-                                            title={t('preview', 'Preview')}
-                                        />
-                                        <div className="absolute inset-0 z-10 pointer-events-none border-2 border-[var(--inscript-color-accent-soft)] rounded-xl" />
+                                    <div className={`aspect-video rounded-xl overflow-hidden relative @container ${consentedId === previewId ? 'bg-black ring-1 ring-[var(--inscript-color-border)] shadow-2xl' : ''}`}>
+                                        {consentedId === previewId ? (
+                                            <>
+                                                <iframe
+                                                    ref={previewFrameRef}
+                                                    src={`${youtubeEmbedUrl(previewId)}${PREVIEW_PLAYER_QUERY}`}
+                                                    className="w-full h-full"
+                                                    title={t('preview', 'Preview')}
+                                                />
+                                                <div className="absolute inset-0 z-10 pointer-events-none border-2 border-[var(--inscript-color-accent-soft)] rounded-xl" />
+                                            </>
+                                        ) : (
+                                            <YoutubeConsentPreview
+                                                labels={{
+                                                    title: t('youtubeConsentTitle', YOUTUBE_CONSENT_DEFAULTS.title),
+                                                    text: t('youtubeConsentText', YOUTUBE_CONSENT_DEFAULTS.text),
+                                                    load: t('youtubeConsentLoadPreview', YOUTUBE_CONSENT_DEFAULTS.loadPreview),
+                                                    privacy: t('youtubeConsentPrivacy', YOUTUBE_CONSENT_DEFAULTS.privacy),
+                                                }}
+                                                onLoad={() => { focusPreviewRef.current = true; setConsentedId(previewId); }}
+                                                privacyUrl={privacyUrl}
+                                                onOpenExternal={onOpenExternal}
+                                            />
+                                        )}
                                     </div>
                                     <p className="text-[10px] text-[var(--inscript-color-accent)] font-mono text-center">{t('detectedId', 'Detected ID: {{id}}', { id: previewId })}</p>
                                 </div>

@@ -22,6 +22,12 @@ export const HostBridge = Extension.create({
     addOptions() {
         return { handlersRef: null };
     },
+
+    // The external-link opener <InscriptEditor> was given as its `onOpenExternal` prop, published
+    // here (setExternalOpener) so a node view, which has no props, opens links the same way.
+    addStorage() {
+        return { openExternal: null };
+    },
 });
 
 /**
@@ -32,4 +38,27 @@ export const HostBridge = Extension.create({
 export function getHostHandlers(editor) {
     const ext = editor?.extensionManager?.extensions?.find((e) => e.name === 'hostBridge');
     return ext?.options?.handlersRef?.current ?? {};
+}
+
+/**
+ * Publish <InscriptEditor>'s `onOpenExternal` prop on the editor (null clears it).
+ * @param {import('@tiptap/core').Editor | null | undefined} editor
+ * @param {((url: string) => void) | null | undefined} openExternal
+ */
+export function setExternalOpener(editor, openExternal) {
+    const storage = editor?.storage?.hostBridge;
+    if (storage) storage.openExternal = typeof openExternal === 'function' ? openExternal : null;
+}
+
+/**
+ * The host's external-link opener, or null to let the browser open the link: the
+ * <InscriptEditor> prop when given, else `editorOptions.onOpenExternal`.
+ * @param {import('@tiptap/core').Editor | null | undefined} editor
+ * @returns {((url: string) => void) | null}
+ */
+export function getExternalOpener(editor) {
+    const fromProp = editor?.storage?.hostBridge?.openExternal;
+    if (typeof fromProp === 'function') return fromProp;
+    const fromOptions = getHostHandlers(editor).onOpenExternal;
+    return typeof fromOptions === 'function' ? fromOptions : null;
 }

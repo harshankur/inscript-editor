@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle } from 'react';
+import { forwardRef, useEffect, useImperativeHandle } from 'react';
 import { EditorContent } from '@tiptap/react';
 import { ResponsiveToolbar } from './components/ResponsiveToolbar.jsx';
 import { HistoryView } from './components/HistoryView.jsx';
@@ -10,7 +10,7 @@ import { EmbedBubbleMenu } from './components/bubble-menus/EmbedBubbleMenu.jsx';
 import { SlashCommandMenu } from './components/SlashCommandMenu.jsx';
 import { useInscriptEditorTranslations } from './hooks/useInscriptEditorTranslations.js';
 import { buildThemeVars } from './utils/theme.js';
-import { getHostHandlers } from './extensions/HostBridge.js';
+import { getHostHandlers, setExternalOpener } from './extensions/HostBridge.js';
 
 const EMPTY_ORIGINAL = { html: '', title: '', tags: [], categories: [] };
 
@@ -96,6 +96,12 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
         toggleFocusMode: () => { /* host app manages this prop usually, but we could provide a local override if we tracked it locally */ },
     }), [editor, restoreVersion, loadContent, flush, undo, redo, markSaved, history, historyIndex]);
 
+    // Node views (a YouTube video's privacy link) open external links through this prop too.
+    useEffect(() => {
+        setExternalOpener(editor, onOpenExternal);
+        return () => setExternalOpener(editor, null);
+    }, [editor, onOpenExternal]);
+
     if (!editor) return null;
 
     // The diff reference defaults to the first version (the document as opened), so hosts
@@ -118,6 +124,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     const resolvedOnAddCitation = onAddCitation ?? bridge.onAddCitation;
     const resolvedOnAddWikilink = onAddWikilink ?? bridge.onAddWikilink;
     const resolvedOnAddAbbreviation = onAddAbbreviation ?? bridge.onAddAbbreviation;
+    const resolvedOnOpenExternal = onOpenExternal ?? bridge.onOpenExternal;
 
     return (
         // display:contents scope: carries the theme custom properties to the
@@ -172,8 +179,8 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                         <TextBubbleMenu editor={editor} isReadonly={isReadonly} bubbleMenuConfig={bubbleMenuConfig} onAddAbbreviation={resolvedOnAddAbbreviation} />
                         <TableBubbleMenu editor={editor} isReadonly={isReadonly} />
                         <ImageBubbleMenu editor={editor} isReadonly={isReadonly} />
-                        <YoutubeBubbleMenu editor={editor} isReadonly={isReadonly} onOpenExternal={onOpenExternal} />
-                        <EmbedBubbleMenu editor={editor} isReadonly={isReadonly} onOpenExternal={onOpenExternal} />
+                        <YoutubeBubbleMenu editor={editor} isReadonly={isReadonly} onOpenExternal={resolvedOnOpenExternal} />
+                        <EmbedBubbleMenu editor={editor} isReadonly={isReadonly} onOpenExternal={resolvedOnOpenExternal} />
                         <SlashCommandMenu isReadonly={isReadonly} />
                         <EditorContent editor={editor} />
                     </div>

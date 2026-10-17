@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractYoutubeId } from './youtubeUrl.js';
+import { extractYoutubeId, youtubeEmbedUrl, YOUTUBE_EMBED_ORIGIN } from './youtubeUrl.js';
 
 describe('extractYoutubeId', () => {
     const VALID_ID = 'dQw4w9WgXcQ';
@@ -39,5 +39,21 @@ describe('extractYoutubeId', () => {
 
     it('returns null for non-string input', () => {
         expect(extractYoutubeId(12345)).toBeNull();
+    });
+});
+
+describe('youtubeEmbedUrl', () => {
+    const VALID_ID = 'dQw4w9WgXcQ';
+
+    it('points at the official player on www.youtube.com', () => {
+        expect(youtubeEmbedUrl(VALID_ID)).toBe(`https://www.youtube.com/embed/${VALID_ID}`);
+    });
+
+    it('names the one host', () => {
+        expect(YOUTUBE_EMBED_ORIGIN).toBe('https://www.youtube.com');
+    });
+
+    it('builds a URL that extractYoutubeId reads back', () => {
+        expect(extractYoutubeId(youtubeEmbedUrl(VALID_ID))).toBe(VALID_ID);
     });
 });

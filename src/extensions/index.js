@@ -84,7 +84,10 @@ export function buildExtensions(options = {}) {
         Subscript,
         Superscript,
         TextAlign.configure({ types: ['heading', 'paragraph'] }),
-        Youtube.configure({ facade: options.youtube?.facade ?? false }),
+        Youtube.configure({
+            facade: options.youtube?.facade ?? false,
+            privacyUrl: options.youtube?.privacyUrl ?? null,
+        }),
         CustomTable.configure({ resizable: true }),
         TableRow,
         TableHeader,

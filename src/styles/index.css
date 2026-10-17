@@ -516,6 +516,24 @@ img.ProseMirror-separator {
   background-color: var(--inscript-color-surface-raised, #fafafa);
 }
 
+/* A read-only editor shows no bubble menu for a video, so nothing is gained by selecting one: the
+   overlay that lets a click select a loaded player steps aside, and the first click plays it. */
+.ProseMirror[contenteditable="false"] .youtube-embed-overlay {
+  pointer-events: none;
+}
+
+/* The YouTube consent placeholder's privacy link looks the same in the editor (whose content
+   rules colour every link) and in the embed modal's preview. */
+[data-youtube-consent] a[href],
+.ProseMirror [data-youtube-consent] a[href] {
+  color: var(--inscript-color-muted, #71717a);
+  text-underline-offset: 2px;
+}
+[data-youtube-consent] a[href]:hover,
+.ProseMirror [data-youtube-consent] a[href]:hover {
+  color: var(--inscript-color-text, #18181b);
+}
+
 /* Citation Styles. Token-driven (accent) rather than serialized classes, so the
    color is themeable and not baked into the saved document HTML. */
 .ProseMirror .citation {

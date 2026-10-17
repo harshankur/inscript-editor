@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createEditor } from '../../tests/helpers/createEditor.js';
+import { resolveYoutubeFacade, YOUTUBE_FACADE } from './Youtube.js';
 
 const VALID_ID = 'dQw4w9WgXcQ';
 
@@ -190,6 +191,274 @@ describe('Youtube extension', () => {
         expect(el.innerHTML).toContain(`i.ytimg.com/vi/${VALID_ID}`);
 
         liveEditor.destroy();
+        el.remove();
+    });
+
+    describe('resolveYoutubeFacade', () => {
+        it.each([
+            ['false', false, 'none'],
+            ['undefined', undefined, 'none'],
+            ['null', null, 'none'],
+            ['true', true, 'thumbnail'],
+            ["'thumbnail'", 'thumbnail', 'thumbnail'],
+            ["'local'", 'local', 'local'],
+            ['any other truthy value (it turned the facade on before)', 'yes', 'thumbnail'],
+        ])('%s -> %s', (_label, input, expected) => {
+            expect(resolveYoutubeFacade(input)).toBe(expected);
+        });
+
+        it('names the three modes', () => {
+            expect(YOUTUBE_FACADE).toEqual({ NONE: 'none', THUMBNAIL: 'thumbnail', LOCAL: 'local' });
+        });
+    });
+
+    describe('saved youtube-nocookie.com HTML', () => {
+        it('loads back as a normal YouTube node, saved and shown on www.youtube.com', () => {
+            const el = document.createElement('div');
+            document.body.appendChild(el);
+            const live = createEditor({ element: el });
+            live.commands.setContent(`<iframe src="https://www.youtube-nocookie.com/embed/${VALID_ID}"></iframe>`);
+            expect(live.state.doc.firstChild.type.name).toBe('youtube');
+            expect(live.state.doc.firstChild.attrs['data-youtube-video']).toBe(VALID_ID);
+            expect(live.getHTML()).toContain(`src="https://www.youtube.com/embed/${VALID_ID}"`);
+            expect(live.getHTML()).not.toContain('nocookie');
+            expect(el.querySelector('iframe').getAttribute('src')).toBe(`https://www.youtube.com/embed/${VALID_ID}`);
+            live.destroy();
+            el.remove();
+        });
+
+        it('takes no nocookie option: one passed anyway changes nothing', () => {
+            const ed = createEditor({}, { youtube: { nocookie: true } });
+            ed.commands.setYoutubeVideo({ 'data-youtube-video': VALID_ID });
+            expect(ed.getHTML()).toContain(`src="https://www.youtube.com/embed/${VALID_ID}"`);
+            expect(ed.extensionManager.extensions.find(e => e.name === 'youtube').options).not.toHaveProperty('nocookie');
+            ed.destroy();
+        });
+    });
+
+    describe("consent placeholder (facade: 'local')", () => {
+        const PRIVACY_URL = 'https://example.com/datenschutz#video';
+        const mount = (youtube, { editable = true, hostHandlersRef } = {}) => {
+            const el = document.createElement('div');
+            document.body.appendChild(el);
+            const live = createEditor({ element: el, editable }, { youtube, hostHandlersRef });
+            live.commands.insertContent({ type: 'youtube', attrs: { 'data-youtube-video': VALID_ID } });
+            return { el, live, done: () => { live.destroy(); el.remove(); } };
+        };
+        const consentOf = el => el.querySelector('[data-youtube-consent]');
+        const loadButton = el => consentOf(el).querySelector('button');
+        // The node view's own stopEvent, as ProseMirror calls it for an event inside the node.
+        const stops = (el, target, type = 'mousedown') => {
+            const event = new Event(type, { bubbles: true });
+            Object.defineProperty(event, 'target', { value: target });
+            return el.querySelector('figure').pmViewDesc.stopEvent(event);
+        };
+
+        it('requests nothing before the click: no iframe, no thumbnail, no remote URL', () => {
+            const { el, done } = mount({ facade: 'local' });
+            expect(el.querySelector('iframe')).toBeNull();
+            expect(consentOf(el).getAttribute('data-youtube-facade')).toBe('local');
+            expect(el.innerHTML).not.toContain('ytimg');
+            expect(el.innerHTML).not.toMatch(/url\(|https?:\/\//);
+            expect(el.querySelector('img')).toBeNull();
+            done();
+        });
+
+        it('asks for consent then and there: heading, plain-words text and a "Load video" button', () => {
+            const { el, done } = mount({ facade: 'local' });
+            const consent = consentOf(el);
+            expect(consent.textContent).toContain('YouTube video');
+            expect(consent.textContent).toContain('Playing this video loads it from YouTube. YouTube (Google) then receives data such as your IP address and may set cookies.');
+            expect(loadButton(el).textContent).toBe('Load video');
+            done();
+        });
+
+        it('has no privacy link unless the host gives a privacy URL', () => {
+            const { el, done } = mount({ facade: 'local' });
+            expect(consentOf(el).querySelector('a')).toBeNull();
+            done();
+        });
+
+        it("links the host's privacy notice in a new tab, with rel=\"noopener\"", () => {
+            const { el, done } = mount({ facade: 'local', privacyUrl: PRIVACY_URL });
+            const link = consentOf(el).querySelector('a');
+            expect(link.getAttribute('href')).toBe(PRIVACY_URL);
+            expect(link.target).toBe('_blank');
+            expect(link.rel).toBe('noopener');
+            expect(link.textContent).toBe('Privacy notice');
+            done();
+        });
+
+        it("opens the privacy link through the host's opener (editorOptions.onOpenExternal)", () => {
+            const onOpenExternal = vi.fn();
+            const { el, done } = mount({ facade: 'local', privacyUrl: PRIVACY_URL }, { hostHandlersRef: { current: { onOpenExternal } } });
+            const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+            consentOf(el).querySelector('a').dispatchEvent(event);
+            expect(event.defaultPrevented).toBe(true);
+            expect(onOpenExternal).toHaveBeenCalledWith(PRIVACY_URL);
+            done();
+        });
+
+        it('loads the official player from www.youtube.com on the first press of the button', () => {
+            const { el, done } = mount({ facade: 'local' });
+            loadButton(el).click();
+            expect(consentOf(el)).toBeNull();
+            expect(el.querySelector('iframe').getAttribute('src')).toBe(`https://www.youtube.com/embed/${VALID_ID}`);
+            done();
+        });
+
+        it('moves focus to the player when the button was pressed from the keyboard', () => {
+            const { el, done } = mount({ facade: 'local' });
+            loadButton(el).focus();
+            loadButton(el).click();
+            expect(document.activeElement).toBe(el.querySelector('iframe'));
+            done();
+        });
+
+        it('leaves focus alone when the button did not have it', () => {
+            const { el, done } = mount({ facade: 'local' });
+            const outside = document.createElement('input');
+            document.body.appendChild(outside);
+            outside.focus();
+            loadButton(el).click();
+            expect(document.activeElement).toBe(outside);
+            outside.remove();
+            done();
+        });
+
+        it('loads the player on the first press in a read-only editor too', () => {
+            const { el, done } = mount({ facade: 'local' }, { editable: false });
+            loadButton(el).click();
+            expect(el.querySelector('iframe').getAttribute('src')).toBe(`https://www.youtube.com/embed/${VALID_ID}`);
+            done();
+        });
+
+        it('lays no overlay over the placeholder, so its button takes the first click', () => {
+            const { el, done } = mount({ facade: 'local' });
+            expect(el.querySelector('.youtube-embed-overlay')).toBeNull();
+            loadButton(el).click();
+            // The loaded player gets the overlay back, so a click on it selects the node.
+            expect(el.querySelector('.youtube-embed > .youtube-embed-overlay')).not.toBeNull();
+            done();
+        });
+
+        it("keeps ProseMirror out of its button's and link's events, so a click or Enter/Space acts at once", () => {
+            const { el, done } = mount({ facade: 'local', privacyUrl: PRIVACY_URL });
+            const consent = consentOf(el);
+            expect(stops(el, loadButton(el), 'mousedown')).toBe(true);
+            expect(stops(el, loadButton(el), 'keydown')).toBe(true);
+            expect(stops(el, loadButton(el).querySelector('span').firstChild, 'click')).toBe(true); // a text node inside it
+            expect(stops(el, consent.querySelector('a'), 'mousedown')).toBe(true);
+            // The rest of the placeholder still selects the node, as a click on a video does.
+            expect(stops(el, consent, 'mousedown')).toBe(false);
+            expect(stops(el, consent.firstChild, 'mousedown')).toBe(false);
+            done();
+        });
+
+        it('leaves every event to ProseMirror once the player is loaded', () => {
+            const { el, done } = mount({ facade: 'local' });
+            loadButton(el).click();
+            expect(stops(el, el.querySelector('.youtube-embed-overlay'), 'mousedown')).toBe(false);
+            expect(stops(el, el.querySelector('iframe'), 'mousedown')).toBe(false);
+            done();
+        });
+
+        it('the button is a real, focusable <button>', () => {
+            const { el, done } = mount({ facade: 'local' });
+            const button = loadButton(el);
+            expect(button.tagName).toBe('BUTTON');
+            expect(button.type).toBe('button');
+            button.focus();
+            expect(document.activeElement).toBe(button);
+            done();
+        });
+
+        it('keeps the video box (aspect ratio, width, alignment) and sizes itself to it', () => {
+            const { el, live, done } = mount({ facade: 'local' });
+            live.chain().selectAll().updateAttributes('youtube', { width: '50%', align: 'left' }).run();
+            const box = el.querySelector('.youtube-embed');
+            expect(box.className).toContain('aspect-video');
+            expect(box.className).toContain('@container');
+            expect(box.contains(consentOf(el))).toBe(true);
+            expect(consentOf(el).className).toContain('absolute inset-0');
+            expect(el.querySelector('figure').style.width).toBe('50%');
+            expect(el.querySelector('figure').style.marginLeft).toBe('0px');
+            done();
+        });
+
+        it('asks again for a new video ID set before the press, and then loads that video', () => {
+            const { el, live, done } = mount({ facade: 'local' });
+            const before = consentOf(el);
+            live.chain().selectAll().updateAttributes('youtube', { 'data-youtube-video': 'xbcdefghijk' }).run();
+            expect(consentOf(el)).not.toBe(before);
+            loadButton(el).click();
+            expect(el.querySelector('iframe').getAttribute('src')).toBe('https://www.youtube.com/embed/xbcdefghijk');
+            done();
+        });
+
+        it('keeps a width set before the press once the player loads', () => {
+            const { el, live, done } = mount({ facade: 'local' });
+            live.chain().selectAll().updateAttributes('youtube', { width: '50%' }).run();
+            loadButton(el).click();
+            expect(el.querySelector('figure').style.width).toBe('50%');
+            expect(el.querySelector('iframe')).not.toBeNull();
+            done();
+        });
+
+        it('saves the same HTML as without a facade (the placeholder is only on screen)', () => {
+            const plain = createEditor();
+            plain.commands.setYoutubeVideo({ 'data-youtube-video': VALID_ID });
+            const { live, done } = mount({ facade: 'local', privacyUrl: PRIVACY_URL });
+            expect(live.getHTML()).toBe(plain.getHTML());
+            plain.destroy();
+            done();
+        });
+
+        it('shows the "Video unavailable" placeholder, not the consent, for a video with no ID', () => {
+            const el = document.createElement('div');
+            document.body.appendChild(el);
+            const live = createEditor({ element: el }, { youtube: { facade: 'local' } });
+            live.commands.insertContent({ type: 'youtube', attrs: { 'data-youtube-video': null } });
+            expect(consentOf(el)).toBeNull();
+            expect(el.textContent).toContain('Video unavailable');
+            live.destroy();
+            el.remove();
+        });
+    });
+
+    it('thumbnail facade loads the player on click', () => {
+        const el = document.createElement('div');
+        document.body.appendChild(el);
+        const live = createEditor({ element: el }, { youtube: { facade: 'thumbnail' } });
+        live.commands.setYoutubeVideo({ 'data-youtube-video': VALID_ID });
+        const btn = el.querySelector('button[data-youtube-facade="thumbnail"]');
+        expect(btn.style.background).toContain(`i.ytimg.com/vi/${VALID_ID}/hqdefault.jpg`);
+        btn.click();
+        expect(el.querySelector('iframe').getAttribute('src')).toBe(`https://www.youtube.com/embed/${VALID_ID}`);
+        live.destroy();
+        el.remove();
+    });
+
+    it('does not set the iframe src again (reloading the player) when only the width changes', () => {
+        const el = document.createElement('div');
+        document.body.appendChild(el);
+        const live = createEditor({ element: el });
+        live.commands.setYoutubeVideo({ 'data-youtube-video': VALID_ID });
+        const iframe = el.querySelector('iframe');
+        const sets = [];
+        const proto = Object.getPrototypeOf(iframe);
+        const desc = Object.getOwnPropertyDescriptor(proto, 'src');
+        Object.defineProperty(iframe, 'src', {
+            configurable: true,
+            get() { return desc.get.call(this); },
+            set(v) { sets.push(v); desc.set.call(this, v); },
+        });
+        live.chain().selectAll().updateAttributes('youtube', { width: '50%' }).run();
+        expect(el.querySelector('figure').style.width).toBe('50%');
+        expect(sets).toEqual([]);
+        live.chain().selectAll().updateAttributes('youtube', { 'data-youtube-video': 'xbcdefghijk' }).run();
+        expect(sets).toEqual(['https://www.youtube.com/embed/xbcdefghijk']);
+        live.destroy();
         el.remove();
     });
 

@@ -22,7 +22,7 @@ describe('YoutubeEmbedModal', () => {
     });
 
     it('renders the translated experimental notice with its bold "Direct Link" (Trans)', async () => {
-        render(<YoutubeEmbedModal isOpen onClose={() => {}} onConfirm={() => {}} />);
+        render(<YoutubeEmbedModal isOpen onSearch={async () => []} onClose={() => {}} onConfirm={() => {}} />);
         await user.click(screen.getByText('Search YouTube (Experimental)'));
         // en.json maps the <strong> child to <1>…</1>; the notice must keep it bold.
         const bold = screen.getByText('Direct Link', { selector: 'strong' });
@@ -39,6 +39,114 @@ describe('YoutubeEmbedModal', () => {
         expect(insertButton).toBeEnabled();
         await user.click(insertButton);
         expect(onConfirm).toHaveBeenCalledWith(VALID_ID);
+    });
+
+    describe('live preview consent', () => {
+        const PRIVACY_URL = 'https://example.com/datenschutz#video';
+        const typeId = id => user.type(screen.getByPlaceholderText('https://youtube.com/watch?v=...'), id);
+        const consent = () => document.querySelector('[data-youtube-consent]');
+
+        it('asks for consent instead of loading the preview as soon as an ID is typed', async () => {
+            render(<YoutubeEmbedModal isOpen onClose={() => {}} onConfirm={() => {}} />);
+            await typeId(VALID_ID);
+            expect(screen.queryByTitle('Preview')).toBeNull();
+            expect(document.querySelector('iframe')).toBeNull();
+            expect(consent().textContent).toContain('YouTube video');
+            expect(consent().textContent).toContain('Playing this video loads it from YouTube. YouTube (Google) then receives data such as your IP address and may set cookies.');
+            expect(screen.getByRole('button', { name: 'Load preview' })).toBeInTheDocument();
+            // Insert does not need the preview.
+            expect(screen.getByRole('button', { name: 'Insert Video' })).toBeEnabled();
+        });
+
+        it('loads the preview from www.youtube.com on the first press of "Load preview"', async () => {
+            render(<YoutubeEmbedModal isOpen onClose={() => {}} onConfirm={() => {}} />);
+            await typeId(VALID_ID);
+            await user.click(screen.getByRole('button', { name: 'Load preview' }));
+            expect(screen.getByTitle('Preview').getAttribute('src'))
+                .toBe(`https://www.youtube.com/embed/${VALID_ID}?controls=0&modestbranding=1`);
+            expect(consent()).toBeNull();
+            // Focus moves from the button (now gone) to the player.
+            expect(document.activeElement).toBe(screen.getByTitle('Preview'));
+        });
+
+        it('loads the preview from the keyboard (Enter on the focused button)', async () => {
+            render(<YoutubeEmbedModal isOpen onClose={() => {}} onConfirm={() => {}} />);
+            await typeId(VALID_ID);
+            screen.getByRole('button', { name: 'Load preview' }).focus();
+            await user.keyboard('{Enter}');
+            expect(screen.getByTitle('Preview')).toBeInTheDocument();
+        });
+
+        it('asks again for a different video', async () => {
+            render(<YoutubeEmbedModal isOpen onClose={() => {}} onConfirm={() => {}} />);
+            const input = screen.getByPlaceholderText('https://youtube.com/watch?v=...');
+            await typeId(VALID_ID);
+            await user.click(screen.getByRole('button', { name: 'Load preview' }));
+            await user.clear(input);
+            await user.type(input, 'xbcdefghijk');
+            expect(screen.queryByTitle('Preview')).toBeNull();
+            expect(consent()).not.toBeNull();
+        });
+
+        it('asks again after the modal is closed and reopened', async () => {
+            const { rerender } = render(<YoutubeEmbedModal isOpen onClose={() => {}} onConfirm={() => {}} />);
+            await typeId(VALID_ID);
+            await user.click(screen.getByRole('button', { name: 'Load preview' }));
+            rerender(<YoutubeEmbedModal isOpen={false} onClose={() => {}} onConfirm={() => {}} />);
+            rerender(<YoutubeEmbedModal isOpen onClose={() => {}} onConfirm={() => {}} />);
+            await typeId(VALID_ID);
+            expect(screen.queryByTitle('Preview')).toBeNull();
+        });
+
+        it('has no privacy link without privacyUrl', async () => {
+            render(<YoutubeEmbedModal isOpen onClose={() => {}} onConfirm={() => {}} />);
+            await typeId(VALID_ID);
+            expect(consent().querySelector('a')).toBeNull();
+        });
+
+        it('links privacyUrl in a new tab, with rel="noopener"', async () => {
+            render(<YoutubeEmbedModal isOpen privacyUrl={PRIVACY_URL} onClose={() => {}} onConfirm={() => {}} />);
+            await typeId(VALID_ID);
+            const link = screen.getByRole('link', { name: 'Privacy notice' });
+            expect(link.getAttribute('href')).toBe(PRIVACY_URL);
+            expect(link.getAttribute('target')).toBe('_blank');
+            expect(link.getAttribute('rel')).toBe('noopener');
+        });
+
+        it('opens the privacy link through onOpenExternal, the latest one given', async () => {
+            const first = vi.fn();
+            const latest = vi.fn();
+            const { rerender } = render(<YoutubeEmbedModal isOpen privacyUrl={PRIVACY_URL} onOpenExternal={first} onClose={() => {}} onConfirm={() => {}} />);
+            await typeId(VALID_ID);
+            rerender(<YoutubeEmbedModal isOpen privacyUrl={PRIVACY_URL} onOpenExternal={latest} onClose={() => {}} onConfirm={() => {}} />);
+            await user.click(screen.getByRole('link', { name: 'Privacy notice' }));
+            expect(latest).toHaveBeenCalledWith(PRIVACY_URL);
+            expect(first).not.toHaveBeenCalled();
+        });
+
+        it('takes no nocookie prop: one passed anyway still previews from www.youtube.com', async () => {
+            render(<YoutubeEmbedModal isOpen nocookie onClose={() => {}} onConfirm={() => {}} />);
+            await typeId(VALID_ID);
+            await user.click(screen.getByRole('button', { name: 'Load preview' }));
+            expect(screen.getByTitle('Preview').getAttribute('src')).toMatch(/^https:\/\/www\.youtube\.com\/embed\//);
+        });
+    });
+
+    describe('search tab', () => {
+        it('is not offered without onSearch: there is only the link field', () => {
+            render(<YoutubeEmbedModal isOpen onClose={() => {}} onConfirm={() => {}} />);
+            expect(screen.queryByRole('button', { name: 'Search YouTube (Experimental)' })).toBeNull();
+            expect(screen.queryByRole('button', { name: 'Direct Link' })).toBeNull();
+            expect(screen.getByText('Paste a link to embed')).toBeInTheDocument();
+            expect(screen.getByPlaceholderText('https://youtube.com/watch?v=...')).toBeInTheDocument();
+        });
+
+        it('is offered with onSearch', () => {
+            render(<YoutubeEmbedModal isOpen onSearch={async () => []} onClose={() => {}} onConfirm={() => {}} />);
+            expect(screen.getByRole('button', { name: 'Search YouTube (Experimental)' })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Direct Link' })).toBeInTheDocument();
+            expect(screen.getByText('Search or paste a link to embed')).toBeInTheDocument();
+        });
     });
 
     it('disables Insert and shows a warning notice for a non-YouTube 11-char URL', async () => {

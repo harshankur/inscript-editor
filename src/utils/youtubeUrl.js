@@ -25,3 +25,18 @@ export function extractYoutubeId(input) {
 
     return BARE_ID_PATTERN.test(value) ? value : null;
 }
+
+/** The host the YouTube player loads from: YouTube's own, official one. */
+export const YOUTUBE_EMBED_ORIGIN = 'https://www.youtube.com';
+
+const EMBED_PATH = '/embed/';
+
+/**
+ * The player URL for a video ID, always on www.youtube.com. The ID is used as given: validate it
+ * first (extractYoutubeId) where it comes from outside.
+ *
+ * @param {string} id - An 11-character YouTube video ID.
+ */
+export function youtubeEmbedUrl(id) {
+    return `${YOUTUBE_EMBED_ORIGIN}${EMBED_PATH}${id}`;
+}

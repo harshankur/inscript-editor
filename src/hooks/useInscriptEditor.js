@@ -122,6 +122,7 @@ export function useInscriptEditor({
         onShowMediaLibrary: editorOptions.onShowMediaLibrary,
         onAddWikilink: editorOptions.onAddWikilink,
         onAddAbbreviation: editorOptions.onAddAbbreviation,
+        onOpenExternal: editorOptions.onOpenExternal,
     };
     // The other function-valued options (wikilink resolver, embed trust, custom slash items) are
     // read live through this ref too, so a new function identity never needs a new editor.
