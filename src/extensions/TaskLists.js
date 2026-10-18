@@ -1,5 +1,6 @@
 import { TaskList } from '@tiptap/extension-task-list';
 import { TaskItem } from '@tiptap/extension-task-item';
+import { Fragment } from '@tiptap/pm/model';
 
 // Checklists also parse from the HTML that Markdown renderers produce for GFM task lists
 // (`- [x] Book`), which is what the turndown rules write back. marked, markdown-it and GitHub
@@ -12,6 +13,9 @@ import { TaskItem } from '@tiptap/extension-task-item';
 //   <li data-checked="true"><label><input type="checkbox" checked><span></span></label><div>…</div></li>
 // and TipTap's own rule (`li[data-type="taskItem"]`) skipped those, leaving an empty task item
 // followed by a plain bullet list and losing the checked state.
+// An empty task item at the very end of a Markdown file is written `- [ ]`, and Markdown trims
+// the space after the brackets a renderer needs to see a checkbox, so it arrives as an item whose
+// whole text is `[ ]` (or `[x]`): that is read as an empty task item too.
 // Only the parse rules are added; what getHTML() emits is unchanged (the data-type shape).
 
 const TASK_LIST_TYPE = 'taskList';
@@ -51,6 +55,23 @@ function labelledCheckbox(li) {
     return null;
 }
 
+const BARE_TASK_MARKER = /^\s*\[([ xX])\]\s*$/;
+
+/**
+ * 'checked' / 'unchecked' for an item that is nothing but a task marker as text (`<li>[ ]</li>`,
+ * `<li><p>[x]</p></li>`), otherwise null.
+ */
+export function bareTaskMarker(li) {
+    const children = Array.from(li.children);
+    if (children.length > 1) return null;
+    if (children.length === 1 && (children[0].nodeName !== 'P' || children[0].children.length > 0)) return null;
+    const match = BARE_TASK_MARKER.exec(li.textContent || '');
+    if (!match) return null;
+    return match[1] === ' ' ? 'unchecked' : 'checked';
+}
+
+const opensWithTaskMarker = li => gfmTaskCheckbox(li) !== null || bareTaskMarker(li) !== null;
+
 /** A list that declares itself a task list, whatever its items look like. */
 const isDeclaredTaskList = list => list?.nodeName === 'UL' && list.getAttribute(DATA_TYPE) === TASK_LIST_TYPE;
 
@@ -59,7 +80,7 @@ const isChecked = checkbox => checkbox.hasAttribute('checked') || checkbox.check
 /** A list is a GFM task list when every item opens with a checkbox (the editor can't mix). */
 function isGfmTaskList(list) {
     const items = Array.from(list.children).filter(child => child.nodeName === 'LI');
-    return items.length > 0 && items.every(li => gfmTaskCheckbox(li) !== null);
+    return items.length > 0 && items.every(opensWithTaskMarker);
 }
 
 export const InscriptTaskList = TaskList.extend({
@@ -88,7 +109,8 @@ export const InscriptTaskItem = TaskItem.extend({
                         return dataChecked === '' || dataChecked === 'true';
                     }
                     const checkbox = gfmTaskCheckbox(element) ?? labelledCheckbox(element);
-                    return checkbox ? isChecked(checkbox) : false;
+                    if (checkbox) return isChecked(checkbox);
+                    return bareTaskMarker(element) === 'checked';
                 },
             },
         };
@@ -97,6 +119,13 @@ export const InscriptTaskItem = TaskItem.extend({
     parseHTML() {
         return [
             ...(this.parent?.() ?? []),
+            // An item that is only a task marker as text: an empty task item (its text is the marker).
+            {
+                tag: 'li',
+                priority: 52,
+                getAttrs: node => (bareTaskMarker(node) && node.parentElement && isGfmTaskList(node.parentElement) ? null : false),
+                getContent: (node, schema) => Fragment.from(schema.nodes.paragraph.create()),
+            },
             // Only inside a list this extension claimed as a task list, so a stray checkbox item
             // in an ordinary list stays an ordinary list item.
             {

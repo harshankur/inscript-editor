@@ -66,6 +66,7 @@
   },
   "peerDependencies": {
     "@tiptap/core": "^3.30.5",
+    "@tiptap/extension-code": "^3.30.5",
     "@tiptap/extension-code-block-lowlight": "^3.30.5",
     "@tiptap/extension-color": "^3.30.5",
     "@tiptap/extension-highlight": "^3.30.5",
@@ -111,6 +112,7 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@tiptap/core": "^3.30.5",
+    "@tiptap/extension-code": "^3.30.5",
     "@tiptap/extension-code-block-lowlight": "^3.30.5",
     "@tiptap/extension-color": "^3.30.5",
     "@tiptap/extension-highlight": "^3.30.5",
@@ -139,6 +141,7 @@
     "katex": "^0.18.10",
     "lowlight": "^3.3.0",
     "lucide-react": "^1.49.0",
+    "marked": "^16.4.2",
     "mermaid": "^11.16.1",
     "postcss": "^8.5.16",
     "react": "^19.2.4",

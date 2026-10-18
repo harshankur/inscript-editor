@@ -9,13 +9,18 @@ import React, { useState, useEffect, useRef } from 'react';
 // first time a diagram actually renders.
 let mermaidInitialized = false;
 
+/** How long typing in a diagram's source must pause before it is drawn again, in ms. */
+const MERMAID_REDRAW_DELAY_MS = 250;
+
 const MermaidComponent = (props) => {
-    const { node, updateAttributes, selected } = props;
+    const { node, editor, updateAttributes, selected } = props;
     const { code } = node.attrs;
     const [svg, setSvg] = useState('');
     const [error, setError] = useState(null);
     const idRef = useRef(`mermaid-${Math.random().toString(36).substr(2, 9)}`);
 
+    // The first drawing is immediate; after that, typing in the source redraws once it pauses.
+    const drawnOnceRef = useRef(false);
     useEffect(() => {
         let isMounted = true;
         const renderMermaid = async () => {
@@ -51,13 +56,15 @@ const MermaidComponent = (props) => {
                 }
             }
         };
-        renderMermaid();
-        return () => { isMounted = false; };
+        const delay = drawnOnceRef.current ? MERMAID_REDRAW_DELAY_MS : 0;
+        drawnOnceRef.current = true;
+        const timer = setTimeout(renderMermaid, delay);
+        return () => { isMounted = false; clearTimeout(timer); };
     }, [code]);
 
     return (
         <NodeViewWrapper className="mermaid-node my-4 p-4 border border-[var(--inscript-color-border)] rounded-md bg-[var(--inscript-color-surface-raised)]">
-            {selected && (
+            {selected && editor?.isEditable !== false && (
                 <div className="mb-4">
                     <textarea
                         className="w-full p-2 border border-[var(--inscript-color-border-strong)] rounded font-mono text-sm text-[var(--inscript-color-text)] outline-none focus:ring-2 focus:ring-[var(--inscript-color-accent)]"
@@ -96,7 +103,9 @@ export const Mermaid = Node.create({
         return {
             code: {
                 default: 'graph TD;\n    A-->B;',
-                parseHTML: element => element.textContent || element.getAttribute('data-mermaid') || '',
+                // `data-mermaid` is the exact source (attribute values keep their line breaks through a
+                // Markdown round trip); the text content is the fallback for markup that only has text.
+                parseHTML: element => element.getAttribute('data-mermaid') || element.textContent || '',
                 // Carried by `data-mermaid` + the text content; don't also serialize
                 // a stray raw `code` attribute.
                 renderHTML: () => ({}),

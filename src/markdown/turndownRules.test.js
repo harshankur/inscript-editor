@@ -124,7 +124,8 @@ describe('applyInscriptEditorTurndownRules (real TurndownService)', () => {
 
         it('still gives citations, inline math and footnote references their own rules', () => {
             const md = toMd('<p><span class="citation" data-key="k" style="color: red">[k]</span> <span class="math-inline" style="x: y">x</span> <sup><a data-footnote-ref href="#fn-1">1</a></sup></p>');
-            expect(md).toContain('<span class="citation" data-key="k" style="color: red">[k]</span>');
+            // The citation's text is data: its brackets are written as references, never Markdown.
+            expect(md).toContain('<span class="citation" data-key="k" style="color: red">&#91;k&#93;</span>');
             expect(md).toContain('<span class="math-inline" style="x: y">x</span>');
             expect(md).toContain('<sup><a data-footnote-ref="" href="#fn-1">1</a></sup>');
         });

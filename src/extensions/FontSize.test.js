@@ -1,5 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it } from 'vitest';
 import { createEditor } from '../../tests/helpers/createEditor.js';
+import { cssFontSize, normalizeFontSize } from './FontSize.js';
 
 describe('FontSize extension', () => {
     let editor;
@@ -41,5 +42,27 @@ describe('FontSize extension', () => {
         editor.commands.setFontSize(24);
         expect(editor.getAttributes('textStyle').color).toBe('#ff0000');
         expect(editor.getAttributes('textStyle').fontSize).toBe(24);
+    });
+
+    it.each([['11pt', '11pt'], ['1.5em', '1.5em'], ['120%', '120%'], ['large', 'large'], ['18px', '18px'], ['2rem', '2rem']])('keeps a pasted font-size of %s on save', (pasted, saved) => {
+        editor.commands.setContent(`<p><span style="font-size: ${pasted}">text</span></p>`);
+        expect(editor.getHTML()).toContain(`font-size: ${saved}`);
+    });
+
+    it('stores a pixel size as a bare number, like the toolbar does', () => {
+        editor.commands.setContent('<p><span style="font-size: 18px">text</span></p>');
+        editor.commands.setTextSelection({ from: 1, to: 5 });
+        expect(editor.getAttributes('textStyle').fontSize).toBe('18');
+    });
+
+    it('reads and writes only real font sizes', () => {
+        expect(normalizeFontSize('11PT')).toBe('11pt');
+        expect(normalizeFontSize('calc(1px + 2px)')).toBeNull();
+        expect(normalizeFontSize('12px; color: red')).toBeNull();
+        expect(normalizeFontSize('')).toBeNull();
+        expect(cssFontSize('16')).toBe('16px');
+        expect(cssFontSize('11pt')).toBe('11pt');
+        expect(cssFontSize('x-large')).toBe('x-large');
+        expect(cssFontSize('12px; position: fixed')).toBeNull();
     });
 });

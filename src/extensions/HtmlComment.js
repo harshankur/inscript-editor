@@ -1,46 +1,24 @@
 import { Node } from '@tiptap/core';
 import { DOMParser as ProseMirrorDOMParser } from '@tiptap/pm/model';
 import i18next from 'i18next';
+import { normalizeForParse } from '../utils/parseDom.js';
 
 /** Collapse runs of whitespace so a multi-line comment reads as one line in its chip. */
 const collapse = text => text.replace(/\s+/g, ' ');
 
-const COMMENT_NODE = 8;
-
 /**
- * `dom` with every real `<!-- ... -->` comment node replaced by the comment span this node
- * parses from. ProseMirror's parser only ever visits elements and text, so without this a real
- * comment (what marked, markdown-it and most HTML carry, as opposed to officeParser's span)
- * vanished on load. The caller's DOM is never mutated: it is cloned when there is a comment.
+ * ProseMirror's DOMParser, reading the DOM as normalizeForParse reshapes it: real comment nodes
+ * as source-comment nodes (ProseMirror's parser only ever visits elements and text, so a real
+ * comment, what marked, markdown-it and most HTML carry, vanished on load), and a Markdown
+ * renderer's images and list items fitted to the schema.
  */
-function withCommentSpans(dom) {
-    const doc = dom?.ownerDocument;
-    if (!doc || typeof doc.createTreeWalker !== 'function') return dom;
-    const find = root => {
-        const found = [];
-        const walker = doc.createTreeWalker(root, 128 /* NodeFilter.SHOW_COMMENT */);
-        for (let node = walker.nextNode(); node; node = walker.nextNode()) found.push(node);
-        return found;
-    };
-    if (find(dom).length === 0) return dom;
-    const copy = dom.cloneNode(true);
-    for (const comment of find(copy)) {
-        if (comment.nodeType !== COMMENT_NODE || !comment.parentNode) continue;
-        const span = doc.createElement('span');
-        span.setAttribute('data-html-comment', comment.data); // attribute, never markup
-        comment.parentNode.replaceChild(span, comment);
-    }
-    return copy;
-}
-
-/** ProseMirror's DOMParser, reading real comment nodes as source-comment nodes. */
 class CommentAwareDOMParser extends ProseMirrorDOMParser {
     parse(dom, options) {
-        return super.parse(withCommentSpans(dom), options);
+        return super.parse(normalizeForParse(dom), options);
     }
 
     parseSlice(dom, options) {
-        return super.parseSlice(withCommentSpans(dom), options);
+        return super.parseSlice(normalizeForParse(dom), options);
     }
 }
 
