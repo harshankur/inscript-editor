@@ -1,9 +1,7 @@
-// Every toolbar tool, clicked in every context. Generic assertions (no throw, no console
-// error, the document stays schema-valid, the selection stays valid) plus a log of what each
-// click did, written to the scratchpad for review.
+// Every toolbar tool, clicked in every context. Generic assertions: no throw, no console
+// error, the document stays schema-valid, the selection stays valid.
 import { act, fireEvent, screen } from '@testing-library/react';
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import fs from 'node:fs';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TextSelection, NodeSelection } from '@tiptap/pm/state';
 import { ALL_TOOL_IDS } from '../../src/toolbar/toolRegistry.js';
 import { renderHost, stubClientWidth, flush } from './harness.jsx';
@@ -13,10 +11,6 @@ vi.mock('@tiptap/react/menus', () => ({
     BubbleMenu: ({ children, shouldShow }) => { shouldShows.push(shouldShow); return <div data-testid="bubble-menu">{children}</div>; },
     FloatingMenu: ({ children }) => <div>{children}</div>,
 }));
-
-const LOG = process.env.MATRIX_LOG || '/private/tmp/claude-501/-Users-harshankur-Desktop-codes-inscript-editor/b94fb95b-6e92-4558-85d7-c9fc6b8dba97/scratchpad/toolbar-matrix.log';
-const lines = [];
-afterAll(() => { fs.writeFileSync(LOG, lines.join('\n')); });
 
 const IMG = 'data:image/png;base64,iVBORw0KGgo=';
 
@@ -65,12 +59,11 @@ function selectionIsValid(state) {
 
 let restoreWidth;
 let errors;
-let promptSpy;
 beforeEach(() => {
     restoreWidth = stubClientWidth(100000);
     errors = [];
     vi.spyOn(console, 'error').mockImplementation((...a) => { errors.push(a.map(String).join(' ')); });
-    promptSpy = vi.spyOn(window, 'prompt').mockImplementation(() => 'Full Form');
+    vi.spyOn(window, 'prompt').mockImplementation(() => 'Full Form');
     vi.spyOn(window, 'open').mockImplementation(() => null);
 });
 afterEach(() => {
@@ -89,8 +82,6 @@ describe.each(Object.keys(CONTEXTS))('context %s', (ctxName) => {
         await flush();
         const editor = api.current.editor;
         act(() => { ctx.select(editor); });
-        const before = editor.getHTML();
-        const selBefore = editor.state.selection.toJSON();
         let thrown = null;
         try {
             for (const title of PRESS[tool]) {
@@ -104,19 +95,8 @@ describe.each(Object.keys(CONTEXTS))('context %s', (ctxName) => {
                 await act(async () => { fireEvent.keyDown(input, { key: 'Enter' }); });
             }
         } catch (e) { thrown = e; }
-        const after = editor.getHTML();
         let docOk = true;
         try { editor.state.doc.check(); } catch { docOk = false; }
-        const btn = screen.queryAllByTitle(PRESS[tool][0])[0];
-        lines.push([
-            `[${ctxName}] ${tool}`,
-            `  sel ${JSON.stringify(selBefore)} -> ${JSON.stringify(editor.state.selection.toJSON())}`,
-            `  before ${before}`,
-            `  after  ${after}`,
-            `  changed=${before !== after} active=${btn ? /shadow-inner/.test(btn.className) : 'n/a'} disabled=${btn?.disabled} prompts=${promptSpy.mock.calls.length} handlers=${Object.entries(handlers).filter(([, f]) => f.mock.calls.length).map(([k]) => k).join(',')}`,
-            thrown ? `  THROWN ${thrown.message}` : '',
-            errors.length ? `  CONSOLE.ERROR ${errors.join(' | ').slice(0, 400)}` : '',
-        ].filter(Boolean).join('\n'));
         expect(thrown).toBeNull();
         expect(errors).toEqual([]);
         expect(docOk).toBe(true);

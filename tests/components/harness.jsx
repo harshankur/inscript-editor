@@ -1,4 +1,4 @@
-// Shared harness for the component explorations (not a test file).
+// Shared harness for the component tests in this folder (not a test file).
 import { forwardRef, useImperativeHandle } from 'react';
 import { act, render } from '@testing-library/react';
 import { useInscriptEditor } from '../../src/hooks/useInscriptEditor.js';

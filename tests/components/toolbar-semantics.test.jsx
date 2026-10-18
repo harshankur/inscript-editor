@@ -1,4 +1,4 @@
-// Targeted toolbar behaviours found through the matrix (toolbar-matrix.explore.jsx).
+// Targeted toolbar behaviours: active states, dropdowns, host handlers and a seeded click walk.
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TextSelection } from '@tiptap/pm/state';

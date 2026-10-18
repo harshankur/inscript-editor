@@ -106,7 +106,7 @@ describe('an "empty-looking" document across an editor replacement', () => {
 });
 
 describe('metadata given to loadContent across an effect re-run', () => {
-    // Found by the fuzzer (life seed 33): an <Activity> hide/show (or Fast Refresh) re-runs the
+    // An <Activity> hide/show (or Fast Refresh) re-runs the
     // title/tags/categories ref effects, which put the props back over what loadContent set.
     it('the title passed to loadContent is still the one recorded after a hide/show', () => {
         const { rerender } = render(tree({ contentKey: 'k', documentKey: 'd', title: 'Prop title' }));
