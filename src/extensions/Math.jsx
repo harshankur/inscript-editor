@@ -102,6 +102,8 @@ const MathComponent = ({ node, editor, updateAttributes, selected, isInline }) =
                             if (e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Enter') {
                                 e.stopPropagation();
                             }
+                            // Enter in a text field submits the form around it: the editor may sit in the host's.
+                            if (e.key === 'Enter') e.preventDefault();
                         }}
                         autoFocus
                     />

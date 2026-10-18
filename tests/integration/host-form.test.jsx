@@ -7,6 +7,11 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useInscriptEditor } from '../../src/hooks/useInscriptEditor.js';
 import { InscriptEditor } from '../../src/InscriptEditor.jsx';
+import { EditorContent } from '@tiptap/react';
+import { createEditor } from '../helpers/createEditor.js';
+import { BibliographyPanel } from '../../src/components/BibliographyPanel.jsx';
+import { ImageSelectorModal } from '../../src/components/ImageSelectorModal.jsx';
+import { YoutubeEmbedModal } from '../../src/components/YoutubeEmbedModal.jsx';
 
 vi.mock('@tiptap/react/menus', () => ({
     BubbleMenu: ({ children }) => <div data-testid="bubble-menu">{children}</div>,
@@ -78,6 +83,56 @@ describe('the editor inside a host <form>', () => {
     });
 });
 
+// Enter in a single-line field submits the form around it (implicit submission). jsdom does not
+// perform that submission, so these check that the field cancels Enter: fireEvent returns false.
+describe('Enter in the editor\'s text fields, inside a host <form>', () => {
+    let editor;
+    afterEach(() => { editor?.destroy(); editor = null; });
+
+    it('the math source field keeps Enter to itself', async () => {
+        editor = createEditor({ content: '<div class="math-block">x^2</div>' });
+        const { container } = render(<form><EditorContent editor={editor} /></form>);
+        let pos = null;
+        editor.state.doc.descendants((n, p) => { if (pos === null && n.type.name === 'mathBlock') pos = p; });
+        await act(async () => { editor.commands.setNodeSelection(pos); });
+        const input = container.querySelector('input[placeholder="LaTeX math..."]');
+        expect(input).not.toBeNull();
+        expect(fireEvent.keyDown(input, { key: 'Enter' })).toBe(false);
+        expect(editor.getHTML()).toContain('x^2');
+    });
+
+    it('the bibliography label field saves on Enter', () => {
+        editor = createEditor({ content: '<p>See <span class="citation" data-key="knuth" data-label="Knuth 1984">[Knuth 1984]</span>.</p>' });
+        render(<form><BibliographyPanel editor={editor} /></form>);
+        fireEvent.click(screen.getByTitle('Edit citation'));
+        const [label] = screen.getAllByRole('textbox');
+        fireEvent.change(label, { target: { value: 'DEK' } });
+        let notCancelled;
+        act(() => { notCancelled = fireEvent.keyDown(label, { key: 'Enter' }); });
+        expect(notCancelled).toBe(false);
+        let saved = null;
+        editor.state.doc.descendants(n => { if (n.type.name === 'citation') saved = n.attrs.label; });
+        expect(saved).toBe('DEK');
+    });
+
+    it('the image search keeps Enter to itself', () => {
+        render(<form><ImageSelectorModal isOpen onClose={() => {}} images={[]} onSelect={() => {}} /></form>);
+        expect(fireEvent.keyDown(screen.getByPlaceholderText('Search images...'), { key: 'Enter' })).toBe(false);
+    });
+
+    it('the video link field inserts a valid video on Enter, and only then', () => {
+        const onConfirm = vi.fn();
+        render(<form><YoutubeEmbedModal isOpen onClose={() => {}} onConfirm={onConfirm} /></form>);
+        const input = screen.getByPlaceholderText('https://youtube.com/watch?v=...');
+        fireEvent.change(input, { target: { value: 'not a video' } });
+        expect(fireEvent.keyDown(input, { key: 'Enter' })).toBe(false);
+        expect(onConfirm).not.toHaveBeenCalled();
+        fireEvent.change(input, { target: { value: 'https://youtu.be/dQw4w9WgXcQ' } });
+        expect(fireEvent.keyDown(input, { key: 'Enter' })).toBe(false);
+        expect(onConfirm).toHaveBeenCalledWith('dQw4w9WgXcQ');
+    });
+});
+
 describe('every <button> in the library source', () => {
     // A static check, so a button added later in a panel no test renders is still caught.
     function sourceFiles(dir) {
@@ -87,9 +142,9 @@ describe('every <button> in the library source', () => {
             return /\.jsx?$/.test(entry.name) && !/\.test\.jsx?$/.test(entry.name) ? [full] : [];
         });
     }
-    function openingTags(source) {
+    function openingTags(source, name = 'button') {
         const tags = [];
-        for (const match of source.matchAll(/<button\b/g)) {
+        for (const match of source.matchAll(new RegExp(`<${name}\\b`, 'g'))) {
             let depth = 0;
             let end = match.index;
             for (; end < source.length; end++) {
@@ -111,6 +166,21 @@ describe('every <button> in the library source', () => {
                 if (!/\btype="button"/.test(tag)) offenders.push(`${path.relative(SRC_DIR, file)}:${line}`);
             }
             if (/<form\b[^>]*>/.test(source.replace(/\{\/\*[\s\S]*?\*\/\}/g, ''))) offenders.push(`${path.relative(SRC_DIR, file)}: <form>`);
+        }
+        expect(offenders).toEqual([]);
+    });
+
+    it('every single-line text field cancels Enter, so it never submits a host form', () => {
+        const NOT_TEXT = /\btype="(checkbox|radio|color|file|range|button|submit|reset|hidden|image)"/;
+        const offenders = [];
+        for (const file of sourceFiles(SRC_DIR)) {
+            const source = fs.readFileSync(file, 'utf8');
+            for (const { tag, line } of openingTags(source, 'input')) {
+                if (NOT_TEXT.test(tag)) continue;
+                if (!/onKeyDown=/.test(tag) || !/'Enter'/.test(tag) || !/preventDefault\(\)/.test(tag)) {
+                    offenders.push(`${path.relative(SRC_DIR, file)}:${line}`);
+                }
+            }
         }
         expect(offenders).toEqual([]);
     });

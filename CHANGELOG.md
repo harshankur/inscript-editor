@@ -94,8 +94,10 @@ carry small breaking changes, called out below).
 - Consent for a YouTube video or an embed carried over to a different video or source shown in the
   same place; each asks again.
 - Inside a host's `<form>`, the editor's buttons (selection menu, toolbar overflow and customizer,
-  history view, panels, modals) submitted the form, and the link popover and video search nested
-  forms. Every button is `type="button"` and there are no forms.
+  history view, panels, modals) submitted the form, Enter in a text field (the math source, the
+  image search, a citation label, the video link) submitted it, and the link popover and video
+  search nested forms. Every button is `type="button"`, every field keeps Enter (a citation label
+  saves, a valid video link inserts), and there are no forms.
 - Selection menus ignored their placement, layering and size (TipTap 3 dropped the `tippyOptions` they
   passed): the scroll container clipped them (a selected video's menu could not be seen) and a loaded
   video's click layer swallowed clicks on the text menu above it.

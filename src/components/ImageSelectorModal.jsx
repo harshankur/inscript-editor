@@ -52,6 +52,8 @@ export const ImageSelectorModal = ({ isOpen, onClose, images, onSelect, onUpload
                             type="text"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
+                            // The list filters as you type; Enter must not submit a host form around the editor.
+                            onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
                             placeholder={t('searchImages', 'Search images...')}
                             className="w-full bg-[var(--inscript-color-surface)] border border-[var(--inscript-color-border)] rounded-lg pl-10 pr-4 py-2 text-[var(--inscript-color-text)] placeholder:text-[var(--inscript-color-muted)] focus:outline-none focus:border-[var(--inscript-color-accent)] transition-colors"
                             autoFocus

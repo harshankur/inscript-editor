@@ -256,6 +256,12 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch, privac
                                     className="w-full bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-xl py-3 px-4 text-[var(--inscript-color-text)] focus:ring-2 focus:ring-[var(--inscript-color-accent-ring)] focus:border-[var(--inscript-color-accent)] outline-none transition-all shadow-inner"
                                     value={linkInput}
                                     onChange={(e) => setLinkInput(e.target.value)}
+                                    // Enter inserts a valid video, like the Insert button (and never submits a host form).
+                                    onKeyDown={(e) => {
+                                        if (e.key !== 'Enter') return;
+                                        e.preventDefault();
+                                        if (previewId) onConfirm(previewId);
+                                    }}
                                 />
                             </div>
 

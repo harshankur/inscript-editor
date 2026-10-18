@@ -337,6 +337,8 @@ The privacy link opens through `onOpenExternal` when you give one (in `editorOpt
 
 The history panel's previews are inert: embeds show a placeholder naming their source instead of loading (the YouTube node serializes a live iframe), and nothing in a version can run.
 
+The editor can sit inside your own `<form>`: none of its buttons submit it, it nests no forms of its own, and Enter in one of its fields stays there (it applies a link, runs a video search, inserts a valid video or saves a citation label).
+
 ### Extensions
 
 `Youtube`, `FontSize`, `CustomTable`, `CustomImage`, `Citation`, `HtmlComment`, `Embed`: TipTap extensions used internally, exported so you can build a headless editor with the same schema (e.g. for tests) via `@tiptap/core`'s `Editor`.
@@ -344,7 +346,7 @@ The history panel's previews are inert: embeds show a placeholder naming their s
 ### Utilities
 
 - `getTableNode(state)`, `isHeaderRowActive(editor)`, `isHeaderColumnActive(editor)`, `setTableLayout(editor, attrs)` — table introspection/commands used by `TableBubbleMenu`.
-- `getTextContent(html)` — strips HTML to plain text; SSR-safe (falls back to a regex strip when `DOMParser` is unavailable).
+- `getTextContent(html)`: strips HTML to plain text; SSR-safe (without `DOMParser` it skips the tags in a single pass, in linear time on any input).
 - `extractYoutubeId(input)` — extracts an 11-character YouTube video ID from a known URL shape or a bare ID string; returns `null` otherwise.
 
 ### Individually-exported components

@@ -149,6 +149,12 @@ export const BibliographyPanel = ({ editor }) => {
                                                     type="text"
                                                     value={editLabel}
                                                     onChange={(e) => setEditLabel(e.target.value)}
+                                                    // Enter saves, like the Save button (and so never submits a host form around the editor).
+                                                    onKeyDown={(e) => {
+                                                        if (e.key !== 'Enter') return;
+                                                        e.preventDefault();
+                                                        saveEditing(cite.key);
+                                                    }}
                                                     className="w-full mt-1 text-sm px-2 py-1 rounded border border-[var(--inscript-color-border-strong)] bg-[var(--inscript-color-surface-raised)] text-[var(--inscript-color-text)]"
                                                 />
                                             </label>
