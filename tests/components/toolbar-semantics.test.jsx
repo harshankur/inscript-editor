@@ -135,6 +135,9 @@ describe('active states follow the cursor', () => {
         expect(screen.getByTitle('Heading 2').className).not.toMatch(/shadow-inner/);
     });
 
+    // 300 clicks, each re-rendering the whole editor: a few seconds alone, longer beside the rest of the
+    // suite on a busy machine. Past vitest's 5 s default a timed-out walk keeps clicking into the next test.
+    const WALK_TIMEOUT_MS = 60_000;
     it.each([[1234, true], [1234, false], [99, false], [7, false]])('a seeded random walk of clicks (seed %i, with Definition List %s) never throws and keeps the doc valid', async (seed, withDl) => {
         const { prng } = await import('./harness.jsx');
         const rand = prng(seed);
@@ -163,7 +166,7 @@ describe('active states follow the cursor', () => {
             }
         }
         expect(errors).toEqual([]);
-    });
+    }, WALK_TIMEOUT_MS);
 });
 
 describe('abbreviation toggle', () => {

@@ -122,6 +122,9 @@ const WRAPPERS = ['svg', 'math', 'mtext', 'mglyph', 'malignmark', 'foreignObject
     'iframe', 'annotation-xml encoding="text/html"', 'li', 'dl', 'colgroup', 'caption', 'object'];
 const PROBE = '<img data-probe src="x.png" onclick="void 0">';
 
+// 4000 parses in jsdom: a second or two alone, past vitest's 5 s default beside the rest of the suite on a busy machine.
+const FUZZ_TIMEOUT_MS = 60_000;
+
 describe('inertPreviewHtml: seeded wrapper fuzz', () => {
     it('no handler survives a parse, sanitize, re-parse cycle (seed 1337, 4000 cases)', () => {
         const rand = mulberry32(1337);
@@ -144,5 +147,5 @@ describe('inertPreviewHtml: seeded wrapper fuzz', () => {
             if (p.length) failures.push({ html, out, p });
         }
         expect(failures).toEqual([]);
-    });
+    }, FUZZ_TIMEOUT_MS);
 });
