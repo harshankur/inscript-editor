@@ -32,8 +32,9 @@ export const Abbreviation = Mark.create({
             toggleAbbreviation: (title) => ({ commands }) => {
                 return commands.toggleMark(this.name, { title });
             },
+            // With just a cursor in it, the whole abbreviation is removed (not only an empty range).
             unsetAbbreviation: () => ({ commands }) => {
-                return commands.unsetMark(this.name);
+                return commands.unsetMark(this.name, { extendEmptyMarkRange: true });
             },
         };
     },

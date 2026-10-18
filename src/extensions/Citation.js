@@ -57,7 +57,9 @@ export const Citation = Node.create({
 
     addCommands() {
         return {
-            insertCitation: (attributes) => ({ chain }) => {
+            // Not in code: a code block holds plain text only, and inserting split it.
+            insertCitation: (attributes) => ({ state, chain }) => {
+                if (state.selection.$from.parent.type.spec.code) return false;
                 return chain().insertContent({ type: this.name, attrs: attributes }).run();
             },
         };

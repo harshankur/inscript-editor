@@ -54,4 +54,21 @@ describe('DefinitionList extension', () => {
         expect(editor.getHTML()).toContain('Apple');
         expect(editor.state.selection.$head.parent.isTextblock).toBe(true);
     });
+
+    it('does nothing in a list item, where a definition list cannot replace the first paragraph', () => {
+        editor.commands.setContent('<ul><li><p>item one</p></li></ul>');
+        const before = editor.getHTML();
+        editor.commands.setTextSelection(4);
+        expect(editor.commands.toggleDefinitionList()).toBe(false);
+        expect(editor.getHTML()).toBe(before);
+        expect(editor.state.selection.$head.parent.isTextblock).toBe(true);
+    });
+
+    it('does nothing with an image selected', () => {
+        editor.commands.setContent('<img src="https://e.com/a.png"><p>after</p>');
+        editor.commands.setNodeSelection(0);
+        const before = editor.getHTML();
+        expect(editor.commands.toggleDefinitionList()).toBe(false);
+        expect(editor.getHTML()).toBe(before);
+    });
 });

@@ -64,9 +64,16 @@ export const DefinitionList = Node.create({
                     return true;
                 }
 
-                // Wrap current block in a definitionList
+                // Wrap the current text block in a definitionList: only a text block the cursor is in
+                // (not a selected image, say), and only where its parent accepts a definition list in
+                // its place. A list item must start with a paragraph: replacing that made ProseMirror
+                // insert an empty one and left the cursor between blocks.
+                if (selection.node || !$resolved.parent.isTextblock || depth === 0) return false;
+                const parent = $resolved.node(depth - 1);
+                const index = $resolved.index(depth - 1);
+                if (!parent.canReplaceWith(index, index + 1, dlType)) return false;
                 if (dispatch) {
-                    const blockPos = $resolved.before(Math.max(1, depth));
+                    const blockPos = $resolved.before(depth);
                     const blockNode = state.doc.nodeAt(blockPos);
                     if (!blockNode) return false;
 

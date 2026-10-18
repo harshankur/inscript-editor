@@ -22,6 +22,7 @@ import { FontSize } from './FontSize.js';
 import { Youtube } from './Youtube.js';
 import { InscriptTaskList, InscriptTaskItem } from './TaskLists.js';
 import { Code, CodeBlock } from './Code.js';
+import { Divider } from './Divider.js';
 import { createLowlight, common } from 'lowlight';
 import { SlashCommand } from './SlashCommand.js';
 import { HostBridge } from './HostBridge.js';
@@ -75,6 +76,7 @@ export function buildExtensions(options = {}) {
             underline: false,
         }),
         Code,
+        Divider,
         CodeBlock.configure({
             lowlight,
         }),

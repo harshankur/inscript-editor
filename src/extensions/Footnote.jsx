@@ -155,6 +155,8 @@ export const FootnotesSection = Node.create({
         return {
             insertFootnote: () => ({ tr, state, dispatch }) => {
                 const { schema } = state;
+                // A reference cannot sit in code (a code block holds plain text only).
+                if (state.selection.$from.parent.type.spec.code) return false;
                 const refType = schema.nodes.footnoteReference;
                 const defType = schema.nodes.footnoteDefinition;
                 const secType = schema.nodes.footnotesSection;

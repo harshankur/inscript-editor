@@ -57,4 +57,12 @@ describe('Abbreviation extension', () => {
         
         expect(editor.getHTML()).not.toContain('<abbr');
     });
+
+    it('removes the whole abbreviation when the cursor is inside it', () => {
+        editor.commands.setContent('<p>The <abbr title="HyperText Markup Language">HTML</abbr> spec</p>');
+        editor.commands.setTextSelection(7);
+        expect(editor.isActive('abbreviation')).toBe(true);
+        editor.commands.unsetAbbreviation();
+        expect(editor.getHTML()).toBe('<p>The HTML spec</p>');
+    });
 });
