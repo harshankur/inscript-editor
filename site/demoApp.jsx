@@ -209,7 +209,7 @@ export const SAMPLE = `
 `;
 
 // This site's section of the shared privacy notice, which names YouTube.
-const PRIVACY_URL = 'https://harshankur.com/datenschutz#inscript-editor';
+const PRIVACY_URL = 'https://harshankur.com/datenschutz#en-inscript-editor';
 
 // Every video (the sample's, and any added) asks for consent then and there: nothing is loaded
 // from YouTube until the visitor presses "Load video", and then the official player loads from
