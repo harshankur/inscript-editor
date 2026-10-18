@@ -54,16 +54,13 @@ describe('useInscriptEditor across React lifecycle events', () => {
             expect(api.isDirty).toBe(false);
         });
 
-        it('keeps an edit that was pending, and commits it once', () => {
+        it('records an edit that was pending when the effects were torn down, once', () => {
             const { rerender } = render(tree());
             act(() => { api.loadContent('<p>Doc</p>'); });
             act(() => { api.editor.commands.insertContent('!'); });
 
             rerender(tree({ mode: 'hidden' }));
             rerender(tree());
-            expect(kinds()).toEqual(['opened']);
-
-            idle();
             expect(api.history.map(e => e.html)).toEqual(['<p>Doc</p>', '<p>Doc!</p>']);
             expect(onContentChange).toHaveBeenCalledTimes(1);
             expect(onContentChange).toHaveBeenCalledWith(api.history[1], { reason: 'edit' });
@@ -120,17 +117,17 @@ describe('useInscriptEditor across React lifecycle events', () => {
             expect(onContentChange).not.toHaveBeenCalled();
         });
 
-        it('carries an uncommitted edit across, then commits it', () => {
+        it('records an edit pending at teardown, and the replacement holds it', () => {
             const { rerender } = render(tree());
             act(() => { api.loadContent('<p>Doc</p>'); });
             act(() => { api.editor.commands.insertContent(' typed'); });   // never reaches its 1s commit
 
             hideUntilDestroyed(rerender);
             expect(api.editor.getHTML()).toBe('<p>Doc typed</p>');
-            expect(kinds()).toEqual(['opened']);
-
-            idle();
             expect(api.history.map(e => e.html)).toEqual(['<p>Doc</p>', '<p>Doc typed</p>']);
+
+            idle(3000);
+            expect(api.history).toHaveLength(2);
             expect(onContentChange).toHaveBeenCalledTimes(1);
             expect(onContentChange).toHaveBeenCalledWith(api.history[1], { reason: 'edit' });
         });

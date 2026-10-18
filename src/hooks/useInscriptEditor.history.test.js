@@ -362,6 +362,24 @@ describe('useInscriptEditor version history', () => {
         });
     });
 
+    describe('quiet content changes', () => {
+        it('undo keeps the DOM of the blocks it does not change, and resets keystroke undo', () => {
+            const { result } = renderHook(() => useInscriptEditor({ contentKey: 'a' }));
+            const blocks = Array.from({ length: 50 }, (_, i) => `<p>Paragraph ${i}</p>`).join('');
+            act(() => { result.current.loadContent(`${blocks}<table><tbody><tr><td><p>cell</p></td></tr></tbody></table>`); });
+            act(() => { result.current.editor.commands.setTextSelection(3); });
+            type(result.current.editor, 'x');
+            idle();
+            const before = Array.from(result.current.editor.view.dom.children);
+            act(() => { result.current.undo(); });
+            const after = Array.from(result.current.editor.view.dom.children);
+            const kept = after.filter(el => before.includes(el)).length;
+            // At most the edited first paragraph is redrawn (it used to be every block).
+            expect(kept).toBeGreaterThanOrEqual(after.length - 1);
+            expect(result.current.editor.can().undo()).toBe(false);
+        });
+    });
+
     describe('initialContent', () => {
         it('creates the editor with the document and seeds it as the baseline, quietly', () => {
             const onContentChange = vi.fn();
@@ -385,6 +403,27 @@ describe('useInscriptEditor version history', () => {
             rerender({ contentKey: 'b', initialContent: '<p>B</p>' });
             expect(result.current.editor.getHTML()).toBe('<p>B</p>');
             expect(result.current.history.map(e => [e.kind, e.html])).toEqual([['opened', '<p>B</p>']]);
+        });
+
+        // The trailing paragraph TipTap adds after a closing heading, list, quote or code block
+        // used to arrive with the first click and be recorded as an edit.
+        it.each([
+            '<h1>Title</h1>',
+            '<p>a</p><ul><li><p>item</p></li></ul>',
+            '<p>a</p><blockquote><p>q</p></blockquote>',
+            '<pre><code>x</code></pre>',
+        ])('a document ending in a non-paragraph block records nothing on a click (%s)', (doc) => {
+            const onContentChange = vi.fn();
+            const { result } = renderHook(() => useInscriptEditor({ contentKey: 'a', initialContent: doc, onContentChange }));
+            const baseline = result.current.history[0].html;
+            expect(baseline).toBe(result.current.editor.getHTML());
+            act(() => { result.current.editor.commands.setTextSelection(1); });
+            idle(2000);
+            expect(kinds(result)).toEqual(['opened']);
+            expect(result.current.editor.getHTML()).toBe(baseline);
+            expect(onContentChange).not.toHaveBeenCalled();
+            expect(result.current.isDirty).toBe(false);
+            expect(result.current.editor.can().undo()).toBe(false);
         });
     });
 

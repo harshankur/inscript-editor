@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useEditor } from '@tiptap/react';
 import { createDocument, getHTMLFromFragment } from '@tiptap/core';
-import { EditorState } from '@tiptap/pm/state';
 import { buildExtensions } from '../extensions/index.js';
 import { hasView, viewDom } from '../utils/editorView.js';
 import {
@@ -12,19 +11,50 @@ import {
 /** How long edits settle before they are recorded as a version. */
 const COMMIT_DEBOUNCE_MS = 1000;
 
+/** prosemirror-history's plugin key (TipTap's UndoRedo), as ProseMirror names keys. */
+const HISTORY_PLUGIN_KEY = 'history$';
+
 /**
  * Set the editor's content without it counting as an edit: no `update` event (so no history
  * commit and no onContentChange), and a fresh keystroke undo stack, so Cmd/Ctrl+Z can never
  * reach back across a load or a version jump (it would otherwise undo the load itself, or pull
  * the previous document's text into this one).
+ *
+ * `exact`: the HTML is the editor's own (a version, what a replaced editor held), so its
+ * whitespace is content (two spaces typed in a row, a space left by deleting a word) and is kept
+ * as it is. A host's HTML is parsed like any page, its formatting whitespace collapsed.
  */
-function setContentQuiet(editor, html) {
+function setContentQuiet(editor, html, { exact = false } = {}) {
     editor.chain()
-        .command(({ tr }) => { tr.setMeta('addToHistory', false); return true; })
-        .setContent(html ?? '', { emitUpdate: false })
+        // Not undoable by keystroke, and taken as given: plain-text URLs are not autolinked.
+        .command(({ tr }) => { tr.setMeta('addToHistory', false).setMeta('preventAutolink', true); return true; })
+        .setContent(html ?? '', { emitUpdate: false, ...(exact ? { parseOptions: { preserveWhitespace: 'full' } } : {}) })
         .run();
+    // Keystroke undo starts over: the history plugin alone is dropped and added back, so its state
+    // is new. Every other plugin keeps its state. A state built from scratch re-initialized them all,
+    // and the table plugin then handed ProseMirror a new node-view function, which redrew every
+    // block (every formula and diagram rendered again, every embed rebuilt) on each load and undo.
     const { state } = editor;
-    editor.view.updateState(EditorState.create({ doc: state.doc, selection: state.selection, plugins: state.plugins }));
+    const withoutHistory = state.plugins.filter(plugin => plugin.key !== HISTORY_PLUGIN_KEY);
+    if (withoutHistory.length === state.plugins.length) return;
+    editor.view.updateState(state.reconfigure({ plugins: withoutHistory }).reconfigure({ plugins: state.plugins }));
+}
+
+/**
+ * Is the document blank: one empty paragraph, what an editor holds before it is given anything?
+ * (TipTap's isEmpty is also true for a table or a list whose cells hold no text.)
+ */
+function isBlankDocument(editor) {
+    const { doc } = editor.state;
+    return doc.childCount === 1 && doc.firstChild.type.name === 'paragraph' && doc.firstChild.childCount === 0;
+}
+
+/**
+ * Run one empty transaction that tells no one: plugins that append to every transaction (TipTap's
+ * trailing node) normalize the document, with no update event and nothing for undo.
+ */
+function settleQuietly(editor) {
+    editor.view.dispatch(editor.state.tr.setMeta('preventUpdate', true).setMeta('addToHistory', false));
 }
 
 /**
@@ -91,10 +121,27 @@ export function useInscriptEditor({
     const tagsRef = useRef(tags);
     const categoriesRef = useRef(categories);
 
-    useEffect(() => { isReadonlyRef.current = isReadonly; }, [isReadonly]);
-    useEffect(() => { titleRef.current = title; }, [title]);
-    useEffect(() => { tagsRef.current = tags; }, [tags]);
-    useEffect(() => { categoriesRef.current = categories; }, [categories]);
+    // Typing still waiting to be recorded when the editor turns read-only is recorded first: the
+    // commit timer drops anything that fires while read-only.
+    useEffect(() => {
+        if (isReadonly && !isReadonlyRef.current) flushPendingRef.current?.();
+        isReadonlyRef.current = isReadonly;
+    }, [isReadonly]);
+
+    // Title, tags and categories props reach the refs only when their value changes. loadContent
+    // sets the refs too (the document's own metadata), and an effect re-run with nothing changed
+    // (StrictMode, Fast Refresh, an <Activity> shown again) must not put the props back over it.
+    // Compared by value: the `[]` defaults (and a host's inline arrays) are new on every render.
+    const tagsKey = JSON.stringify(tags);
+    const categoriesKey = JSON.stringify(categories);
+    const appliedPropsRef = useRef({ title, tagsKey, categoriesKey });
+    useEffect(() => {
+        const applied = appliedPropsRef.current;
+        if (applied.title !== title) { titleRef.current = title; applied.title = title; }
+        if (applied.tagsKey !== tagsKey) { tagsRef.current = tags; applied.tagsKey = tagsKey; }
+        if (applied.categoriesKey !== categoriesKey) { categoriesRef.current = categories; applied.categoriesKey = categoriesKey; }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [title, tagsKey, categoriesKey]);
 
     // "Latest value" refs, assigned during render (read later by handlers and callbacks, never to
     // produce this render's output).
@@ -143,6 +190,8 @@ export function useInscriptEditor({
     // One state object so the list and the pointer always change together.
     const [historyState, setHistoryState] = useState({ history: [], index: -1 });
     const [isDirty, setIsDirty] = useState(false);
+    /** Whether an edit is waiting to be recorded (Undo/Redo availability depends on it). */
+    const [hasPendingEdit, setHasPendingEdit] = useState(false);
     const { history, index: historyIndex } = historyState;
 
     // Refs mirror the state synchronously (see applyHistory), so a commit or restore that runs
@@ -169,6 +218,8 @@ export function useInscriptEditor({
     const carryRef = useRef(null);
     /** An edit has been armed for commit and neither committed nor deliberately dropped yet. */
     const pendingEditRef = useRef(false);
+    /** A title/tags/categories change is waiting to be recorded (survives an effect re-run). */
+    const metadataPendingRef = useRef(false);
     const mountedRef = useRef(false);
 
     useEffect(() => {
@@ -177,8 +228,10 @@ export function useInscriptEditor({
     }, []);
 
     /** The single path for every history mutation: caps, then updates refs and state together. */
+    /** Versions the cap must keep for now (one about to be restored while pending typing commits). */
+    const protectedIdsRef = useRef([]);
     const applyHistory = useCallback((nextHistory, nextIndex) => {
-        const capped = capHistory(nextHistory, nextIndex, limitsRef.current);
+        const capped = capHistory(nextHistory, nextIndex, { ...limitsRef.current, protectedIds: protectedIdsRef.current });
         historyRef.current = capped.history;
         historyIndexRef.current = capped.index;
         setHistoryState({ history: capped.history, index: capped.index });
@@ -190,6 +243,7 @@ export function useInscriptEditor({
             clearTimeout(historyDebounceRef.current);
             historyDebounceRef.current = null;
         }
+        setHasPendingEdit(false);
     }, []);
 
     // --- TipTap editor ---
@@ -205,11 +259,29 @@ export function useInscriptEditor({
 
     const handleDestroyRef = useRef(null);
     const hasInitialContent = typeof initialContent === 'string';
-    const editor = useEditor({
+    const initialContentRef = useRef(initialContent);
+    initialContentRef.current = initialContent;
+    const hasInitialContentRef = useRef(hasInitialContent);
+    hasInitialContentRef.current = hasInitialContent;
+
+    // What a new editor starts with, read when TipTap creates it: right after it destroyed the
+    // editor this one replaces (an editorOptions or contentKey change for the same document, or an
+    // <Activity> shown again after TipTap destroyed the hidden editor), so what that editor left is
+    // known. A replacement starts with the document itself instead of being given it from an
+    // effect: setting content there builds React node views, which render synchronously, and React
+    // refuses that while it runs effects. A new document's editor starts with its initialContent,
+    // which then becomes the baseline version (see the editor effect).
+    const replacementSource = () => {
+        if (docIdentityRef.current !== committedIdentityRef.current) return null;
+        return documentForReplacement({
+            carry: carryRef.current,
+            replacement: null,
+            lastSyncedHtml: lastSyncedHtmlRef.current,
+            activeEntry: historyRef.current[historyIndexRef.current],
+        });
+    };
+    const editorConfig = {
         extensions,
-        // Read when an editor is created: a new document's editor starts with its content, which
-        // then becomes the baseline version (see the editor effect). No load from an effect needed.
-        content: hasInitialContent ? initialContent : '',
         editable: !isReadonly,
         editorProps: {
             attributes: {
@@ -224,7 +296,11 @@ export function useInscriptEditor({
         // Both editor content edits (here) AND metadata edits (title/tags/categories,
         // see the effect below) funnel through the same debounced commit, so a
         // title-only change is recorded/saved just like a content change.
-        onUpdate: () => scheduleCommit(),
+        // TipTap also emits `update` when only editability changes (setEditable): no edit then.
+        onUpdate: ({ editor: instance, transaction }) => {
+            if (transaction && !transaction.docChanged) return;
+            scheduleCommit(instance);
+        },
         // Every instance reports its OWN destruction. TipTap's 'destroy' event names no editor
         // and its onDestroy option is shared by every instance this useEditor ever creates,
         // including the extra one React StrictMode constructs and discards a tick after mount:
@@ -234,7 +310,19 @@ export function useInscriptEditor({
         onBeforeCreate: ({ editor: instance }) => {
             instance.on('destroy', () => handleDestroyRef.current?.(instance));
         },
-    }, [contentKey, optionsKey]);
+    };
+    Object.defineProperties(editorConfig, {
+        content: {
+            enumerable: true,
+            get: () => replacementSource()?.html ?? (hasInitialContentRef.current ? initialContentRef.current : ''),
+        },
+        // A replacement's HTML is the editor's own, whitespace included (see setContentQuiet).
+        parseOptions: {
+            enumerable: true,
+            get: () => (replacementSource() ? { preserveWhitespace: 'full' } : undefined),
+        },
+    });
+    const editor = useEditor(editorConfig, [contentKey, optionsKey]);
 
     // Live-toggle spellcheck on the editor DOM so the host's setting flips without recreating the
     // editor (which would lose the undo stack and cursor).
@@ -247,16 +335,22 @@ export function useInscriptEditor({
     // html/title/tags/categories differ from the active entry. Kept in a ref so the once-bound
     // onUpdate and the metadata effect always run the latest closure without rebinding.
     const commitRef = useRef(null);
-    commitRef.current = () => {
+    // `instance`: the editor to read, by default this render's. An editor being torn down or
+    // destroyed passes itself (this render's may already be its replacement).
+    commitRef.current = (instance = editor) => {
         historyDebounceRef.current = null;
+        setHasPendingEdit(false);
+        // A destroyed editor can't be read: what was pending stays pending, and the replacement
+        // editor's effect arms it again (see the editor effect).
+        if (!hasView(instance)) return;
         // Whatever the outcome below (recorded, unchanged, or dropped by a guard), the pending
         // edit has now been dealt with.
         pendingEditRef.current = false;
-        if (!hasView(editor)) return;
+        metadataPendingRef.current = false;
         // Re-check guards at fire time: a debounce armed while unguarded must still
         // be dropped if loading/syncing/readonly flipped on before it fires.
         if (isReadonlyRef.current || isLoadingRef.current || isSyncingRef.current) return;
-        const html = editor.getHTML();
+        const html = instance.getHTML();
         const meta = { title: titleRef.current, tags: tagsRef.current, categories: categoriesRef.current };
 
         const currentHist = historyRef.current;
@@ -272,26 +366,45 @@ export function useInscriptEditor({
         applyHistory([...currentHist, entry], currentHist.length);
         lastSyncedHtmlRef.current = html;
         setIsDirty(true);
-        onContentChangeRef.current?.(entry, { reason: 'edit' });
+        onContentChangeRef.current?.(storedEntry(entry), { reason: 'edit' });
     };
+
+    // The entry as the history holds it: the cap may have dropped a link to an evicted entry
+    // (parentId, restoredFrom) from the stored copy, and the host must get what is stored.
+    const storedEntry = entry => historyRef.current.find(e => e.id === entry.id) ?? entry;
 
     // Debounced arming, shared by content and metadata edits. Guards mirror the
     // old onUpdate guard so nothing commits while readonly / loading / syncing.
     // References only refs, so it is safe to bind into onUpdate once.
-    function scheduleCommit() {
-        if (isReadonlyRef.current || isLoadingRef.current || isSyncingRef.current) return;
+    function scheduleCommit(instance) {
+        if (isLoadingRef.current || isSyncingRef.current) {
+            // Content the host sets while loading or syncing (an editor update) is not an edit, and
+            // it replaces what was typed and not yet recorded: that is dropped, and later edits
+            // compare against it. A metadata change then (no editor) leaves pending typing alone.
+            if (hasView(instance)) {
+                clearPending();
+                pendingEditRef.current = false;
+                lastSyncedHtmlRef.current = instance.getHTML();
+            }
+            return;
+        }
+        if (isReadonlyRef.current) return;
         if (historyDebounceRef.current) clearTimeout(historyDebounceRef.current);
         pendingEditRef.current = true;
+        setHasPendingEdit(true);
         historyDebounceRef.current = setTimeout(() => {
             if (commitRef.current) commitRef.current();
         }, COMMIT_DEBOUNCE_MS);
     }
 
-    /** Commit a pending (debounced) edit right now, so a history jump never drops typing. */
-    const flushPending = () => {
+    /**
+     * Commit a pending (debounced) edit right now, so a history jump never drops typing.
+     * `instance`: the editor to read (see commitRef).
+     */
+    const flushPending = (instance) => {
         if (!historyDebounceRef.current) return;
         clearPending();
-        commitRef.current?.();
+        commitRef.current?.(instance);
     };
 
     // An editor instance is being destroyed. If it is the one this hook renders and the document
@@ -304,18 +417,19 @@ export function useInscriptEditor({
         if (docIdentityRef.current !== committedIdentityRef.current) {
             clearPending();
             pendingEditRef.current = false;
+            metadataPendingRef.current = false;
             carryRef.current = null;
             return;
         }
         // While mounted, a pending edit is committed now so the host hears of it. With the effects
         // torn down the host is not notified; the edit travels with the carry instead and is
         // committed once a replacement editor holds it.
-        if (mountedRef.current) flushPending();
+        if (mountedRef.current) flushPending(instance);
         try {
             carryRef.current = {
                 html: instance.getHTML(),
                 from: instance,
-                isEmpty: instance.isEmpty,
+                isEmpty: isBlankDocument(instance),
                 hasUncommittedEdit: pendingEditRef.current,
             };
         } catch {
@@ -331,15 +445,17 @@ export function useInscriptEditor({
     // effect on every render instead of only on real metadata edits.
     // And only when the metadata really changed: effects also re-run with nothing changed
     // (React StrictMode on mount, Fast Refresh), which must not arm a commit.
-    const tagsKey = JSON.stringify(tags);
-    const categoriesKey = JSON.stringify(categories);
     const metaKey = JSON.stringify([title, tagsKey, categoriesKey]);
     const lastMetaRef = useRef(null);
     useEffect(() => {
         const previous = lastMetaRef.current;
         lastMetaRef.current = { identity: docIdentity, metaKey };
         if (!previous || previous.identity !== docIdentity || previous.metaKey === metaKey) return;
+        // Back to what the active version holds (the host applying it after an undo): nothing to record.
+        const head = historyRef.current[historyIndexRef.current];
+        if (head && sameMetadata(head, { title: titleRef.current, tags: tagsRef.current, categories: categoriesRef.current })) return;
         scheduleCommit();
+        metadataPendingRef.current = historyDebounceRef.current !== null;
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [metaKey, docIdentity]);
 
@@ -349,7 +465,12 @@ export function useInscriptEditor({
         committedIdentityRef.current = docIdentity;
         clearPending();
         pendingEditRef.current = false;
+        metadataPendingRef.current = false;
         carryRef.current = null;
+        // The new document starts from the host's metadata, not what a load gave the previous one.
+        titleRef.current = title;
+        tagsRef.current = tags;
+        categoriesRef.current = categories;
         lastSyncedHtmlRef.current = null;
         applyHistory([], -1);
         setIsDirty(false);
@@ -364,17 +485,14 @@ export function useInscriptEditor({
 
     // Whenever the editor identity changes (creation, recreation) or unmounts.
     //
-    // A freshly (re)created editor can dispatch its own doc-changing transaction as
-    // part of @tiptap/react's own mount effects for that editor — which, since
-    // useEditor() is called earlier in this hook than this effect, run *before* this
-    // effect's body for the same `editor` value. So this body clears that spurious timer
-    // as soon as it exists, before it can survive to fire a phantom history entry. The
-    // cleanup below additionally covers real unmount and the *next* editor swap.
+    // A freshly (re)created editor can dispatch its own doc-changing transaction as part of
+    // @tiptap/react's own mount effects for that editor, which run before this effect's body (the
+    // editor is created earlier in this hook). That timer is cleared here, before it can fire a
+    // phantom version; a title/tags/categories change armed just before is armed again.
     //
     // React also re-runs effects for the SAME editor: StrictMode on mount, Fast Refresh, an
     // <Activity> shown again before TipTap destroyed the editor. Nothing was replaced then, so
-    // nothing is carried, restored or seeded; only an edit that was pending when the cleanup
-    // cancelled its timer is armed again.
+    // nothing is carried, restored or seeded.
     //
     // A replacement editor for the same document gets the document back, quietly (no phantom
     // version, no onContentChange), so the host doesn't reload anything: from what the outgoing
@@ -382,23 +500,22 @@ export function useInscriptEditor({
     //
     // An editor created for a document with `initialContent` (first mount, or a new document)
     // seeds that content as the baseline version.
-    const hasInitialContentRef = useRef(hasInitialContent);
-    hasInitialContentRef.current = hasInitialContent;
+    //
+    // The cleanup records typing still waiting for its timer, read from the editor being torn
+    // down, when the document stays the same (the editor is replaced, React tears the effects
+    // down for an <Activity> or an unmount, Fast Refresh): nothing typed is lost, and the host
+    // hears of it. On a document switch it is dropped (the host flushes before switching).
     const effectEditorRef = useRef(null);
-    const pendingAtTeardownRef = useRef(false);
     useEffect(() => {
         const sameInstance = effectEditorRef.current === editor;
         effectEditorRef.current = editor;
         clearPending();
-        if (sameInstance) {
-            if (pendingAtTeardownRef.current) scheduleCommit();
-            else pendingEditRef.current = false;
-        } else if (hasView(editor)) {
+        pendingEditRef.current = false;
+        if (!sameInstance && hasView(editor)) {
             // Only a live editor takes what was left: between a destroyed editor and its
             // replacement the hook can render with no editor at all, and the leftover must wait.
             const carry = carryRef.current;
             carryRef.current = null;
-            pendingEditRef.current = false;
             const source = documentForReplacement({
                 carry,
                 replacement: editor,
@@ -406,12 +523,25 @@ export function useInscriptEditor({
                 activeEntry: historyRef.current[historyIndexRef.current],
             });
             if (source) {
-                setContentQuiet(editor, source.html);
-                // An edit the outgoing editor never got to commit is committed from here; otherwise
-                // the document is back as recorded, and that is the state commits compare against.
+                // Normally the editor was created holding it (see replacementSource); otherwise
+                // (an editor created before the document was known) it is set now.
+                if (editor.options.content === source.html) settleQuietly(editor);
+                else setContentQuiet(editor, source.html, { exact: true });
+                // An edit the outgoing editor never got to commit is committed from here. A document
+                // that is back as recorded is the state commits compare against; one holding an edit
+                // a guard kept out of the history (a sync, say) keeps comparing against the last
+                // recorded state, so that edit is recorded once unguarded.
                 if (source.hasUncommittedEdit) scheduleCommit();
-                else lastSyncedHtmlRef.current = editor.getHTML();
+                else if (lastSyncedHtmlRef.current === null || source.html === lastSyncedHtmlRef.current) {
+                    lastSyncedHtmlRef.current = editor.getHTML();
+                }
             } else if (hasInitialContentRef.current && historyRef.current.length === 0) {
+                // The editor was built with the content, so no transaction has run yet, and the
+                // plugins that normalize on every transaction (the trailing paragraph after a
+                // closing heading, list, quote, table...) have not had their say. Let them run now,
+                // quietly, so the baseline is the document as it will stay: otherwise the first
+                // click adds that paragraph and records a phantom edit.
+                settleQuietly(editor);
                 const html = editor.getHTML();
                 lastSyncedHtmlRef.current = html;
                 applyHistory([createEntry('opened', {
@@ -420,10 +550,14 @@ export function useInscriptEditor({
                 setIsDirty(false);
             }
         }
-        pendingAtTeardownRef.current = false;
+        if (metadataPendingRef.current) scheduleCommit();
         return () => {
-            pendingAtTeardownRef.current = historyDebounceRef.current !== null;
-            clearPending();
+            if (docIdentityRef.current !== committedIdentityRef.current) {
+                clearPending();
+                return;
+            }
+            // Already destroyed (TipTap replaced it): left pending for the replacement.
+            if (hasView(editor)) flushPending(editor);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editor, clearPending, applyHistory]);
@@ -445,11 +579,13 @@ export function useInscriptEditor({
      * @param {number}   [options.historyIndex] - The persisted stack's active entry (default: last).
      * @returns {boolean} false when there is no live editor yet.
      */
-    const loadContent = useCallback((html, options = {}) => {
+    const loadContentImpl = (html, options = {}) => {
         if (!hasView(editor)) return false;
         const { kind, keepHistory = false, history: persisted, historyIndex: persistedIndex } = options;
         clearPending();
         pendingEditRef.current = false;
+        // A load supersedes a title/tags/categories change still waiting to be recorded.
+        metadataPendingRef.current = false;
         setContentQuiet(editor, html);
         const normalized = editor.getHTML();
         lastSyncedHtmlRef.current = normalized;
@@ -486,17 +622,30 @@ export function useInscriptEditor({
         }
         setIsDirty(false);
         return true;
-    }, [editor, applyHistory, clearPending]);
+    };
+    // A stable function, like the rest of the API: a host effect that lists it as a dependency
+    // must not run again (and reload the document) when the editor is recreated.
+    const loadContentRef = useRef(loadContentImpl);
+    loadContentRef.current = loadContentImpl;
+    const loadContent = useCallback((html, options) => loadContentRef.current(html, options), []);
 
     // Put a version's content in the editor and point at it (undo/redo), telling the host.
+    // The version is picked before pending typing is committed, and found again by id after: that
+    // commit can push the history over its cap, and evicting the oldest entry shifts every index.
     const moveTo = (index, reason) => {
         if (!hasView(editor)) return false;
-        flushPending();
+        // Pending typing is committed whatever is asked for, as undo() does.
+        const targetId = Number.isInteger(index) ? historyRef.current[index]?.id : undefined;
+        if (!targetId) { flushPending(); return false; }
+        protectedIdsRef.current = [targetId];
+        try { flushPending(); } finally { protectedIdsRef.current = []; }
+        const resolvedIndex = historyRef.current.findIndex(e => e.id === targetId);
+        if (resolvedIndex === -1) return false;
+        index = resolvedIndex;
         const target = historyRef.current[index];
-        if (!target) return false;
         if (index === historyIndexRef.current && editor.getHTML() === lastSyncedHtmlRef.current) return false;
         const resolvedReason = reason ?? (index < historyIndexRef.current ? 'undo' : 'redo');
-        setContentQuiet(editor, target.html);
+        setContentQuiet(editor, target.html, { exact: true });
         lastSyncedHtmlRef.current = editor.getHTML();
         applyHistory(historyRef.current, index);
         setIsDirty(true);
@@ -505,22 +654,27 @@ export function useInscriptEditor({
     };
 
     // Restore a version as a NEW entry at the end (the history panel's "Restore Version").
+    // The version is taken before pending typing is committed (see moveTo): it is restored even if
+    // that commit's cap evicts it.
     const restoreAsNewVersion = (index) => {
         if (!hasView(editor)) return false;
-        flushPending();
+        const target = Number.isInteger(index) ? historyRef.current[index] : undefined;
+        if (!target) { flushPending(); return false; }
+        const wasActive = index === historyIndexRef.current;
+        protectedIdsRef.current = [target.id];
+        try { flushPending(); } finally { protectedIdsRef.current = []; }
         const currentHist = historyRef.current;
-        const target = currentHist[index];
-        if (!target) return false;
-        if (index === historyIndexRef.current && editor.getHTML() === lastSyncedHtmlRef.current) return false;
-        setContentQuiet(editor, target.html);
+        if (wasActive && currentHist[historyIndexRef.current]?.id === target.id && editor.getHTML() === lastSyncedHtmlRef.current) return false;
+        setContentQuiet(editor, target.html, { exact: true });
         const html = editor.getHTML();
         lastSyncedHtmlRef.current = html;
         const entry = createEntry('restored', {
-            html, title: target.title, tags: target.tags, categories: target.categories, restoredFrom: target.id,
+            html, title: target.title, tags: target.tags, categories: target.categories,
+            restoredFrom: currentHist.some(e => e.id === target.id) ? target.id : undefined,
         });
         applyHistory([...currentHist, entry], currentHist.length);
         setIsDirty(true);
-        onContentChangeRef.current?.(entry, { reason: 'restore' });
+        onContentChangeRef.current?.(storedEntry(entry), { reason: 'restore' });
         return true;
     };
 
@@ -593,14 +747,18 @@ export function useInscriptEditor({
 
     return {
         editor,
+        // Spread into <InscriptEditor>, the read-only state reaches it too (no editing toolbar).
+        isReadonly,
         history,
         setHistory,
         historyIndex,
         setHistoryIndex,
         isDirty,
         setIsDirty,
-        canUndo: historyIndex > 0,
-        canRedo: historyIndex < history.length - 1,
+        // Typing waiting to be recorded counts: undo() records it first and steps back from it (so
+        // a freshly opened document can already be undone), and it leaves nothing to redo.
+        canUndo: historyIndex > 0 || (hasPendingEdit && historyIndex >= 0),
+        canRedo: historyIndex < history.length - 1 && !hasPendingEdit,
         loadContent,
         flush,
         undo,

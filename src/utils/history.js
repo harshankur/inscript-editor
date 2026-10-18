@@ -105,28 +105,34 @@ export function sanitizeHistory(list, index) {
 
 /**
  * Apply the cap: evict the oldest entries until both limits hold, but never the baseline (an
- * `opened`/`imported` first entry, "what I opened") and never the entry the pointer is on. The
- * pointer keeps pointing at the same entry, and references to evicted entries are dropped.
+ * `opened`/`imported` first entry, "what I opened"), never the entry the pointer is on, and never
+ * an entry named in `protectedIds` (a version about to be restored). The pointer keeps pointing at
+ * the same entry, and references to evicted entries are dropped.
  */
-export function capHistory(history, index, { maxHistory = DEFAULT_MAX_HISTORY, maxHistoryBytes = DEFAULT_MAX_HISTORY_BYTES } = {}) {
-    const maxCount = Number.isFinite(maxHistory) && maxHistory > 0 ? Math.max(2, Math.floor(maxHistory)) : Infinity;
-    const maxBytes = Number.isFinite(maxHistoryBytes) && maxHistoryBytes > 0 ? maxHistoryBytes : Infinity;
+export function capHistory(history, index, { maxHistory = DEFAULT_MAX_HISTORY, maxHistoryBytes = DEFAULT_MAX_HISTORY_BYTES, protectedIds = [] } = {}) {
+    // A limit given as a numeric string ('200', from a settings file) counts as that number.
+    const countLimit = Number(maxHistory);
+    const bytesLimit = Number(maxHistoryBytes);
+    const maxCount = Number.isFinite(countLimit) && countLimit > 0 ? Math.max(2, Math.floor(countLimit)) : Infinity;
+    const maxBytes = Number.isFinite(bytesLimit) && bytesLimit > 0 ? bytesLimit : Infinity;
     let bytes = 0;
     for (const entry of history) bytes += entry.html?.length ?? 0;
     if (history.length <= maxCount && bytes <= maxBytes) return { history, index };
 
     const pointed = history[index];
     const protectedFirst = isBaseline(history[0]) ? history[0] : null;
-    const kept = [...history];
+    const keepIds = new Set(protectedIds);
     const evicted = new Set();
-    let cursor = 0;
-    while ((kept.length > maxCount || bytes > maxBytes) && cursor < kept.length) {
-        const entry = kept[cursor];
-        if (entry === protectedFirst || entry === pointed) { cursor += 1; continue; }
-        kept.splice(cursor, 1);
+    let count = history.length;
+    // One pass, oldest first: an entry goes while a limit is still exceeded, unless it is protected.
+    for (const entry of history) {
+        if (count <= maxCount && bytes <= maxBytes) break;
+        if (entry === protectedFirst || entry === pointed || keepIds.has(entry.id)) continue;
         evicted.add(entry.id);
+        count -= 1;
         bytes -= entry.html?.length ?? 0;
     }
+    const kept = history.filter(entry => !evicted.has(entry.id));
     const cleaned = kept.map(entry => {
         if (!evicted.has(entry.restoredFrom) && !evicted.has(entry.parentId)) return entry;
         const copy = { ...entry };
