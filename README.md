@@ -29,8 +29,8 @@ Peer dependencies (install alongside, matching the ranges in `package.json`):
 ```bash
 npm install react react-dom \
   @tiptap/core @tiptap/pm @tiptap/react @tiptap/starter-kit @tiptap/suggestion \
-  @tiptap/extension-code-block-lowlight @tiptap/extension-color @tiptap/extension-highlight \
-  @tiptap/extension-image @tiptap/extension-link @tiptap/extension-subscript \
+  @tiptap/extension-code @tiptap/extension-code-block-lowlight @tiptap/extension-color \
+  @tiptap/extension-highlight @tiptap/extension-image @tiptap/extension-link @tiptap/extension-subscript \
   @tiptap/extension-superscript @tiptap/extension-table @tiptap/extension-table-cell \
   @tiptap/extension-table-header @tiptap/extension-table-row @tiptap/extension-task-item \
   @tiptap/extension-task-list @tiptap/extension-text-align @tiptap/extension-text-style \
@@ -140,6 +140,9 @@ pending edit (so a keystroke just before a document switch can't land in the nex
 starts keyboard undo fresh (so Cmd/Ctrl+Z can't undo the load). Don't use `editor.commands.setContent`
 or the ref handle's `setContent` to open a document: those record an edit.
 
+Content set as a whole (a load, an undo or restore, `setContent`) is taken as given: a plain-text URL
+in it stays plain text. Only a URL the writer types or pastes becomes a link.
+
 Pass **`documentKey`** (the document's id) when the editor can be recreated without the document
 changing (a `contentKey` or `editorOptions` change): history then belongs to the document and
 survives the recreation, content and pending edits included. A `documentKey` change resets the
@@ -148,7 +151,9 @@ document, deferred as below), not in the same event handler that switches the ke
 
 A replaced editor never costs the document. Whether you recreate it, or React tears it down and
 brings it back (an `<Activity>` hidden and shown, Fast Refresh in development), the replacement
-gets the content back, typing that was not yet recorded included, and the history is untouched.
+gets the content back and the history is untouched. Typing still waiting for its one-second commit
+is recorded right then (and reaches `onContentChange`), and so it is when the component unmounts or
+the editor turns read-only: nothing typed is lost.
 
 > **Calling `loadContent` from `useEffect`?** Nodes rendered by React (embeds, admonitions,
 > footnotes, math, mermaid, wikilinks) mount through `flushSync`, which React refuses (and logs
@@ -163,8 +168,11 @@ Versions are an append-only list with a pointer:
   versions are never lost (redo is disabled after it, as users expect).
 - **Toolbar Undo/Redo** move the pointer (`undo()` / `redo()`). Undo commits pending typing first,
   so it can be redone. Keyboard undo (Cmd/Ctrl+Z) is finer-grained: it undoes typing within the
-  current version.
+  current version. `canUndo` and `canRedo` count typing that is still pending: right after typing in
+  a freshly opened document Undo is available, and Redo is not while there is typing to record.
 - **Restore** in the history panel appends a `restored` version (`restoreVersion(i, { reason: 'restore' })`).
+  The version you pick is the one restored, even when committing pending typing first pushes the
+  history over its cap. `restoreVersion` takes an integer index; anything else does nothing.
 - `onContentChange(entry, { reason })` fires for every one of these (`'edit'`, `'undo'`, `'redo'`,
   `'restore'`), so saving from it saves them all. Loads never fire it.
 - Each entry is plain JSON: `{ id, kind, html, title, tags, categories, timestamp }`, with `kind` one of
@@ -199,14 +207,22 @@ What the rules do:
 | In the editor | Written as |
 | --- | --- |
 | Checklists | GFM task items (`- [x] done`) |
-| Tables | GFM tables; a table GFM cannot express (merged cells, a header column, resized columns, several paragraphs in a cell, left or right placement) stays HTML |
+| Tables | GFM tables, with column alignment (`:---:`); a table GFM cannot express (merged cells, a header column, resized columns, several paragraphs in a cell, left or right placement, cells of one column aligned differently, a backslash before a pipe) stays HTML |
+| Emphasis inside a word or against punctuation | `*` delimiters, or the HTML tag where Markdown would not read them back (`un*believ*able`, `H<strong><sub>2</sub></strong>O`) |
+| Hard line breaks | Two spaces and a newline, or `<br>` where that would end a heading, make a blank line, or be dropped |
+| Empty paragraphs between blocks, empty list items, headings and code blocks | Kept (`<p></p>` for a paragraph) |
 | Highlight, subscript, superscript, underline, text colour, font size | Their own HTML tag around Markdown content (`H<sub>2</sub>O`) |
 | Centred, right-aligned or justified paragraphs and headings | An HTML block |
-| Math, Mermaid, admonitions, definition lists, footnotes, abbreviations, wikilinks, citations, embeds, YouTube, resized or aligned images | HTML that loads back as the same node |
-| Source comments | A real `<!-- comment -->` |
+| Math, Mermaid, admonitions, definition lists, footnotes, abbreviations, wikilinks, citations, embeds, YouTube, resized or aligned images | HTML that loads back as the same node: written on one line, attributes fully escaped, and the text of a formula, abbreviation, citation or wikilink as character references, so nothing in it is read as Markdown or ends the HTML early |
+| Source comments | A real `<!-- comment -->` (line breaks and anything that would close it early written as references, and read back exactly) |
+| Text that looks like syntax | Escaped: `<b>`, `&copy;`, `~`, a line that is only `#`, `+` or `1.`, `1)`, a heading's closing `#`, a bare URL (so it stays text) |
 
 Loading goes the other way with no extra step: real `<!-- -->` comments and the task lists Markdown
-renderers produce (`<li><input type="checkbox"> …`) parse into the editor's own nodes.
+renderers produce (`<li><input type="checkbox"> …`, or a bare `[ ]` for an empty last item) parse into the
+editor's own nodes; an image alone in its paragraph loads as an image block, a list item that opens with an
+image, a code block or a quote keeps it, and the newline a renderer adds at the end of every code block is
+dropped. Images are blocks in this editor, so an image in the middle of a sentence (a badge) splits the
+paragraph.
 
 Two things about the HTML the editor saves:
 
@@ -264,11 +280,13 @@ i18n.addResourceBundle('en', 'inscript-editor', { insertImage: 'Add Image' }, tr
 | `categories` | `string[]` | `[]` | Live categories, same live-ref treatment as `title`. |
 | `isReadonly` | `boolean` | `false` | Disables editing without recreating the editor. |
 | `onContentChange` | `(entry, { reason }) => void` | `null` | Called for every change the user causes: an edit (~1s after typing settles), an undo, a redo or a restore, with the now-active entry and `reason` (`'edit'`, `'undo'`, `'redo'`, `'restore'`). Never called for a load. |
-| `editorOptions` | `EditorBuildOptions` | `{}` | Per-editor feature toggles plus the host handlers `onAddCitation` / `onAddWikilink` / `onAddAbbreviation` / `onShowMediaLibrary` / `onAddYoutube` / `onOpenExternal`. Pass each host handler **once** here and it drives both the slash menu and the toolbar/bubble buttons (the matching `<InscriptEditor>` props are optional per-call overrides). Options apply at construction: changing their serializable part recreates the editor (keeping the document); functions are read live, so a new function identity never recreates it. |
+| `editorOptions` | `EditorBuildOptions` | `{}` | Per-editor feature toggles plus the host handlers `onAddCitation` / `onAddWikilink` / `onAddAbbreviation` / `onShowMediaLibrary` / `onAddYoutube` / `onOpenExternal`. Pass each host handler **once** here and it drives both the slash menu and the toolbar/bubble buttons (the matching `<InscriptEditor>` props are optional overrides, and win everywhere, the slash menu included). Options apply at construction: changing their serializable part recreates the editor (keeping the document); functions are read live, so a new function identity never recreates it. |
 | `maxHistory` | `number` | `200` | Most versions kept. |
 | `maxHistoryBytes` | `number` | ~20 MB | Most HTML kept across versions (in characters). |
 
-Returns `{ editor, history, historyIndex, isDirty, canUndo, canRedo, loadContent, flush, undo, redo, restoreVersion, markSaved, setIsDirty, titleRef, historyRef, historyDebounceRef, isSyncingRef, isLoadingRef }`, plus the deprecated `setHistory` / `setHistoryIndex` (use `loadContent` instead; they still work).
+Returns `{ editor, isReadonly, history, historyIndex, isDirty, canUndo, canRedo, loadContent, flush, undo, redo, restoreVersion, markSaved, setIsDirty, titleRef, historyRef, historyDebounceRef, isSyncingRef, isLoadingRef }`, plus the deprecated `setHistory` / `setHistoryIndex` (use `loadContent` instead; they still work). Every function keeps its identity across renders and editor recreations, so listing one in an effect's dependencies never re-runs the effect. `isReadonly` is returned so that spreading the result into `<InscriptEditor>` passes it on.
+
+The `title`, `tags` and `categories` props reach the versions when their value changes. The metadata you pass to `loadContent` is the document's own and stays until a prop actually changes (re-renders with the same props, or an `<Activity>` shown again, don't put the props back); a new document starts from the props.
 
 - `loadContent(html, { title, tags, categories, kind, keepHistory, history, historyIndex })`: see [Loading a document](#loading-a-document).
 - `flush()`: commit pending typing now and return `{ history, historyIndex }` synchronously (before switching documents).
@@ -307,8 +325,8 @@ The privacy link opens through `onOpenExternal` when you give one (in `editorOpt
 | `canUndo`, `canRedo` | `boolean` | Drive the toolbar's undo/redo buttons. |
 | `onHistoryUndo`, `onHistoryRedo` | `() => void` | Undo/redo handlers. Default to the hook's `undo` / `redo` when you spread its result in. |
 | `onShowMetadataModal`, `hasMetadata`, `showMetadataActive` | | Tags/categories entry point — bring your own modal. |
-| `onShowMediaLibrary` | `() => void` | Opens your `<ImageSelectorModal>`. |
-| `onAddYoutube` | `() => void` | Opens your `<YoutubeEmbedModal>`. |
+| `onShowMediaLibrary` | `() => void` | Opens your `<ImageSelectorModal>`. Without it (here or in `editorOptions`) the Image button is disabled and the slash menu has no Image item. |
+| `onAddYoutube` | `() => void` | Opens your `<YoutubeEmbedModal>`. Without it the YouTube button is disabled and the slash menu has no YouTube item. |
 | `onAddCitation`, `onAddWikilink`, `onAddAbbreviation` | `() => void` | Optional **per-call overrides** of the matching `editorOptions` handlers for the Citation / Wikilink / Abbreviation toolbar/bubble buttons. Prefer supplying each handler **once** via `useInscriptEditor({ editorOptions })` (see the `editorOptions` row above) so it also drives the slash menu; a prop here wins when both are set. When neither is given, a built-in native prompt is used. |
 | `onHistorySelect` | `(index, entry) => void` | Called when a version is chosen for restore in `<HistoryView>`. Defaults to `restoreVersion(index, { reason: 'restore' })`. |
 | `restoreVersion`, `loadContent`, `flush`, `undo`, `redo`, `markSaved` | | From `useInscriptEditor`, exposed through the imperative ref too. |
@@ -337,6 +355,14 @@ Every piece is also exported standalone if you want to compose your own layout i
 - Menus on a selection: `TextBubbleMenu`, `TableBubbleMenu`, `ImageBubbleMenu`, `YoutubeBubbleMenu`, `EmbedBubbleMenu`, `SourceField`.
 - Panels: `DocumentOutline`, `MiniMap`, `BibliographyPanel`, `HistoryView`.
 - Modals: `ImageSelectorModal`, `YoutubeEmbedModal`.
+
+The menus on a selection take two optional elements besides `editor` and `isReadonly`: `scrollContainer`,
+the element the document scrolls in (the menu follows it; default the window), and `menuContainer`, where
+the menu is attached, outside any box that scrolls or hides overflow (default: the editor's parent).
+`<InscriptEditor>` passes its own. Their source fields take only what can load safely: an image from
+http(s), `blob:` or `data:image/…`, an embed from http(s) (an embed with any other source shows as
+unavailable, and only a web address is opened in a new tab). `ToolbarDropdown` items run their `action`
+(or `onClick`).
 
 These read the editor while rendering. The exported toolbar and bubble menus keep themselves current;
 in a component of your own, use TipTap's `useEditorState` to re-render when the editor changes

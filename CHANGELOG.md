@@ -5,7 +5,7 @@ All notable changes to `inscript-editor` are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (pre-1.0: minor versions may
 carry small breaking changes, called out below).
 
-## [0.6.0] - 2026-10-17
+## [0.6.0] - 2026-10-18
 
 ### Added
 - **A YouTube consent placeholder.** `editorOptions.youtube.facade` now also takes a mode:
@@ -34,8 +34,34 @@ carry small breaking changes, called out below).
 - The site (homepage and embed page) links the Impressum and the privacy notice and carries the
   copyright line, and counts page views with the viewcounter's tracker script, which stores
   nothing on the device.
+- `useInscriptEditor` returns `isReadonly`, so spreading its result into `<InscriptEditor>` passes the
+  read-only state on (no editing toolbar).
+- Selection menus take `scrollContainer` and `menuContainer` (see "Individually-exported components");
+  `<InscriptEditor>` passes its own. `ToolbarDropdown` items may give `onClick` as well as `action`.
+- The overflow ("More tools") menu closes on Escape, returns focus to its button and reports its
+  state (`aria-expanded`, `aria-haspopup`).
+- Translatable labels for the toolbar customizer, the bibliography panel's controls, the admonition
+  header and type names, the link field's refusal and the video search button. The customizer names
+  each tool with the key its toolbar button uses.
 
 ### Changed
+- **Breaking:** `@tiptap/extension-code` is a new peer dependency (the inline code mark now keeps a
+  link or bold around it, which needs the mark itself). Install it with the other TipTap packages.
+- Typing still waiting for its one-second commit is recorded when React tears the editor's effects
+  down (an `<Activity>` hidden, an unmount, Fast Refresh), when the editor is replaced, and when it
+  turns read-only, instead of being carried along or dropped. `canUndo` and `canRedo` count it.
+- Markdown output: kept HTML is written on one line with its attributes fully escaped; the text of a
+  formula, abbreviation, citation or wikilink, and brackets in link text, as character references;
+  comment text with line breaks or closing sequences in a reversible encoding; emphasis with `*`
+  inside words; and text that looks like syntax (`<b>`, `&copy;`, `~`, a lone `#`, `1)`, a bare URL)
+  escaped. Tables keep their column alignment.
+- Loading HTML from a Markdown renderer: an image alone in a paragraph becomes an image block, a list
+  item that opens with an image, a code block or a quote keeps it, a bare `[ ]` item is an empty task,
+  and a code block's trailing newline is dropped.
+- Content set as a whole (a load, a version jump, `setContent`) is never autolinked; typed and pasted
+  URLs still are.
+- A document switch starts from the host's title, tags and categories props; the metadata given to
+  `loadContent` is kept until a prop really changes.
 - `<YoutubeEmbedModal>`'s live preview no longer loads YouTube's player as soon as a valid ID is
   typed: it shows the same consent placeholder, and loads the preview when "Load preview" is
   pressed, for that video only.
@@ -52,6 +78,76 @@ carry small breaking changes, called out below).
   and clicking it put back a width or alignment set in the meantime.
 - Changing a YouTube video's width or alignment reloaded the player (stopping a playing video),
   because the iframe's address was set again on every change.
+- A math formula's source was inserted as HTML when the optional `katex` package was missing or KaTeX
+  failed (deep nesting), so a document could run script in the host page. It is shown as text.
+- Markdown saves could turn document text into live HTML or `javascript:` links (a blank line in a
+  comment, math, Mermaid or other kept HTML; `<` in plain text; escaped brackets in link text, which
+  marked reads as a link).
+- The history preview let script URLs through with a tab, newline or control character in the
+  scheme, or through SVG animation, and still fetched from other hosts (CSS `url()`, SVG images,
+  `<input type=image>`, `background`, `srcset`, external SVG `use`).
+- A document could add CSS declarations through an image's or video's `data-width`, classes through an
+  admonition's `data-type`, and any youtube.com address (or a thumbnail facade background from any
+  host) through a video ID. Only lengths, known alignments and types, and real video IDs are taken.
+- An embed's "Open in new tab" opened a `javascript:` source from the document; the image and embed
+  source fields accepted any scheme; the embed trust list accepted non-web schemes naming a host.
+- Consent for a YouTube video or an embed carried over to a different video or source shown in the
+  same place; each asks again.
+- Inside a host's `<form>`, the editor's buttons (selection menu, toolbar overflow and customizer,
+  history view, panels, modals) submitted the form, and the link popover and video search nested
+  forms. Every button is `type="button"` and there are no forms.
+- Selection menus ignored their placement, layering and size (TipTap 3 dropped the `tippyOptions` they
+  passed): the scroll container clipped them (a selected video's menu could not be seen) and a loaded
+  video's click layer swallowed clicks on the text menu above it.
+- A document opened with `initialContent` ending in a heading, list, quote, table or code block
+  recorded a phantom edit (and told the host to save) on the first click.
+- Restoring or undoing while typing was pending and the history was full restored the wrong version.
+- History and lifecycle: a title change around an editor replacement or an `<Activity>` reveal was
+  lost; typing pending at unmount, or while hidden, was lost or overwritten by undo; a document
+  switch while hidden recorded the old document's typing for the new one; `loadContent` changed
+  identity on every editor recreation (re-running a host's load effect and discarding typing); a sync
+  right after typing was recorded as the user's edit; `onContentChange` could hand over an entry
+  differing from the stored one; undo, redo and restore collapsed spaces; an empty table could be
+  dropped on an editor replacement; a string index broke redo; a numeric-string cap was ignored; and
+  replacing an editor that held React-rendered nodes logged a `flushSync` error.
+- Every undo, restore and load rebuilt the entire document's DOM (every formula and diagram rendered
+  again), because the table plugin's state was reset.
+- Markdown round trips lost footnotes, comments alone in a block, a checklist's last empty item and
+  its ticks, Mermaid and math line breaks, inline math characters, tables with a backslash before a
+  pipe, column alignment, literal text that looked like syntax, hard breaks in headings or in pairs,
+  empty blocks, and the boundary between two adjacent lists; `-->` in a comment came back as `--&gt;`;
+  a link around inline code, and bold inline code, lost the link or the bold on load.
+- Exporting a GFM table to Markdown took time quadratic in its rows (20 s for 4000 rows).
+- The slash menu opened inside code (turning a code block into a heading on Enter), was shared by
+  every editor on a page (a read-only one took the keyboard), and ignored the `<InscriptEditor>`
+  `onShowMediaLibrary` / `onAddYoutube` props; items without an `id` warned.
+- In a read-only editor, the math and Mermaid source editors, the bibliography panel and (with the
+  hook result spread in) the toolbar could still change the document.
+- Definition List in a list item or with an image selected corrupted the document; Footnote and
+  Citation in a code block split it; a divider in a definition list left the cursor between blocks.
+- The admonition control showed the wrong type and nested a second admonition instead of switching.
+- Font sizes in pt, em, % or keywords were lost on save.
+- The text menu opened over selected embeds, formulas, diagrams and rules; Escape in a source field
+  applied the typed value; the link field closed silently on a refused address, kept spaces in the
+  address and ignored a whitespace-only one.
+- The outline put the cursor between blocks for later headings and rebuilt every heading button on
+  each keystroke; the minimap rebuilt every block's box after each edit; the toolbar measured its
+  width (a forced layout) on every keystroke; the toolbar and text menu re-read every format on the
+  whole selection twice per transaction.
+- Toolbar and menu configs with duplicate ids rendered twice; Image, YouTube, Tags and Wikilink
+  buttons stayed enabled with nothing to do; marks lit up in a code block; the abbreviation button
+  did not remove an abbreviation around the cursor; the customizer hid the Selection Menu tab with
+  the default selection menu; a standalone `HighlightSelector` went stale; the image picker kept an
+  old error and search, offered upload without `onUpload`, and crashed without `images`; video
+  search durations showed fractions; an emptied citation label showed `[]`; a consent placeholder
+  kept its old language after a switch.
+- Comparing two long, very different versions in the history view blocked the page for seconds; it
+  now gives up after half a second and shows both versions as they are.
+- `extractYoutubeId` and the server-side `getTextContent` took quadratic time on hostile input.
+- `FontSize` was declared a `Mark` in the types (it is an `Extension`), `TextBubbleMenu`'s type
+  lacked `onAddAbbreviation`, and `ImageSelectorModal`'s type required `onUpload`.
+- The homepage was wider than a phone screen (the quick start code cards), so phones showed it zoomed
+  out.
 
 ## [0.5.0] - 2026-10-04
 
