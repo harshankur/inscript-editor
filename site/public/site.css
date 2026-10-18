@@ -210,6 +210,9 @@ html.dark .codeblock .k { color: var(--brand); }
 .ftr-in { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: center; }
 .ftr a { color: var(--ink-soft); }
 .ftr a:hover { color: var(--ink); }
+/* Privacy settings opens a question rather than going anywhere, so it is a button that reads as a link. */
+.ftr button { padding: 0; border: 0; background: none; font: inherit; color: var(--ink-soft); cursor: pointer; }
+.ftr button:hover { color: var(--ink); }
 .ftr .sp { margin-left: auto; }
 .ftr-legal { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line-soft); text-align: center; font-size: 13px; }
 .ftr-legal p { margin: 0; }
