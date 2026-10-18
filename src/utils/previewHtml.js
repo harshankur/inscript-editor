@@ -1,14 +1,35 @@
 // Makes a version's HTML safe to show as a static preview (the history panel). The editor's own
 // YouTube node serializes a live youtube.com iframe, so rendering history HTML as-is contacted
 // YouTube just by opening the panel, even for hosts using the click-to-load facade or their own
-// trust list. A preview must never load third-party content or run anything.
+// trust list. A preview must never load third-party content or run anything. (The document's own
+// images are shown: the editor shows them too.)
 
 /** Elements that fetch or run third-party content: replaced by a placeholder naming the source. */
 const EMBEDDING = 'iframe, frame, frameset, embed, object, portal, video, audio';
-/** Elements with no place in a document preview: removed outright. */
-const REMOVED = 'script, style, link, meta, base, noscript, template, form';
-const URL_ATTRS = ['href', 'src', 'action', 'formaction', 'xlink:href', 'poster', 'data', 'srcset'];
-const UNSAFE_URL = /^\s*(javascript|vbscript|data:text\/html)/i;
+/**
+ * Elements with no place in a document preview: removed outright. SVG animation can set an
+ * attribute to a script URL; an SVG image fetches from anywhere.
+ */
+const REMOVED = 'script, style, link, meta, base, noscript, template, form, animate, set, animateMotion, animateTransform, image, feImage';
+const URL_ATTRS = ['href', 'src', 'action', 'formaction', 'xlink:href', 'data'];
+/** Attributes that only ever fetch something extra: dropped. */
+const FETCHING_ATTRS = ['srcset', 'poster', 'background', 'lowsrc', 'dynsrc'];
+const SCRIPT_SCHEME = /^(javascript|vbscript):/;
+const DATA_SCHEME = /^data:/;
+const DATA_RASTER_IMAGE = /^data:image\/(png|jpeg|gif|webp|avif|bmp)[;,]/;
+const CSS_URL = /url\s*\([^)]*\)/gi;
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/**
+ * Is this URL attribute value unsafe in a preview? Read the way browsers read it: leading
+ * spaces and control characters dropped, tabs and line breaks removed anywhere (`java\tscript:`
+ * is `javascript:`). Script URLs never pass; a data URL only as a raster image.
+ */
+function isUnsafeUrl(value) {
+    const url = String(value).replace(/^[\u0000-\u0020]+/, '').replace(/[\t\n\r]/g, '').toLowerCase();
+    if (SCRIPT_SCHEME.test(url)) return true;
+    return DATA_SCHEME.test(url) && !DATA_RASTER_IMAGE.test(url);
+}
 /** Block-level tags: whitespace-only text between two of them is layout noise (the content
  *  rules use white-space: pre-wrap, so it would render as blank lines). */
 const BLOCK_TAGS = new Set([
@@ -52,8 +73,21 @@ export function inertPreviewHtml(html, placeholderText = source => source) {
     root.querySelectorAll('*').forEach(el => {
         for (const { name, value } of Array.from(el.attributes)) {
             const lower = name.toLowerCase();
-            if (lower.startsWith('on') || (URL_ATTRS.includes(lower) && UNSAFE_URL.test(value))) el.removeAttribute(name);
+            if (lower.startsWith('on') || FETCHING_ATTRS.includes(lower) || (URL_ATTRS.includes(lower) && isUnsafeUrl(value))) {
+                el.removeAttribute(name);
+            } else if (lower === 'style' && CSS_URL.test(value)) {
+                // A background image (or any url()) would load from wherever it points.
+                el.setAttribute(name, value.replace(CSS_URL, 'none'));
+            }
+            CSS_URL.lastIndex = 0;
         }
+        // An SVG <use> may pull in another file: only a reference inside the preview stays.
+        if (el.namespaceURI === SVG_NS && el.localName === 'use') {
+            for (const attr of ['href', 'xlink:href']) {
+                if (el.hasAttribute(attr) && !el.getAttribute(attr).trim().startsWith('#')) el.removeAttribute(attr);
+            }
+        }
+        if (el.tagName === 'INPUT') el.removeAttribute('src');
         if (el.tagName === 'INPUT' || el.tagName === 'BUTTON' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA') {
             el.setAttribute('disabled', '');
         }

@@ -4,6 +4,8 @@
 // host, and loads the player only when the visitor presses its button: that press is the
 // consent, for that one video, and nothing is remembered.
 
+import { isWebUrl } from './url.js';
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 /** The lucide "youtube" glyph, drawn here so nothing is fetched for it. */
@@ -29,8 +31,6 @@ export const YOUTUBE_CONSENT_DEFAULTS = Object.freeze({
 export const YOUTUBE_CONSENT_ATTRIBUTE = 'data-youtube-consent';
 
 /** The protocols a privacy link may use: a host-supplied `javascript:` URL never becomes a link. */
-const PRIVACY_URL_PROTOCOLS = Object.freeze(['http:', 'https:']);
-const URL_BASE_FALLBACK = 'https://localhost/';
 const LINK_TARGET = '_blank';
 const LINK_REL = 'noopener';
 
@@ -45,15 +45,7 @@ let idCounter = 0;
  * @returns {string | null}
  */
 export function resolvePrivacyUrl(value) {
-    if (typeof value !== 'string') return null;
-    const url = value.trim();
-    if (!url) return null;
-    try {
-        const base = typeof location !== 'undefined' ? location.href : URL_BASE_FALLBACK;
-        return PRIVACY_URL_PROTOCOLS.includes(new URL(url, base).protocol) ? url : null;
-    } catch {
-        return null;
-    }
+    return isWebUrl(value) ? value.trim() : null;
 }
 
 function svgIcon(size, className) {

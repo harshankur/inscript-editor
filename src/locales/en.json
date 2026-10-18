@@ -175,5 +175,10 @@
   "openEmbed": "Open in new tab",
   "deleteEmbed": "Delete embed",
   "inlineCode": "Inline Code",
-  "clearFormat": "Clear Formatting"
+  "clearFormat": "Clear Formatting",
+  "admonitionTypeNote": "Note",
+  "admonitionTypeTip": "Tip",
+  "admonitionTypeImportant": "Important",
+  "admonitionTypeWarning": "Warning",
+  "admonitionTypeCaution": "Caution"
 }

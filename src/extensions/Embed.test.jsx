@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { EditorContent } from '@tiptap/react';
 import { createEditor } from '../../tests/helpers/createEditor.js';
 
 const YT_ID = 'dQw4w9WgXcQ';
@@ -66,5 +68,43 @@ describe('Embed extension', () => {
         e.commands.setContent('<p>x</p><iframe src="https://example.com/embed/x"></iframe>');
         e.state.doc.descendants(node => expect(node.type.name).not.toBe('embed'));
         e.destroy();
+    });
+});
+
+describe('Embed node view', () => {
+    let editor;
+    afterEach(() => { cleanup(); editor?.destroy(); });
+
+    const mount = (html, options) => {
+        editor = createEditor({ content: html }, options);
+        return render(<EditorContent editor={editor} />).container;
+    };
+
+    it('loads nothing until the reader presses Load, then loads that source', async () => {
+        const container = mount('<div data-embed-src="https://example.com/a" data-embed-gated="true"></div>');
+        await waitFor(() => expect(screen.getByText('Load embedded content')).toBeInTheDocument());
+        expect(container.querySelector('iframe')).toBeNull();
+        fireEvent.click(screen.getByText('Load embedded content'));
+        await waitFor(() => expect(container.querySelector('iframe')?.getAttribute('src')).toBe('https://example.com/a'));
+    });
+
+    it('asks again when the node view is reused for another source', async () => {
+        const container = mount('<div data-embed-src="https://example.com/a" data-embed-gated="true"></div>');
+        await waitFor(() => screen.getByText('Load embedded content'));
+        fireEvent.click(screen.getByText('Load embedded content'));
+        await waitFor(() => expect(container.querySelector('iframe')).not.toBeNull());
+        await act(async () => { editor.commands.setContent('<div data-embed-src="https://example.com/b" data-embed-gated="true"></div>'); });
+        await waitFor(() => expect(screen.getByText('Load embedded content')).toBeInTheDocument());
+        expect(container.querySelector('iframe')).toBeNull();
+    });
+
+    it('auto-loads only a trusted web host, and never a script URL naming one', async () => {
+        const options = { embed: { trustedEmbedHosts: ['example.com'] } };
+        const trusted = mount('<div data-embed-src="https://maps.example.com/x" data-embed-gated="true"></div>', options);
+        await waitFor(() => expect(trusted.querySelector('iframe')).not.toBeNull());
+        cleanup(); editor.destroy();
+        const spoofed = mount('<div data-embed-src="javascript://example.com/%0Aalert(1)" data-embed-gated="true"></div>', options);
+        await waitFor(() => expect(screen.getByText('Embed unavailable')).toBeInTheDocument());
+        expect(spoofed.querySelector('iframe')).toBeNull();
     });
 });

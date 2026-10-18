@@ -7,7 +7,8 @@ import React, { useState, useEffect } from 'react';
 // it. Consumers that use math must also import the KaTeX stylesheet themselves:
 //   import 'katex/dist/katex.min.css';
 // When katex is absent (or a render throws), we degrade to showing the raw LaTeX
-// source via the `error` path below rather than crashing.
+// source via the `error` path below rather than crashing. That source comes from the
+// document, so it is shown as text, never as markup.
 
 // officeParser's default (flag-off) math emission is delimiter-carrying text
 // ($…$ / $$…$$). Strip the delimiters on parse so the stored `code` is the bare
@@ -19,7 +20,17 @@ function stripMathDelimiters(raw) {
     return s;
 }
 
-const MathComponent = ({ node, updateAttributes, selected, isInline }) => {
+/**
+ * The formula an element carries. `data-math` is the exact source (the editor writes it, and
+ * attribute values keep their line breaks and backslashes through a Markdown round trip); the
+ * text content is the fallback for markup that only has text (officeParser's `$…$` emission).
+ */
+function readMathCode(element) {
+    const fromAttr = element.getAttribute('data-math');
+    return stripMathDelimiters(fromAttr || element.textContent || '');
+}
+
+const MathComponent = ({ node, editor, updateAttributes, selected, isInline }) => {
     const { code } = node.attrs;
     const [html, setHtml] = useState('');
     const [error, setError] = useState(null);
@@ -56,17 +67,25 @@ const MathComponent = ({ node, updateAttributes, selected, isInline }) => {
     }, [code, isInline]);
 
     const WrapperTag = isInline ? 'span' : 'div';
+    // The source editor changes the document, so a read-only editor never offers it.
+    const showSourceEditor = selected && editor?.isEditable !== false;
+    const renderClass = `math-render ${selected ? 'ring-2 ring-[var(--inscript-color-accent)] rounded' : ''} ${error ? 'text-red-500' : ''}`;
 
     return (
         <NodeViewWrapper
             as={WrapperTag}
             className={`math-node-wrapper ${isInline ? 'inline-block mx-1' : 'my-4 block'} relative cursor-pointer`}
         >
-            <WrapperTag
-                className={`math-render ${selected ? 'ring-2 ring-[var(--inscript-color-accent)] rounded' : ''} ${error ? 'text-red-500' : ''}`}
-                dangerouslySetInnerHTML={{ __html: error ? code : html || (isInline ? 'Empty math' : 'Empty math block') }}
-            />
-            {selected && (
+            {error || !html ? (
+                // Text, never markup: on the error path this is the document's raw source.
+                <WrapperTag className={renderClass} title={error || undefined}>
+                    {error ? code : (isInline ? 'Empty math' : 'Empty math block')}
+                </WrapperTag>
+            ) : (
+                // KaTeX's own output (trust off, so no \href, \url or \html* commands).
+                <WrapperTag className={renderClass} dangerouslySetInnerHTML={{ __html: html }} />
+            )}
+            {showSourceEditor && (
                 <div
                     className={`absolute z-50 bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] shadow-lg rounded p-2 flex items-center gap-2 ${
                         isInline ? 'top-full left-0 mt-1' : 'top-full left-1/2 -translate-x-1/2 mt-1'
@@ -102,7 +121,7 @@ export const MathInline = Node.create({
         return {
             code: {
                 default: 'E=mc^2',
-                parseHTML: element => stripMathDelimiters(element.textContent || element.getAttribute('data-math') || ''),
+                parseHTML: readMathCode,
                 // Carried by `data-math` + the text content; don't also serialize a
                 // stray raw `code` attribute.
                 renderHTML: () => ({}),
@@ -146,7 +165,7 @@ export const MathBlock = Node.create({
         return {
             code: {
                 default: '\\int_0^\\infty x^2 dx',
-                parseHTML: element => stripMathDelimiters(element.textContent || element.getAttribute('data-math') || ''),
+                parseHTML: readMathCode,
                 renderHTML: () => ({}),
             },
         };

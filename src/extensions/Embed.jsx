@@ -3,6 +3,7 @@ import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Globe, Play } from 'lucide-react';
+import { isWebUrl } from '../utils/url.js';
 
 // Generic third-party embed (maps, tweets, gists, CodePen, …). Separate from the
 // Youtube node. Fixes the silent-drop of non-YouTube iframes AND shows untrusted
@@ -15,7 +16,8 @@ function hostOf(src) {
 }
 
 function isTrustedSrc(src, options) {
-    if (!src) return false;
+    // Trust is about web hosts: any other scheme (`javascript://trusted.host/…`) never is.
+    if (!isWebUrl(src)) return false;
     if (typeof options.isTrusted === 'function') {
         try { if (options.isTrusted(src)) return true; } catch { /* host callback threw — treat as untrusted */ }
     }
@@ -30,11 +32,13 @@ function isTrustedSrc(src, options) {
 const EmbedComponent = ({ node, extension }) => {
     const { t } = useTranslation('inscript-editor');
     const { src, label } = node.attrs;
-    // Auto-load only for host-trusted sources; otherwise wait for an explicit click.
-    const [loaded, setLoaded] = useState(() => isTrustedSrc(src, extension.options));
+    // Auto-load only for host-trusted sources; otherwise wait for an explicit click. The click is
+    // consent for that source only: a node view reused for another source asks again.
+    const [consentedSrc, setConsentedSrc] = useState(null);
+    const loaded = isTrustedSrc(src, extension.options) || (consentedSrc !== null && consentedSrc === src);
 
     let inner;
-    if (!src) {
+    if (!src || !isWebUrl(src)) {
         inner = (
             <div className="rounded-lg border border-[var(--inscript-color-border)] bg-[var(--inscript-color-surface-raised)] p-6 text-center text-xs text-[var(--inscript-color-muted)]">
                 {t('embedUnavailable', 'Embed unavailable')}
@@ -65,7 +69,7 @@ const EmbedComponent = ({ node, extension }) => {
                 </div>
                 <button
                     type="button"
-                    onClick={() => setLoaded(true)}
+                    onClick={() => setConsentedSrc(src)}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-[var(--inscript-color-text)] text-[var(--inscript-color-surface)] hover:opacity-90 transition-colors"
                 >
                     <Play size={13} />

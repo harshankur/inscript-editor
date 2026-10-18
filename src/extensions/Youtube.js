@@ -2,10 +2,12 @@ import { Node } from '@tiptap/core';
 import { Plugin } from '@tiptap/pm/state';
 import i18next from 'i18next';
 import { getExternalOpener } from './HostBridge.js';
-import { extractYoutubeId, youtubeEmbedUrl } from '../utils/youtubeUrl.js';
+import { extractYoutubeId, isYoutubeId, youtubeEmbedUrl } from '../utils/youtubeUrl.js';
+import { DEFAULT_LAYOUT_ALIGN, DEFAULT_LAYOUT_WIDTH, cssLength, layoutAlign } from '../utils/layout.js';
 import { buildYoutubeConsent, buildYoutubeIcon, YOUTUBE_CONSENT_DEFAULTS } from '../utils/youtubeConsent.js';
 
-const VALID_ID_PATTERN = /^[a-zA-Z0-9_-]{11}$/;
+/** The node's video ID when it is one, else null (a document may hold anything there). */
+const videoId = attrs => (isYoutubeId(attrs?.['data-youtube-video']) ? attrs['data-youtube-video'] : null);
 
 /**
  * What a video shows before the visitor clicks it:
@@ -108,15 +110,24 @@ export const Youtube = Node.create({
 
     addAttributes() {
         return {
-            'data-youtube-video': { default: null },
+            // Only a video ID is kept: anything else (a path or a query) would end up in the player's
+            // URL and reach any youtube.com address. Width and alignment become inline style, so
+            // only a CSS length and a known alignment are taken (see utils/layout.js).
+            'data-youtube-video': {
+                default: null,
+                parseHTML: element => {
+                    const id = element.getAttribute('data-youtube-video');
+                    return isYoutubeId(id) ? id : null;
+                },
+            },
             width: {
-                default: '100%',
-                parseHTML: element => element.getAttribute('data-width') || '100%',
+                default: DEFAULT_LAYOUT_WIDTH,
+                parseHTML: element => cssLength(element.getAttribute('data-width')),
                 renderHTML: () => ({}),
             },
             align: {
-                default: 'center',
-                parseHTML: element => element.getAttribute('data-align') || 'center',
+                default: DEFAULT_LAYOUT_ALIGN,
+                parseHTML: element => layoutAlign(element.getAttribute('data-align')),
                 renderHTML: () => ({}),
             },
             // Caption/label (::youtube[Label]{…}), round-tripped as data-embed-label —
@@ -152,9 +163,9 @@ export const Youtube = Node.create({
     },
 
     renderHTML({ node }) {
-        const id = node.attrs['data-youtube-video'];
-        const w = node.attrs.width || '100%';
-        const a = node.attrs.align || 'center';
+        const id = videoId(node.attrs);
+        const w = cssLength(node.attrs.width);
+        const a = layoutAlign(node.attrs.align);
         const ml = a === 'left' ? '0' : 'auto';
         const mr = a === 'right' ? '0' : 'auto';
         const wrapperAttrs = {
@@ -194,7 +205,7 @@ export const Youtube = Node.create({
     addCommands() {
         return {
             setYoutubeVideo: options => ({ commands }) => {
-                if (!VALID_ID_PATTERN.test(options?.['data-youtube-video'] || '')) return false;
+                if (!isYoutubeId(options?.['data-youtube-video'])) return false;
                 return commands.insertContent({
                     type: this.name,
                     attrs: options,
@@ -226,7 +237,7 @@ export const Youtube = Node.create({
             iframe.setAttribute('allow', IFRAME_ALLOW);
             iframe.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%;';
 
-            const placeholder = buildPlaceholderDom();
+            let placeholder = buildPlaceholderDom();
 
             // Transparent overlay so ProseMirror sees clicks and creates a NodeSelection.
             // Without this, clicks go straight to the cross-origin iframe and TipTap never selects the node.
@@ -236,15 +247,18 @@ export const Youtube = Node.create({
             overlay.style.cssText = 'position: absolute; inset: 0; z-index: 10;';
 
             let consentEl = null; // the consent placeholder on screen, if any
+            let facadeButton = null; // the thumbnail facade's button on screen, if any
 
             // Facade (opt-in): a thumbnail or a local placeholder, with a play button, that
             // loads the iframe only on click. Built lazily, so the default (no facade) mode is
             // untouched.
-            let facadeLoaded = false; // user has clicked play → show the iframe
+            // The video the reader pressed play (or "Load video") for. Consent is for that video
+            // only: a node view reused for another video (new content, a changed URL) asks again.
+            let loadedId = null;
             const loadPlayer = () => {
                 // A keyboard user who pressed the button keeps their place: focus moves to the player.
                 const hadFocus = dom.contains(document.activeElement);
-                facadeLoaded = true;
+                loadedId = videoId(currentAttrs);
                 render(currentAttrs);
                 if (hadFocus && iframe.isConnected) iframe.focus();
             };
@@ -257,6 +271,7 @@ export const Youtube = Node.create({
                     return consentEl;
                 }
                 const wrap = document.createElement('button');
+                facadeButton = wrap;
                 wrap.type = 'button';
                 wrap.setAttribute('aria-label', i18next.t('youtubeLoadVideo', { ns: 'inscript-editor', defaultValue: LOAD_LABEL }));
                 wrap.className = 'absolute inset-0 w-full h-full block cursor-pointer group border-0 p-0';
@@ -281,9 +296,9 @@ export const Youtube = Node.create({
 
             const render = (attrs) => {
                 currentAttrs = attrs;
-                const id = attrs['data-youtube-video'];
-                const w = attrs.width || '100%';
-                const a = attrs.align || 'center';
+                const id = videoId(attrs);
+                const w = cssLength(attrs.width);
+                const a = layoutAlign(attrs.align);
                 // Alignment/width live on the figure so the caption tracks the video.
                 dom.style.cssText = `width: ${w}; margin-left: ${a === 'left' ? '0' : 'auto'}; margin-right: ${a === 'right' ? '0' : 'auto'};`;
                 videoDom.setAttribute('data-youtube-video', id || '');
@@ -292,7 +307,7 @@ export const Youtube = Node.create({
                 // @container: the consent placeholder fits itself to the video's width.
                 videoDom.className = 'youtube-embed relative aspect-video rounded-lg overflow-hidden @container';
 
-                const facadePending = facadeMode !== YOUTUBE_FACADE.NONE && !facadeLoaded;
+                const facadePending = facadeMode !== YOUTUBE_FACADE.NONE && loadedId !== id;
                 const next = !id ? 'placeholder' : facadePending ? 'facade' : 'iframe';
                 if (next === 'iframe' && id) {
                     // Setting src again, even to the same URL, reloads the player (and stops a
@@ -306,6 +321,7 @@ export const Youtube = Node.create({
                     state = next;
                     videoDom.innerHTML = '';
                     consentEl = null;
+                    facadeButton = null;
                     if (next === 'placeholder') videoDom.appendChild(placeholder);
                     else if (next === 'facade') { facadeId = id; videoDom.appendChild(buildFacade(id)); }
                     else videoDom.appendChild(iframe);
@@ -326,8 +342,23 @@ export const Youtube = Node.create({
             };
             render(node.attrs);
 
+            // A language switch redraws what this view wrote in the old language: the consent
+            // placeholder, the thumbnail's label, the "Video unavailable" placeholder. A loaded
+            // player is left alone (rebuilding it would stop the video).
+            const onLanguageChanged = () => {
+                placeholder = buildPlaceholderDom();
+                if (state === 'facade' || state === 'placeholder') {
+                    state = null;
+                    render(currentAttrs);
+                }
+            };
+            i18next.on('languageChanged', onLanguageChanged);
+
             return {
                 dom,
+                destroy() {
+                    i18next.off('languageChanged', onLanguageChanged);
+                },
                 update(newNode) {
                     if (newNode.type.name !== 'youtube') return false;
                     render(newNode.attrs);
@@ -336,9 +367,12 @@ export const Youtube = Node.create({
                 // The consent placeholder's button and link handle their own events: ProseMirror
                 // must not turn a press on them into a node selection, or Enter and Space into
                 // an edit, so the first click or key press loads the player (or follows the link).
+                // The thumbnail facade's button likewise: Enter or Space on it presses it.
                 stopEvent(event) {
                     const target = event.target?.nodeType === 1 ? event.target : event.target?.parentElement;
-                    return !!(consentEl && target && consentEl.contains(target) && target.closest(CONSENT_CONTROLS));
+                    if (!target) return false;
+                    if (facadeButton && facadeButton.contains(target)) return true;
+                    return !!(consentEl && consentEl.contains(target) && target.closest(CONSENT_CONTROLS));
                 },
                 // Once the node is selected (bubble menu open), let clicks fall through
                 // to the iframe so a second click plays the video instead of re-showing the menu.

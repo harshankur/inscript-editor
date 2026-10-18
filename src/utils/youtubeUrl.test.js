@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractYoutubeId, youtubeEmbedUrl, YOUTUBE_EMBED_ORIGIN } from './youtubeUrl.js';
+import { extractYoutubeId, isYoutubeId, youtubeEmbedUrl, YOUTUBE_EMBED_ORIGIN } from './youtubeUrl.js';
 
 describe('extractYoutubeId', () => {
     const VALID_ID = 'dQw4w9WgXcQ';
@@ -55,5 +55,30 @@ describe('youtubeEmbedUrl', () => {
 
     it('builds a URL that extractYoutubeId reads back', () => {
         expect(extractYoutubeId(youtubeEmbedUrl(VALID_ID))).toBe(VALID_ID);
+    });
+});
+
+describe('extractYoutubeId on hostile input', () => {
+    it('stays fast on a long run of watch? prefixes', () => {
+        const start = performance.now();
+        expect(extractYoutubeId('youtube.com/watch?&'.repeat(10000))).toBeNull();
+        expect(performance.now() - start).toBeLessThan(200);
+    });
+
+    it('ignores YouTube addresses inside another URL', () => {
+        expect(extractYoutubeId('https://evil.example/?u=https://www.youtube.com/embed/dQw4w9WgXcQ')).toBeNull();
+        expect(extractYoutubeId('https://www.youtube.com.evil.example/watch?v=dQw4w9WgXcQ')).toBeNull();
+    });
+
+    it('reads subdomains, live/ and schemeless URLs', () => {
+        expect(extractYoutubeId('https://m.youtube.com/watch?v=dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+        expect(extractYoutubeId('https://www.youtube.com/live/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+        expect(extractYoutubeId('youtu.be/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+    });
+
+    it('refuses an ID with a path or a query in it for the player URL', () => {
+        expect(youtubeEmbedUrl('dQw4w9WgXcQ/../../x?y=1')).toBeNull();
+        expect(isYoutubeId('dQw4w9WgXcQ')).toBe(true);
+        expect(isYoutubeId('dQw4w9WgXc')).toBe(false);
     });
 });
