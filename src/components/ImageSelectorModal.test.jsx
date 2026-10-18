@@ -70,4 +70,15 @@ describe('ImageSelectorModal', () => {
         await user.type(screen.getByPlaceholderText('Search images...'), 'nonexistent');
         expect(screen.getByText('No images found')).toBeInTheDocument();
     });
+
+    it('starts clean when opened again: no old search, no old upload error', async () => {
+        const user = userEvent.setup();
+        const props = { onClose: () => {}, images: IMAGES, onSelect: () => {}, onUpload: () => {} };
+        const { rerender } = render(<ImageSelectorModal isOpen {...props} />);
+        await user.type(screen.getByPlaceholderText('Search images...'), 'cat');
+        rerender(<ImageSelectorModal isOpen={false} {...props} />);
+        rerender(<ImageSelectorModal isOpen {...props} />);
+        expect(screen.getByPlaceholderText('Search images...').value).toBe('');
+        expect(screen.getByAltText('dog')).toBeInTheDocument();
+    });
 });

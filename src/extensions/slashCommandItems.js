@@ -1,7 +1,9 @@
-// Read a host handler live from the ref bridge (options.hostHandlersRef, refreshed
-// every render by useInscriptEditor), falling back to a plain editorOptions value.
-// This lets the slash menu and <InscriptEditor> share one set of handlers.
-const handler = (options, name) => options.hostHandlersRef?.current?.[name] ?? options[name];
+import { getHostHandlers } from './HostBridge.js';
+
+// Read a host handler live: <InscriptEditor>'s prop or the editorOptions one through the editor's
+// host bridge (options.hostHandlersRef is refreshed every render by useInscriptEditor), falling
+// back to a plain editorOptions value. The slash menu, the toolbar and the selection menu share it.
+const handler = (options, name, editor) => getHostHandlers(editor)[name] ?? options.hostHandlersRef?.current?.[name] ?? options[name];
 
 /**
  * An item whose `title`/`subtitle` are resolved through `t` every time they are read, so the
@@ -152,7 +154,7 @@ export const getDefaultSlashItems = (t, options = {}) => [
                 // modal + an .insertCitation() call), mirroring the image/youtube slash
                 // items. Otherwise fall back to native prompts (shared i18n keys with the
                 // toolbar's citation button).
-                const onAddCitation = handler(options, 'onAddCitation');
+                const onAddCitation = handler(options, 'onAddCitation', editor);
                 if (onAddCitation) {
                     editor.chain().focus().deleteRange(range).run();
                     onAddCitation();
@@ -223,28 +225,31 @@ export const getDefaultSlashItems = (t, options = {}) => [
             editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
         }
     },
-    ...(options.onShowMediaLibrary ? [{
+    // Offered only while a host handler exists (read when the menu opens: a prop given later counts).
+    {
         id: 'image',
         titleKey: 'insertImage', titleDefault: 'Image',
         subtitleKey: 'imageSubtitle', subtitleDefault: 'Upload or select an image',
         keywords: ['image', 'picture', 'photo'],
         group: 'media',
+        isAvailable: ({ editor }) => typeof handler(options, 'onShowMediaLibrary', editor) === 'function',
         command: ({ editor, range }) => {
             editor.chain().focus().deleteRange(range).run();
-            handler(options, 'onShowMediaLibrary')();
+            handler(options, 'onShowMediaLibrary', editor)();
         }
-    }] : []),
-    ...(options.onAddYoutube ? [{
+    },
+    {
         id: 'youtube',
         titleKey: 'embedYoutube', titleDefault: 'YouTube Video',
         subtitleKey: 'youtubeSubtitle', subtitleDefault: 'Embed a YouTube video',
         keywords: ['youtube', 'video', 'embed'],
         group: 'media',
+        isAvailable: ({ editor }) => typeof handler(options, 'onAddYoutube', editor) === 'function',
         command: ({ editor, range }) => {
             editor.chain().focus().deleteRange(range).run();
-            handler(options, 'onAddYoutube')();
+            handler(options, 'onAddYoutube', editor)();
         }
-    }] : []),
+    },
     {
         id: 'horizontalRule',
         titleKey: 'horizontalRule', titleDefault: 'Divider',
@@ -252,7 +257,7 @@ export const getDefaultSlashItems = (t, options = {}) => [
         keywords: ['hr', 'divider', 'line', 'horizontal rule'],
         group: 'text',
         command: ({ editor, range }) => {
-            editor.chain().focus().deleteRange(range).setHorizontalRule().run();
+            editor.chain().focus().deleteRange(range).insertDivider().run();
         }
     }
 ].map(item => localized(t, item));

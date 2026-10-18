@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { GripVertical, X, Plus, Check, SlidersHorizontal } from 'lucide-react';
 import { TOOL_REGISTRY, DIVIDER, TOOLBAR_TOOL_IDS, BUBBLE_ALLOWED_TOOL_IDS, sanitizeToolConfig } from '../toolbar/toolRegistry.js';
 import { TOOLBAR_PRESETS, BUBBLE_PRESETS, PRESET_LABELS, DEFAULT_TOOLBAR_CONFIG, DEFAULT_BUBBLE_CONFIG } from '../toolbar/presets.js';
@@ -28,7 +29,12 @@ export const ToolbarCustomizer = ({
     // The element should be position:relative + overflow:hidden.
     container = null,
 }) => {
+    const { t } = useTranslation('inscript-editor');
     const [activeTab, setActiveTab] = useState('toolbar'); // 'toolbar' | 'bubble'
+    // A tool's name (under the key the toolbar uses for it) and a built-in preset's name in the UI language. A host's own preset labels
+    // (toolbarPresetLabels) are its own words and are shown as given.
+    const toolLabel = (id) => (TOOL_REGISTRY[id]?.labelKey ? t(TOOL_REGISTRY[id].labelKey, TOOL_REGISTRY[id].label) : (TOOL_REGISTRY[id]?.label ?? id));
+    const presetLabel = (key) => (toolbarPresetLabels?.[key] ?? (PRESET_LABELS[key] ? t(`toolbarPreset.${key}`, PRESET_LABELS[key]) : key));
 
     // Effective presets: built-ins, optionally replaced/merged with the
     // consumer-supplied ones (each validated for its surface).
@@ -43,8 +49,6 @@ export const ToolbarCustomizer = ({
         const clean = Object.fromEntries(Object.entries(bubbleMenuPresets).map(([k, v]) => [k, sanitizeToolConfig(v, 'bubble')]));
         return presetsMode === 'replace' ? clean : { ...BUBBLE_PRESETS, ...clean };
     }, [bubbleMenuPresets, presetsMode]);
-
-    const effPresetLabels = useMemo(() => ({ ...PRESET_LABELS, ...(toolbarPresetLabels || {}) }), [toolbarPresetLabels]);
 
     // Local state for main toolbar
     const initialToolbarConfig = currentConfig ?? DEFAULT_TOOLBAR_CONFIG;
@@ -205,20 +209,22 @@ export const ToolbarCustomizer = ({
                 <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--inscript-color-border)]">
                     <div className="flex items-center gap-2">
                         <SlidersHorizontal size={18} className="text-[var(--inscript-color-muted)]" />
-                        <span className="font-semibold text-[var(--inscript-color-text)] text-sm">Customize Layout</span>
+                        <span className="font-semibold text-[var(--inscript-color-text)] text-sm">{t('customizeLayout', 'Customize Layout')}</span>
                     </div>
-                    <button
+                    <button type="button"
                         onClick={handleClose}
+                        aria-label={t('close', 'Close')}
+                        title={t('close', 'Close')}
                         className="text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)] transition-colors rounded p-1 hover:bg-[var(--inscript-color-hover)]"
                     >
                         <X size={16} />
                     </button>
                 </div>
 
-                {/* Tab Switcher */}
-                {currentBubbleConfig && onSaveBubble && (
+                {/* Tab Switcher: whenever the host can save the selection menu (its config may be the default) */}
+                {onSaveBubble && (
                     <div className="flex border-b border-[var(--inscript-color-border)] bg-[var(--inscript-color-surface-raised)] shrink-0">
-                        <button
+                        <button type="button"
                             onClick={() => { setActiveTab('toolbar'); setDragOverIndex(null); }}
                             className={`flex-1 py-3 text-xs font-semibold text-center border-b-2 transition-all
                                 ${activeTab === 'toolbar'
@@ -226,9 +232,9 @@ export const ToolbarCustomizer = ({
                                     : 'border-transparent text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)]'
                                 }`}
                         >
-                            Main Toolbar
+                            {t('customizerMainToolbar', 'Main Toolbar')}
                         </button>
-                        <button
+                        <button type="button"
                             onClick={() => { setActiveTab('bubble'); setDragOverIndex(null); }}
                             className={`flex-1 py-3 text-xs font-semibold text-center border-b-2 transition-all
                                 ${activeTab === 'bubble'
@@ -236,7 +242,7 @@ export const ToolbarCustomizer = ({
                                     : 'border-transparent text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)]'
                                 }`}
                         >
-                            Selection Menu
+                            {t('customizerSelectionMenu', 'Selection Menu')}
                         </button>
                     </div>
                 )}
@@ -244,10 +250,10 @@ export const ToolbarCustomizer = ({
                 <div className="flex-1 overflow-y-auto">
                     {/* Presets */}
                     <div className="px-5 pt-5 pb-4">
-                        <p className="text-xs font-medium text-[var(--inscript-color-muted)] uppercase tracking-wider mb-3">Presets</p>
+                        <p className="text-xs font-medium text-[var(--inscript-color-muted)] uppercase tracking-wider mb-3">{t('customizerPresets', 'Presets')}</p>
                         <div className="grid grid-cols-2 gap-2">
                             {Object.keys(activeTab === 'toolbar' ? effToolbarPresets : effBubblePresets).map(key => (
-                                <button
+                                <button type="button"
                                     key={key}
                                     onClick={() => applyPreset(key)}
                                     className={`px-3 py-2 rounded-lg text-sm font-medium text-left transition-all border
@@ -256,7 +262,7 @@ export const ToolbarCustomizer = ({
                                             : 'bg-[var(--inscript-color-surface-raised)] text-[var(--inscript-color-text)] border-[var(--inscript-color-border)] hover:border-[var(--inscript-color-border-strong)]'
                                         }`}
                                 >
-                                    {effPresetLabels[key] ?? key}
+                                    {presetLabel(key)}
                                 </button>
                             ))}
                         </div>
@@ -267,7 +273,7 @@ export const ToolbarCustomizer = ({
                     {/* Current config (drag to reorder) */}
                     <div className="px-5 pt-4 pb-2">
                         <p className="text-xs font-medium text-[var(--inscript-color-muted)] uppercase tracking-wider mb-3">
-                            Current {activeTab === 'toolbar' ? 'toolbar' : 'selection menu'}
+                            {activeTab === 'toolbar' ? t('customizerCurrentToolbar', 'Current toolbar') : t('customizerCurrentSelectionMenu', 'Current selection menu')}
                         </p>
                         <div className="flex flex-col gap-1">
                             {activeConfig.map((item, idx) => {
@@ -293,19 +299,20 @@ export const ToolbarCustomizer = ({
                                         {isDivider ? (
                                             <div className="flex-1 flex items-center gap-2">
                                                 <div className="flex-1 h-px bg-[var(--inscript-color-border-strong)]" />
-                                                <span className="text-xs text-[var(--inscript-color-muted)]">Divider</span>
+                                                <span className="text-xs text-[var(--inscript-color-muted)]">{t('customizerDivider', 'Divider')}</span>
                                                 <div className="flex-1 h-px bg-[var(--inscript-color-border-strong)]" />
                                             </div>
                                         ) : (
                                             <>
                                                 {Icon && <Icon size={14} className="text-[var(--inscript-color-muted)] shrink-0" />}
-                                                <span className="flex-1 text-sm text-[var(--inscript-color-text)]">{meta?.label ?? item}</span>
+                                                <span className="flex-1 text-sm text-[var(--inscript-color-text)]">{toolLabel(item)}</span>
                                             </>
                                         )}
-                                        <button
+                                        <button type="button"
                                             onClick={() => removeItem(idx)}
                                             className="text-[var(--inscript-color-muted)] hover:text-red-500 dark:hover:text-red-400 transition-colors rounded p-0.5 shrink-0"
-                                            title="Remove"
+                                            title={t('customizerRemove', 'Remove')}
+                                            aria-label={t('customizerRemove', 'Remove')}
                                         >
                                             <X size={12} />
                                         </button>
@@ -314,12 +321,12 @@ export const ToolbarCustomizer = ({
                             })}
 
                             {/* Add divider button */}
-                            <button
+                            <button type="button"
                                 onClick={addDivider}
                                 className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)] hover:bg-[var(--inscript-color-hover)] text-sm transition-colors"
                             >
                                 <Plus size={13} />
-                                <span>Add divider</span>
+                                <span>{t('customizerAddDivider', 'Add divider')}</span>
                             </button>
                         </div>
                     </div>
@@ -329,19 +336,19 @@ export const ToolbarCustomizer = ({
                         <>
                             <div className="border-t border-[var(--inscript-color-border)] mt-2" />
                             <div className="px-5 pt-4 pb-6">
-                                <p className="text-xs font-medium text-[var(--inscript-color-muted)] uppercase tracking-wider mb-3">Available to add</p>
+                                <p className="text-xs font-medium text-[var(--inscript-color-muted)] uppercase tracking-wider mb-3">{t('customizerAvailable', 'Available to add')}</p>
                                 <div className="flex flex-col gap-1">
                                     {availableTools.map(id => {
                                         const meta = TOOL_REGISTRY[id];
                                         const Icon = meta?.icon ?? null;
                                         return (
-                                            <button
+                                            <button type="button"
                                                 key={id}
                                                 onClick={() => addTool(id)}
                                                 className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[var(--inscript-color-hover)] text-sm text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)] transition-colors text-left"
                                             >
                                                 {Icon && <Icon size={14} className="shrink-0" />}
-                                                <span className="flex-1">{meta?.label ?? id}</span>
+                                                <span className="flex-1">{toolLabel(id)}</span>
                                                 <Plus size={13} className="text-[var(--inscript-color-muted)]" />
                                             </button>
                                         );
@@ -354,18 +361,18 @@ export const ToolbarCustomizer = ({
 
                 {/* Footer actions */}
                 <div className="px-5 py-4 border-t border-[var(--inscript-color-border)] flex items-center gap-2 shrink-0">
-                    <button
+                    <button type="button"
                         onClick={handleClose}
                         className="flex-1 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--inscript-color-surface-raised)] text-[var(--inscript-color-text)] hover:bg-[var(--inscript-color-hover)] transition-colors"
                     >
-                        Cancel
+                        {t('cancel', 'Cancel')}
                     </button>
-                    <button
+                    <button type="button"
                         onClick={handleSave}
                         className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--inscript-color-text)] text-[var(--inscript-color-surface)] hover:opacity-90 transition-colors"
                     >
                         <Check size={14} />
-                        Save layout
+                        {t('customizerSave', 'Save layout')}
                     </button>
                 </div>
             </div>

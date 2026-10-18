@@ -37,7 +37,7 @@ export const ColorSelector = ({ icon: Icon, title, activeColor, onChange, onRemo
                         <div className="text-xs font-medium text-[var(--inscript-color-muted)] mb-2 uppercase tracking-wider">{t('presets', 'Presets')}</div>
                         <div className="grid grid-cols-5 gap-1.5 mb-3">
                             {defaultSwatch && (
-                                <button
+                                <button type="button"
                                     onClick={() => { defaultSwatch.onSelect(); setIsOpen(false); }}
                                     className={`w-6 h-6 rounded border ${isDefaultActive ? 'border-white ring-1 ring-white' : 'border-[var(--inscript-color-border-strong)] hover:scale-110 active:scale-95'} transition-all`}
                                     style={{ backgroundColor: defaultSwatch.css }}
@@ -47,7 +47,7 @@ export const ColorSelector = ({ icon: Icon, title, activeColor, onChange, onRemo
                                 />
                             )}
                             {presets.map(color => (
-                                <button
+                                <button type="button"
                                     key={color}
                                     onClick={() => { onChange(color); setIsOpen(false); }}
                                     className={`w-6 h-6 rounded border ${activeColor === color ? 'border-white ring-1 ring-white' : 'border-[var(--inscript-color-border-strong)] hover:scale-110 active:scale-95'} transition-all`}
@@ -72,7 +72,7 @@ export const ColorSelector = ({ icon: Icon, title, activeColor, onChange, onRemo
                                 <span>{t('customColor', 'Custom Color...')}</span>
                             </label>
 
-                            <button
+                            <button type="button"
                                 onClick={() => { onRemove(); setIsOpen(false); }}
                                 className="flex items-center gap-2 text-xs text-red-400 hover:text-red-300 px-1 py-1 rounded hover:bg-red-400/10 transition-colors"
                             >

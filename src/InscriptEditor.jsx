@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import { EditorContent } from '@tiptap/react';
 import { ResponsiveToolbar } from './components/ResponsiveToolbar.jsx';
 import { HistoryView } from './components/HistoryView.jsx';
@@ -10,7 +10,7 @@ import { EmbedBubbleMenu } from './components/bubble-menus/EmbedBubbleMenu.jsx';
 import { SlashCommandMenu } from './components/SlashCommandMenu.jsx';
 import { useInscriptEditorTranslations } from './hooks/useInscriptEditorTranslations.js';
 import { buildThemeVars } from './utils/theme.js';
-import { getHostHandlers, setExternalOpener } from './extensions/HostBridge.js';
+import { getHostHandlers, setExternalOpener, setHostHandlerProps } from './extensions/HostBridge.js';
 
 const EMPTY_ORIGINAL = { html: '', title: '', tags: [], categories: [] };
 
@@ -82,11 +82,20 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
         ? (theme?.focusMaxWidth || focusMaxWidth || '48rem')
         : (theme?.maxWidth || maxWidth || undefined);
 
+    // Selection menus are attached to the editor's root, outside the scrolling content area (which
+    // clipped them), and follow that area as it scrolls (see menuOptions.js).
+    const [scrollContainer, setScrollContainer] = useState(null);
+    const [menuContainer, setMenuContainer] = useState(null);
+
     useImperativeHandle(ref, () => ({
         getHTML: () => editor?.getHTML() ?? '',
         getText: () => editor?.getText() ?? '',
         // Records an edit (a version, onContentChange). To open a document, use loadContent.
-        setContent: (html) => editor?.commands.setContent(html),
+        // The content is taken as given: plain-text URLs in it are not turned into links.
+        setContent: (html) => editor?.chain()
+            .command(({ tr }) => { tr.setMeta('preventAutolink', true); return true; })
+            .setContent(html)
+            .run(),
         loadContent: (html, options) => loadContent?.(html, options) ?? false,
         flush: () => flush?.() ?? { history, historyIndex },
         undo: () => undo?.() ?? false,
@@ -95,6 +104,13 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
         markSaved: () => markSaved?.(),
         toggleFocusMode: () => { /* host app manages this prop usually, but we could provide a local override if we tracked it locally */ },
     }), [editor, restoreVersion, loadContent, flush, undo, redo, markSaved, history, historyIndex]);
+
+    // The slash menu (built with the editor) honours the insert-handler props too: published on the
+    // editor, where it reads them when it opens.
+    useEffect(() => {
+        setHostHandlerProps(editor, { onAddCitation, onAddYoutube, onShowMediaLibrary, onAddWikilink, onAddAbbreviation });
+        return () => setHostHandlerProps(editor, {});
+    }, [editor, onAddCitation, onAddYoutube, onShowMediaLibrary, onAddWikilink, onAddAbbreviation]);
 
     // Node views (a YouTube video's privacy link) open external links through this prop too.
     useEffect(() => {
@@ -130,7 +146,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
         // display:contents scope: carries the theme custom properties to the
         // toolbar + content without introducing a layout box, so the host's
         // surrounding flex layout is unchanged.
-        <div className="inscript-editor" style={{ display: 'contents', ...themeVars }}>
+        <div ref={setMenuContainer} className="inscript-editor" style={{ display: 'contents', ...themeVars }}>
             {/* Toolbar */}
             {!isReadonly && !showDiff && !focusMode && (
                 <ResponsiveToolbar
@@ -160,7 +176,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
             )}
 
             {/* Content area */}
-            <div className="flex-1 overflow-y-auto relative bg-[var(--inscript-color-surface)]">
+            <div ref={setScrollContainer} className="flex-1 overflow-y-auto relative bg-[var(--inscript-color-surface)]">
                 {showDiff ? (
                     <HistoryView
                         history={history}
@@ -176,12 +192,18 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                         className={`mx-auto px-2 pt-3 pb-[57px] md:px-8 md:pt-12 md:pb-[57px] flex flex-col min-h-full inscript-editor-container w-full ${focusMode ? 'focus-mode' : ''} ${focusMode && focusDim ? 'focus-dim' : ''}`}
                         style={{ '--inscript-max-width': resolvedMaxWidth }}
                     >
-                        <TextBubbleMenu editor={editor} isReadonly={isReadonly} bubbleMenuConfig={bubbleMenuConfig} onAddAbbreviation={resolvedOnAddAbbreviation} />
-                        <TableBubbleMenu editor={editor} isReadonly={isReadonly} />
-                        <ImageBubbleMenu editor={editor} isReadonly={isReadonly} />
-                        <YoutubeBubbleMenu editor={editor} isReadonly={isReadonly} onOpenExternal={resolvedOnOpenExternal} />
-                        <EmbedBubbleMenu editor={editor} isReadonly={isReadonly} onOpenExternal={resolvedOnOpenExternal} />
-                        <SlashCommandMenu isReadonly={isReadonly} />
+                        {/* Mounted once the root they attach to exists: TipTap reads where a menu goes
+                            when it registers it, and ignores the first change after that. */}
+                        {menuContainer && (
+                            <>
+                                <TextBubbleMenu editor={editor} isReadonly={isReadonly} scrollContainer={scrollContainer} menuContainer={menuContainer} bubbleMenuConfig={bubbleMenuConfig} onAddAbbreviation={resolvedOnAddAbbreviation} />
+                                <TableBubbleMenu editor={editor} isReadonly={isReadonly} scrollContainer={scrollContainer} menuContainer={menuContainer} />
+                                <ImageBubbleMenu editor={editor} isReadonly={isReadonly} scrollContainer={scrollContainer} menuContainer={menuContainer} />
+                                <YoutubeBubbleMenu editor={editor} isReadonly={isReadonly} scrollContainer={scrollContainer} menuContainer={menuContainer} onOpenExternal={resolvedOnOpenExternal} />
+                                <EmbedBubbleMenu editor={editor} isReadonly={isReadonly} scrollContainer={scrollContainer} menuContainer={menuContainer} onOpenExternal={resolvedOnOpenExternal} />
+                            </>
+                        )}
+                        <SlashCommandMenu editor={editor} isReadonly={isReadonly} />
                         <EditorContent editor={editor} />
                     </div>
                 )}

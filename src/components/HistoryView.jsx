@@ -7,6 +7,18 @@ import { inertPreviewHtml } from '../utils/previewHtml.js';
 import { useInscriptEditorTranslations } from '../hooks/useInscriptEditorTranslations.js';
 
 const BASELINE_KINDS = new Set(['opened', 'imported']);
+/**
+ * How long a text or source comparison may take, in ms. It runs while rendering, and two long,
+ * very different versions took seconds; past this both are shown as they are.
+ */
+const DIFF_TIMEOUT_MS = 500;
+
+/** The comparison of two texts, or both shown plainly (`tooLarge`) when it takes too long. */
+function compareTexts(diff, before, after) {
+    const parts = diff(before, after, { timeout: DIFF_TIMEOUT_MS });
+    if (parts) return { parts, tooLarge: false };
+    return { parts: [{ value: before, removed: true, plain: true }, { value: after, added: true, plain: true }], tooLarge: true };
+}
 
 const RELATIVE_UNITS = [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60], ['second', 1]];
 
@@ -131,10 +143,10 @@ export const HistoryView = ({
     const diffSource = useMemo(() => {
         if (mode === 'visual') return null;
         if (mode === 'source') {
-            return Diff.diffLines(refHtml || '', compareHtml);
+            return compareTexts(Diff.diffLines, refHtml || '', compareHtml || '');
         }
         if (mode === 'text') {
-            return Diff.diffWords(getTextContent(refHtml || ''), getTextContent(compareHtml));
+            return compareTexts(Diff.diffWords, getTextContent(refHtml || ''), getTextContent(compareHtml || ''));
         }
         return null;
     }, [refHtml, compareHtml, mode]);
@@ -228,7 +240,7 @@ export const HistoryView = ({
                         const date = new Date(item.timestamp);
                         const validDate = !Number.isNaN(date.getTime());
                         return (
-                            <button
+                            <button type="button"
                                 key={item.id ?? idx}
                                 ref={isSelected ? activeVersionRef : null}
                                 onClick={() => setSelectedIdx(idx)}
@@ -260,7 +272,7 @@ export const HistoryView = ({
                     })}
                 </div>
                 <div className="p-2 @3xl:p-4 border-t border-[var(--inscript-color-border)] bg-[var(--inscript-color-surface-raised)]">
-                    <button
+                    <button type="button"
                         onClick={() => { if (canRestore) onSelect(selected, history[selected]); }}
                         disabled={!canRestore}
                         className="w-full py-2 @3xl:py-2.5 bg-[var(--inscript-color-text)] hover:opacity-90 text-[var(--inscript-color-surface)] font-bold rounded-lg text-xs uppercase tracking-wide transition-colors shadow-lg flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
@@ -276,9 +288,9 @@ export const HistoryView = ({
                 <div className="p-2 min-h-12 @3xl:min-h-16 @3xl:p-3 bg-[var(--inscript-color-surface-raised)] border-b border-[var(--inscript-color-border)] flex justify-between items-center sticky top-0 bg-[var(--inscript-color-surface)] backdrop-blur z-20">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--inscript-color-muted)] pl-1 @3xl:pl-2">{t('originalReference', 'Original (Reference)')}</span>
                     <div className="flex bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border)] rounded-lg p-0.5 shadow-sm">
-                        <button onClick={() => setMode('visual')} className={`px-2 py-1 text-[10px] font-bold rounded transition-all ${mode === 'visual' ? 'bg-[var(--inscript-color-active)] text-[var(--inscript-color-text)] shadow-sm' : 'text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)]'}`}>{t('preview', 'Preview')}</button>
-                        <button onClick={() => setMode('text')} className={`px-2 py-1 text-[10px] font-bold rounded transition-all ${mode === 'text' ? 'bg-[var(--inscript-color-active)] text-[var(--inscript-color-text)] shadow-sm' : 'text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)]'}`}>{t('text', 'Text')}</button>
-                        <button onClick={() => setMode('source')} className={`px-2 py-1 text-[10px] font-bold rounded transition-all ${mode === 'source' ? 'bg-[var(--inscript-color-active)] text-[var(--inscript-color-text)] shadow-sm' : 'text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)]'}`}>{t('source', 'Source')}</button>
+                        <button type="button" onClick={() => setMode('visual')} className={`px-2 py-1 text-[10px] font-bold rounded transition-all ${mode === 'visual' ? 'bg-[var(--inscript-color-active)] text-[var(--inscript-color-text)] shadow-sm' : 'text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)]'}`}>{t('preview', 'Preview')}</button>
+                        <button type="button" onClick={() => setMode('text')} className={`px-2 py-1 text-[10px] font-bold rounded transition-all ${mode === 'text' ? 'bg-[var(--inscript-color-active)] text-[var(--inscript-color-text)] shadow-sm' : 'text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)]'}`}>{t('text', 'Text')}</button>
+                        <button type="button" onClick={() => setMode('source')} className={`px-2 py-1 text-[10px] font-bold rounded transition-all ${mode === 'source' ? 'bg-[var(--inscript-color-active)] text-[var(--inscript-color-text)] shadow-sm' : 'text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)]'}`}>{t('source', 'Source')}</button>
                     </div>
                 </div>
                 <div ref={leftRef} onScroll={handleScroll('left')} className="flex-1 overflow-y-auto custom-scrollbar">
@@ -312,7 +324,14 @@ export const HistoryView = ({
                         {mode === 'visual' ? (
                             <div className="ProseMirror inscript-history-preview" data-history-preview="reference" dangerouslySetInnerHTML={{ __html: refPreview }} />
                         ) : (
-                            <pre className="font-mono text-xs text-[var(--inscript-color-muted)] whitespace-pre-wrap">{diffSource && diffSource.map((part, i) => !part.added && <span key={i} style={part.removed ? { backgroundColor: 'rgba(127,29,29,0.4)', textDecoration: 'line-through' } : {}}>{part.value}</span>)}</pre>
+                            <>
+                                {diffSource?.tooLarge && (
+                                    <p role="note" className="mb-3 text-xs text-[var(--inscript-color-muted)]">
+                                        {t('historyDiffTooLarge', 'These versions differ too much to compare here; both are shown as they are.')}
+                                    </p>
+                                )}
+                                <pre className="font-mono text-xs text-[var(--inscript-color-muted)] whitespace-pre-wrap">{diffSource && diffSource.parts.map((part, i) => !part.added && <span key={i} style={part.removed && !part.plain ? { backgroundColor: 'rgba(127,29,29,0.4)', textDecoration: 'line-through' } : {}}>{part.value}</span>)}</pre>
+                            </>
                         )}
                     </div>
                 </div>
@@ -352,7 +371,7 @@ export const HistoryView = ({
                         {mode === 'visual' ? (
                             <div className="ProseMirror inscript-history-preview" data-history-preview="selected" dangerouslySetInnerHTML={{ __html: comparePreview }} />
                         ) : (
-                            <pre className="font-mono text-xs text-[var(--inscript-color-text)] whitespace-pre-wrap">{diffSource && diffSource.map((part, i) => !part.removed && <span key={i} style={part.added ? { backgroundColor: 'rgba(6,78,59,0.4)' } : {}}>{part.value}</span>)}</pre>
+                            <pre className="font-mono text-xs text-[var(--inscript-color-text)] whitespace-pre-wrap">{diffSource && diffSource.parts.map((part, i) => !part.removed && <span key={i} style={part.added && !part.plain ? { backgroundColor: 'rgba(6,78,59,0.4)' } : {}}>{part.value}</span>)}</pre>
                         )}
                     </div>
                 </div>

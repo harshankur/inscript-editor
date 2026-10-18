@@ -102,4 +102,23 @@ describe('DocumentOutline component', () => {
         expect(root).not.toBeNull();
         expect(root.style.width).toBe('20rem');
     });
+
+    it('puts the caret inside the clicked heading, also for a later one', () => {
+        editor.commands.setContent('<h1>One</h1><p>a</p><h2>Two</h2><p>b</p><h2>Three</h2>');
+        render(<DocumentOutline editor={editor} />);
+        fireEvent.click(screen.getByText('Three'));
+        const { $head } = editor.state.selection;
+        expect($head.parent.type.name).toBe('heading');
+        expect($head.parent.textContent).toBe('Three');
+    });
+
+    it('keeps its buttons while typing moves the headings, and clicks go where they are now', () => {
+        editor.commands.setContent('<h1>One</h1><p>a</p><h2>Two</h2>');
+        render(<DocumentOutline editor={editor} />);
+        const before = screen.getByText('Two');
+        act(() => { editor.commands.insertContentAt(4, 'xxxx'); });
+        expect(screen.getByText('Two')).toBe(before);
+        fireEvent.click(screen.getByText('Two'));
+        expect(editor.state.selection.$head.parent.textContent).toBe('Two');
+    });
 });

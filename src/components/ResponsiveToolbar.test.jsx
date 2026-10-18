@@ -88,6 +88,29 @@ describe('ResponsiveToolbar overflow', () => {
         expect(screen.getByTitle('Insert Table')).toBeInTheDocument();
     });
 
+    it('says whether the overflow menu is open, and Escape closes it back onto its button', () => {
+        stubClientWidth(300);
+        render(<ResponsiveToolbar editor={editor} />);
+        const moreButton = screen.getByTitle('More tools');
+        expect(moreButton.getAttribute('aria-haspopup')).toBe('true');
+        expect(moreButton.getAttribute('aria-expanded')).toBe('false');
+        fireEvent.click(moreButton);
+        expect(moreButton.getAttribute('aria-expanded')).toBe('true');
+        expect(screen.getByRole('group', { name: 'More tools' })).toBeInTheDocument();
+        fireEvent.keyDown(document, { key: 'Escape' });
+        expect(screen.queryByTitle('Insert Table')).not.toBeInTheDocument();
+        expect(moreButton.getAttribute('aria-expanded')).toBe('false');
+        expect(document.activeElement).toBe(moreButton);
+    });
+
+    it('ignores other keys while the overflow menu is open', () => {
+        stubClientWidth(300);
+        render(<ResponsiveToolbar editor={editor} />);
+        fireEvent.click(screen.getByTitle('More tools'));
+        fireEvent.keyDown(document, { key: 'a' });
+        expect(screen.getByTitle('Insert Table')).toBeInTheDocument();
+    });
+
     it('recomputes the visible count when the container resizes', () => {
         stubClientWidth(300);
         render(<ResponsiveToolbar editor={editor} />);

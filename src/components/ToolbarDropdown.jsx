@@ -15,6 +15,9 @@ import { TOOLBAR_SIZES } from './ToolbarButton.jsx';
  *   title     – tooltip on the whole control
  *   activeId  – externally-resolved active id (overrides internal lastId when set)
  */
+/** Run a dropdown item: its `action`, or `onClick` (the name the type declarations used). */
+const runItem = item => (item?.action ?? item?.onClick)?.();
+
 export const ToolbarDropdown = ({ items = [], title, activeId }) => {
     const [open, setOpen] = useState(false);
     const [lastId, setLastId] = useState(items[0]?.id);
@@ -26,7 +29,7 @@ export const ToolbarDropdown = ({ items = [], title, activeId }) => {
     const activeItem = items.find(it => it.id === resolvedId) ?? items[0];
 
     const handlePick = useCallback((item) => {
-        item.action();
+        runItem(item);
         setLastId(item.id);
         setOpen(false);
     }, []);
@@ -60,7 +63,7 @@ export const ToolbarDropdown = ({ items = [], title, activeId }) => {
             <button
                 type="button"
                 title={activeItem?.label ?? title}
-                onClick={() => activeItem?.action()}
+                onClick={() => runItem(activeItem)}
                 style={{ width: `${BTN_W}px`, height: `${BTN_W}px` }}
                 className={`flex items-center justify-center rounded-l transition-colors
                     ${isAnyActive

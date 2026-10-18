@@ -5,6 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { hasView } from '../utils/editorView.js';
 
 const STORAGE_KEY = 'inscript-outline-collapsed';
+
+/** Same headings, in the same order, with the same levels and text (positions aside)? */
+const sameHeadings = (a, b) => a.length === b.length
+    && a.every((heading, i) => heading.level === b[i].level && heading.text === b[i].text);
 // Storage can throw (sandboxed iframes, blocked site data, some privacy modes): the
 // collapsed state is a convenience, so fall back to "expanded" and never crash.
 const readCollapsed = () => {
@@ -40,8 +44,11 @@ export const DocumentOutline = ({ editor, width, className = '', chrome = true, 
     useEffect(() => {
         if (!editor) return;
 
+        // Typing moves every later heading's position: the outline only changes when a heading's
+        // level, text or count does (positions are read fresh when one is clicked).
         const updateHeadings = () => {
-            setHeadings(extractHeadings(editor));
+            const next = extractHeadings(editor);
+            setHeadings(previous => (sameHeadings(previous, next) ? previous : next));
         };
         // Any doc change, not only 'update': TipTap skips 'update' for content set with
         // emitUpdate: false (a version restore, a quiet load), and those change the headings too.
@@ -63,15 +70,19 @@ export const DocumentOutline = ({ editor, width, className = '', chrome = true, 
         writeCollapsed(next);
     };
 
-    const handleClick = (pos) => {
+    // The heading's position now: the list keeps its entries while only positions move.
+    const handleClick = (index) => {
         if (!hasView(editor)) return;
+        const pos = extractHeadings(editor)[index]?.pos;
+        if (pos === undefined) return;
         // Place the caret at the heading, then scroll the heading itself to the TOP of the viewport.
         // The old `.scrollIntoView()` (ProseMirror's minimum-scroll) put a heading at the top when it
         // was above the view but at the bottom when it was below - inconsistent. Scroll the node's DOM
         // with `block: 'start'` so a clicked heading always lands at the top (matches the minimap).
         // `focus()` defaults to its own minimum-scroll (which is the inconsistent behavior); disable it
         // so ours is the only scroll, then align the heading's DOM node to the TOP.
-        editor.chain().setTextSelection(pos).focus(null, { scrollIntoView: false }).run();
+        // Inside the heading (pos is just before it), so the selection is a valid text cursor.
+        editor.chain().setTextSelection(pos + 1).focus(null, { scrollIntoView: false }).run();
         let dom = null;
         try { dom = editor.view.nodeDOM(pos); } catch { /* stale position after an edit */ }
         if (dom && typeof dom.scrollIntoView === 'function') {
@@ -84,7 +95,7 @@ export const DocumentOutline = ({ editor, width, className = '', chrome = true, 
     if (isCollapsed) {
         return (
             <div className={`flex flex-col border-l border-[var(--inscript-color-border)] bg-[var(--inscript-color-surface-raised)] w-12 shrink-0 transition-all ${className}`}>
-                <button
+                <button type="button"
                     onClick={handleToggleCollapse}
                     className="p-3 text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)] flex justify-center"
                     title={t('expandOutline', 'Expand outline')}
@@ -104,7 +115,7 @@ export const DocumentOutline = ({ editor, width, className = '', chrome = true, 
                 <div className="flex items-center justify-between p-3 border-b border-[var(--inscript-color-border)]">
                     <span className="font-semibold text-sm text-[var(--inscript-color-text)]">{t('documentOutline', 'Outline')}</span>
                     {canCollapse && (
-                        <button
+                        <button type="button"
                             onClick={handleToggleCollapse}
                             className="p-1 rounded text-[var(--inscript-color-muted)] hover:bg-[var(--inscript-color-hover)]"
                             title={t('collapseOutline', 'Collapse outline')}
@@ -121,9 +132,9 @@ export const DocumentOutline = ({ editor, width, className = '', chrome = true, 
                     </div>
                 ) : (
                     headings.map((h, i) => (
-                        <button
-                            key={`${h.pos}-${i}`}
-                            onClick={() => handleClick(h.pos)}
+                        <button type="button"
+                            key={i}
+                            onClick={() => handleClick(i)}
                             className="text-left text-sm py-1 px-2 rounded hover:bg-[var(--inscript-color-hover)] text-[var(--inscript-color-text)] transition-colors truncate"
                             style={{ paddingLeft: `${(h.level - 1) * 0.75 + 0.5}rem` }}
                             title={h.text}

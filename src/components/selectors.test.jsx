@@ -192,5 +192,53 @@ describe('selector popovers', () => {
             fireEvent.click(screen.getByTitle('Remove Link'));
             expect(editor.isActive('link')).toBe(false);
         });
+
+        it('applies on Enter in the address field', () => {
+            render(<LinkSelector editor={editor} />);
+            fireEvent.click(screen.getByTitle('Insert Link'));
+            const input = screen.getByPlaceholderText('Enter URL...');
+            fireEvent.change(input, { target: { value: 'https://example.com/enter' } });
+            fireEvent.keyDown(input, { key: 'Enter' });
+            expect(editor.getAttributes('link').href).toBe('https://example.com/enter');
+            expect(screen.queryByPlaceholderText('Enter URL...')).toBeNull();
+        });
+
+        it('stores the address without surrounding spaces', () => {
+            render(<LinkSelector editor={editor} />);
+            fireEvent.click(screen.getByTitle('Insert Link'));
+            fireEvent.change(screen.getByPlaceholderText('Enter URL...'), { target: { value: '  https://example.com/x  ' } });
+            fireEvent.click(screen.getByText('Apply'));
+            expect(editor.getAttributes('link').href).toBe('https://example.com/x');
+        });
+
+        it('removes the link when the address is only whitespace', () => {
+            editor.commands.setLink({ href: 'https://example.com' });
+            render(<LinkSelector editor={editor} />);
+            fireEvent.click(screen.getByTitle('Insert Link'));
+            fireEvent.change(screen.getByPlaceholderText('Enter URL...'), { target: { value: '   ' } });
+            fireEvent.click(screen.getByText('Apply'));
+            expect(editor.isActive('link')).toBe(false);
+        });
+
+        it('keeps the popover open and says so when the address is refused', () => {
+            render(<LinkSelector editor={editor} />);
+            fireEvent.click(screen.getByTitle('Insert Link'));
+            const input = screen.getByPlaceholderText('Enter URL...');
+            fireEvent.change(input, { target: { value: 'javascript:alert(1)' } });
+            fireEvent.click(screen.getByText('Apply'));
+            expect(editor.isActive('link')).toBe(false);
+            expect(screen.getByRole('alert').textContent).toBe('This address cannot be used as a link.');
+            expect(input.getAttribute('aria-invalid')).toBe('true');
+            // Editing the address clears the message.
+            fireEvent.change(input, { target: { value: 'https://example.com' } });
+            expect(screen.queryByRole('alert')).toBeNull();
+        });
+
+        it('renders no <form> and no submit button (it may sit inside a host form)', () => {
+            const { container } = render(<LinkSelector editor={editor} />);
+            fireEvent.click(screen.getByTitle('Insert Link'));
+            expect(container.querySelector('form')).toBeNull();
+            expect([...container.querySelectorAll('button')].filter(b => b.type === 'submit')).toEqual([]);
+        });
     });
 });

@@ -22,8 +22,9 @@ import { TEXT_COLOR_PRESETS } from '../constants.js';
 import { FontSizeSelector } from './FontSizeSelector.jsx';
 import { LinkSelector } from './LinkSelector.jsx';
 import { useInscriptEditorTranslations } from '../hooks/useInscriptEditorTranslations.js';
-import { DIVIDER } from '../toolbar/toolRegistry.js';
+import { DIVIDER, sanitizeToolConfig } from '../toolbar/toolRegistry.js';
 import { TOOLBAR_PRESETS } from '../toolbar/presets.js';
+import { isActiveCached } from '../utils/editorView.js';
 
 // Width of a ToolbarDropdown (primary btn + divider + chevron)
 const DROPDOWN_WIDTH = TOOLBAR_SIZES.BUTTON + 14 + 1;
@@ -33,31 +34,35 @@ const DROPDOWN_WIDTH = TOOLBAR_SIZES.BUTTON + 14 + 1;
  * This needs the editor instance + callbacks, so it's a function not a constant.
  */
 function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t }) {
+    // In a code block marks and inline nodes cannot apply: those tools are off there (a mark set
+    // for typing would otherwise light up its button without ever applying).
+    const inCode = !!editor.state.selection.$from.parent.type.spec.code;
+    const mark = (name) => ({ active: !inCode && isActiveCached(editor, name), disabled: inCode });
     return {
         undo: { id: 'undo', icon: Undo, action: onHistoryUndo, disabled: !canUndo, title: t('undo', 'Undo') },
         redo: { id: 'redo', icon: Redo, action: onHistoryRedo, disabled: !canRedo, title: t('redo', 'Redo') },
 
         // Structure
-        h1: { id: 'h1', icon: Heading1, action: () => editor.chain().focus().toggleHeading({ level: 1 }).run(), active: editor.isActive('heading', { level: 1 }), title: t('heading1', 'Heading 1') },
-        h2: { id: 'h2', icon: Heading2, action: () => editor.chain().focus().toggleHeading({ level: 2 }).run(), active: editor.isActive('heading', { level: 2 }), title: t('heading2', 'Heading 2') },
-        h3: { id: 'h3', icon: Heading3, action: () => editor.chain().focus().toggleHeading({ level: 3 }).run(), active: editor.isActive('heading', { level: 3 }), title: t('heading3', 'Heading 3') },
+        h1: { id: 'h1', icon: Heading1, action: () => editor.chain().focus().toggleHeading({ level: 1 }).run(), active: isActiveCached(editor, 'heading', { level: 1 }), title: t('heading1', 'Heading 1') },
+        h2: { id: 'h2', icon: Heading2, action: () => editor.chain().focus().toggleHeading({ level: 2 }).run(), active: isActiveCached(editor, 'heading', { level: 2 }), title: t('heading2', 'Heading 2') },
+        h3: { id: 'h3', icon: Heading3, action: () => editor.chain().focus().toggleHeading({ level: 3 }).run(), active: isActiveCached(editor, 'heading', { level: 3 }), title: t('heading3', 'Heading 3') },
 
         // Inline formatting
-        bold:        { id: 'bold',        icon: Bold,             action: () => editor.chain().focus().toggleBold().run(),         active: editor.isActive('bold'),         title: t('bold', 'Bold') },
-        italic:      { id: 'italic',      icon: Italic,           action: () => editor.chain().focus().toggleItalic().run(),       active: editor.isActive('italic'),       title: t('italic', 'Italic') },
-        underline:   { id: 'underline',   icon: UnderlineIcon,    action: () => editor.chain().focus().toggleUnderline().run(),    active: editor.isActive('underline'),    title: t('underline', 'Underline') },
-        strike:      { id: 'strike',      icon: Strikethrough,    action: () => editor.chain().focus().toggleStrike().run(),       active: editor.isActive('strike'),       title: t('strike', 'Strikethrough') },
-        inlineCode:  { id: 'inlineCode',  icon: Code,             action: () => editor.chain().focus().toggleCode().run(),         active: editor.isActive('code'),         title: t('inlineCode', 'Inline Code') },
-        sub:         { id: 'sub',         icon: SubscriptIcon,    action: () => editor.chain().focus().toggleSubscript().run(),    active: editor.isActive('subscript'),    title: t('subscript', 'Subscript') },
-        sup:         { id: 'sup',         icon: SuperscriptIcon,  action: () => editor.chain().focus().toggleSuperscript().run(),  active: editor.isActive('superscript'),  title: t('superscript', 'Superscript') },
+        bold:        { id: 'bold',        icon: Bold,             action: () => editor.chain().focus().toggleBold().run(),         ...mark('bold'),         title: t('bold', 'Bold') },
+        italic:      { id: 'italic',      icon: Italic,           action: () => editor.chain().focus().toggleItalic().run(),       ...mark('italic'),       title: t('italic', 'Italic') },
+        underline:   { id: 'underline',   icon: UnderlineIcon,    action: () => editor.chain().focus().toggleUnderline().run(),    ...mark('underline'),    title: t('underline', 'Underline') },
+        strike:      { id: 'strike',      icon: Strikethrough,    action: () => editor.chain().focus().toggleStrike().run(),       ...mark('strike'),       title: t('strike', 'Strikethrough') },
+        inlineCode:  { id: 'inlineCode',  icon: Code,             action: () => editor.chain().focus().toggleCode().run(),         ...mark('code'),         title: t('inlineCode', 'Inline Code') },
+        sub:         { id: 'sub',         icon: SubscriptIcon,    action: () => editor.chain().focus().toggleSubscript().run(),    ...mark('subscript'),    title: t('subscript', 'Subscript') },
+        sup:         { id: 'sup',         icon: SuperscriptIcon,  action: () => editor.chain().focus().toggleSuperscript().run(),  ...mark('superscript'),  title: t('superscript', 'Superscript') },
         abbreviation:{ id: 'abbreviation',icon: TextSelect,       action: () => {
             // An abbreviation needs its expansion (the <abbr title>). A host can own the
             // input via onAddAbbreviation; otherwise fall back to a native prompt.
             if (onAddAbbreviation) return onAddAbbreviation();
-            if (editor.isActive('abbreviation')) { editor.chain().focus().unsetAbbreviation().run(); return; }
+            if (isActiveCached(editor, 'abbreviation')) { editor.chain().focus().unsetAbbreviation().run(); return; }
             const title = window.prompt(t('abbreviationPrompt', 'Enter the full form (e.g. HyperText Markup Language):'));
             if (title) editor.chain().focus().setAbbreviation(title).run();
-        }, active: editor.isActive('abbreviation'), title: t('abbreviation', 'Abbreviation') },
+        }, active: isActiveCached(editor, 'abbreviation'), title: t('abbreviation', 'Abbreviation') },
         clearFormat: { id: 'clearFormat', icon: RemoveFormatting, action: () => editor.chain().focus().unsetAllMarks().clearNodes().run(), title: t('clearFormat', 'Clear Formatting') },
 
         // Styling — these are custom-rendered, so we mark them
@@ -105,12 +110,15 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
                 const target = window.prompt(t('wikilinkPrompt', 'Enter wiki page name:'));
                 if (target) editor.chain().focus().insertWikilink({ target, alias: target }).run();
             },
+            // Without the extension (and no host handler) there is nothing to insert.
+            disabled: inCode || (!onAddWikilink && typeof editor.commands.insertWikilink !== 'function'),
             title: t('insertWikilink', 'Wikilink')
         },
-        footnote: { id: 'footnote', icon: MessageSquareQuote, action: () => editor.chain().focus().insertFootnote().run(), title: t('footnote', 'Footnote') },
+        footnote: { id: 'footnote', icon: MessageSquareQuote, action: () => editor.chain().focus().insertFootnote().run(), disabled: inCode, title: t('footnote', 'Footnote') },
         citation: {
             id: 'citation',
             icon: BookOpen,
+            disabled: inCode,
             action: () => {
                 // A host can own citation entry via onAddCitation (its own modal + a
                 // .insertCitation() call); otherwise fall back to native prompts.
@@ -126,66 +134,67 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
         },
 
         // Lists
-        bullet:     { id: 'bullet',     icon: List,          action: () => editor.chain().focus().toggleBulletList().run(),      active: editor.isActive('bulletList'),    title: t('bulletList', 'Bullet List') },
-        ordered:    { id: 'ordered',    icon: ListOrdered,   action: () => editor.chain().focus().toggleOrderedList().run(),     active: editor.isActive('orderedList'),   title: t('orderedList', 'Numbered List') },
-        task:       { id: 'task',       icon: SquareCheck,   action: () => editor.chain().focus().toggleTaskList().run(),        active: editor.isActive('taskList'),      title: t('taskList', 'Task List') },
-        definition: { id: 'definition', icon: BookType,      action: () => editor.chain().focus().toggleDefinitionList().run(),  active: editor.isActive('definitionList'),title: t('definitionList', 'Definition List') },
+        bullet:     { id: 'bullet',     icon: List,          action: () => editor.chain().focus().toggleBulletList().run(),      active: isActiveCached(editor, 'bulletList'),    title: t('bulletList', 'Bullet List') },
+        ordered:    { id: 'ordered',    icon: ListOrdered,   action: () => editor.chain().focus().toggleOrderedList().run(),     active: isActiveCached(editor, 'orderedList'),   title: t('orderedList', 'Numbered List') },
+        task:       { id: 'task',       icon: SquareCheck,   action: () => editor.chain().focus().toggleTaskList().run(),        active: isActiveCached(editor, 'taskList'),      title: t('taskList', 'Task List') },
+        definition: { id: 'definition', icon: BookType,      action: () => editor.chain().focus().toggleDefinitionList().run(),  active: isActiveCached(editor, 'definitionList'),title: t('definitionList', 'Definition List') },
 
         // Alignment dropdown
         align: {
             id: 'align', type: 'dropdown',
             width: DROPDOWN_WIDTH,
-            activeId: editor.isActive({ textAlign: 'center' }) ? 'center'
-                : editor.isActive({ textAlign: 'right' }) ? 'right'
-                    : editor.isActive({ textAlign: 'justify' }) ? 'justify'
+            activeId: isActiveCached(editor, { textAlign: 'center' }) ? 'center'
+                : isActiveCached(editor, { textAlign: 'right' }) ? 'right'
+                    : isActiveCached(editor, { textAlign: 'justify' }) ? 'justify'
                         : 'left',
             title: t('textAlign', 'Text Alignment'),
             items: [
-                { id: 'left',    icon: AlignLeft,    label: t('alignLeft', 'Align Left'),     action: () => editor.chain().focus().setTextAlign('left').run(),    active: editor.isActive({ textAlign: 'left' }) },
-                { id: 'center',  icon: AlignCenter,  label: t('alignCenter', 'Align Center'), action: () => editor.chain().focus().setTextAlign('center').run(),  active: editor.isActive({ textAlign: 'center' }) },
-                { id: 'right',   icon: AlignRight,   label: t('alignRight', 'Align Right'),   action: () => editor.chain().focus().setTextAlign('right').run(),   active: editor.isActive({ textAlign: 'right' }) },
-                { id: 'justify', icon: AlignJustify, label: t('alignJustify', 'Justify'),     action: () => editor.chain().focus().setTextAlign('justify').run(), active: editor.isActive({ textAlign: 'justify' }) },
+                { id: 'left',    icon: AlignLeft,    label: t('alignLeft', 'Align Left'),     action: () => editor.chain().focus().setTextAlign('left').run(),    active: isActiveCached(editor, { textAlign: 'left' }) },
+                { id: 'center',  icon: AlignCenter,  label: t('alignCenter', 'Align Center'), action: () => editor.chain().focus().setTextAlign('center').run(),  active: isActiveCached(editor, { textAlign: 'center' }) },
+                { id: 'right',   icon: AlignRight,   label: t('alignRight', 'Align Right'),   action: () => editor.chain().focus().setTextAlign('right').run(),   active: isActiveCached(editor, { textAlign: 'right' }) },
+                { id: 'justify', icon: AlignJustify, label: t('alignJustify', 'Justify'),     action: () => editor.chain().focus().setTextAlign('justify').run(), active: isActiveCached(editor, { textAlign: 'justify' }) },
             ]
         },
 
         // Blocks
-        code:  { id: 'code',  icon: SquareCode, action: () => editor.chain().focus().toggleCodeBlock().run(),  active: editor.isActive('codeBlock'),  title: t('codeBlock', 'Code Block') },
-        quote: { id: 'quote', icon: Quote,      action: () => editor.chain().focus().toggleBlockquote().run(), active: editor.isActive('blockquote'), title: t('quote', 'Quote') },
-        hr:    { id: 'hr',    icon: Minus,      action: () => editor.chain().focus().setHorizontalRule().run(), title: t('horizontalRule', 'Divider') },
+        code:  { id: 'code',  icon: SquareCode, action: () => editor.chain().focus().toggleCodeBlock().run(),  active: isActiveCached(editor, 'codeBlock'),  title: t('codeBlock', 'Code Block') },
+        quote: { id: 'quote', icon: Quote,      action: () => editor.chain().focus().toggleBlockquote().run(), active: isActiveCached(editor, 'blockquote'), title: t('quote', 'Quote') },
+        hr:    { id: 'hr',    icon: Minus,      action: () => editor.chain().focus().insertDivider().run(), title: t('horizontalRule', 'Divider') },
 
         // Admonitions dropdown
         admonitions: {
             id: 'admonitions', type: 'dropdown',
             width: DROPDOWN_WIDTH,
-            activeId: editor.isActive('admonition', { type: 'tip' }) ? 'admonitionTip'
-                : editor.isActive('admonition', { type: 'important' }) ? 'admonitionImportant'
-                    : editor.isActive('admonition', { type: 'warning' }) ? 'admonitionWarning'
-                        : editor.isActive('admonition', { type: 'caution' }) ? 'admonitionCaution'
-                            : editor.isActive('admonition') ? 'admonitionNote'
+            activeId: isActiveCached(editor, 'admonition', { admonitionType: 'tip' }) ? 'admonitionTip'
+                : isActiveCached(editor, 'admonition', { admonitionType: 'important' }) ? 'admonitionImportant'
+                    : isActiveCached(editor, 'admonition', { admonitionType: 'warning' }) ? 'admonitionWarning'
+                        : isActiveCached(editor, 'admonition', { admonitionType: 'caution' }) ? 'admonitionCaution'
+                            : isActiveCached(editor, 'admonition') ? 'admonitionNote'
                                 : null,
             title: t('admonitions', 'Admonitions'),
             items: [
-                { id: 'admonitionNote',      icon: Info,          label: t('admonitionNote', 'Note'),           action: () => editor.chain().focus().setAdmonition('note').run(),      active: editor.isActive('admonition', { type: 'note' }) },
-                { id: 'admonitionTip',       icon: Lightbulb,     label: t('admonitionTip', 'Tip'),             action: () => editor.chain().focus().setAdmonition('tip').run(),       active: editor.isActive('admonition', { type: 'tip' }) },
-                { id: 'admonitionImportant', icon: CircleAlert,   label: t('admonitionImportant', 'Important'), action: () => editor.chain().focus().setAdmonition('important').run(), active: editor.isActive('admonition', { type: 'important' }) },
-                { id: 'admonitionWarning',   icon: TriangleAlert, label: t('admonitionWarning', 'Warning'),     action: () => editor.chain().focus().setAdmonition('warning').run(),   active: editor.isActive('admonition', { type: 'warning' }) },
-                { id: 'admonitionCaution',   icon: OctagonAlert,  label: t('admonitionCaution', 'Caution'),     action: () => editor.chain().focus().setAdmonition('caution').run(),   active: editor.isActive('admonition', { type: 'caution' }) },
+                { id: 'admonitionNote',      icon: Info,          label: t('admonitionTypeNote', 'Note'),           action: () => editor.chain().focus().setAdmonition('note').run(),      active: isActiveCached(editor, 'admonition', { admonitionType: 'note' }) },
+                { id: 'admonitionTip',       icon: Lightbulb,     label: t('admonitionTypeTip', 'Tip'),             action: () => editor.chain().focus().setAdmonition('tip').run(),       active: isActiveCached(editor, 'admonition', { admonitionType: 'tip' }) },
+                { id: 'admonitionImportant', icon: CircleAlert,   label: t('admonitionTypeImportant', 'Important'), action: () => editor.chain().focus().setAdmonition('important').run(), active: isActiveCached(editor, 'admonition', { admonitionType: 'important' }) },
+                { id: 'admonitionWarning',   icon: TriangleAlert, label: t('admonitionTypeWarning', 'Warning'),     action: () => editor.chain().focus().setAdmonition('warning').run(),   active: isActiveCached(editor, 'admonition', { admonitionType: 'warning' }) },
+                { id: 'admonitionCaution',   icon: OctagonAlert,  label: t('admonitionTypeCaution', 'Caution'),     action: () => editor.chain().focus().setAdmonition('caution').run(),   active: isActiveCached(editor, 'admonition', { admonitionType: 'caution' }) },
             ]
         },
 
         // Advanced blocks
-        math:    { id: 'math',    icon: Sigma,    action: () => editor.chain().focus().insertContent({ type: 'mathBlock' }).run(), active: editor.isActive('mathBlock'), title: t('slash.math', 'Math Block') },
-        mermaid: { id: 'mermaid', icon: Workflow, action: () => editor.chain().focus().insertContent({ type: 'mermaid' }).run(),   active: editor.isActive('mermaid'),   title: t('slash.mermaid', 'Mermaid Diagram') },
+        math:    { id: 'math',    icon: Sigma,    action: () => editor.chain().focus().insertContent({ type: 'mathBlock' }).run(), active: isActiveCached(editor, 'mathBlock'), title: t('slash.math', 'Math Block') },
+        mermaid: { id: 'mermaid', icon: Workflow, action: () => editor.chain().focus().insertContent({ type: 'mermaid' }).run(),   active: isActiveCached(editor, 'mermaid'),   title: t('slash.mermaid', 'Mermaid Diagram') },
 
         // Media & metadata
-        image: { id: 'image', icon: ImageIcon,  action: onShowMediaLibrary, title: t('insertImage', 'Insert Image') },
-        youtube: { id: 'youtube', icon: YoutubeIcon, action: onAddYoutube, title: t('embedYoutube', 'Embed YouTube Video') },
+        // These open the host's own picker: without one there is nothing to do, so they are off.
+        image: { id: 'image', icon: ImageIcon,  action: onShowMediaLibrary, disabled: typeof onShowMediaLibrary !== 'function', title: t('insertImage', 'Insert Image') },
+        youtube: { id: 'youtube', icon: YoutubeIcon, action: onAddYoutube, disabled: typeof onAddYoutube !== 'function', title: t('embedYoutube', 'Embed YouTube Video') },
         table: { id: 'table', icon: TableIcon, action: () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), title: t('insertTable', 'Insert Table') },
         tags: {
             id: 'tags', type: 'custom',
             width: TOOLBAR_SIZES.CUSTOM,
             render: () => (
-                <ToolbarButton onClick={onShowMetadataModal} active={showMetadataActive} title={t('manageMetadata', 'Manage Tags & Categories')} width={TOOLBAR_SIZES.CUSTOM}>
+                <ToolbarButton onClick={onShowMetadataModal} active={showMetadataActive} disabled={typeof onShowMetadataModal !== 'function'} title={t('manageMetadata', 'Manage Tags & Categories')} width={TOOLBAR_SIZES.CUSTOM}>
                     <div className="relative flex items-center justify-center">
                         <Tag size={18} />
                         {hasMetadata && <span className="absolute -top-1 -right-1 w-2 h-2 bg-[var(--inscript-color-accent)] rounded-full" />}
@@ -226,9 +235,28 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
     const containerRef = useRef(null);
     const [visibleCount, setVisibleCount] = useState(100);
     const [showMore, setShowMore] = useState(false);
+    const moreButtonRef = useRef(null);
+    // Escape closes the overflow menu and puts focus back on its button.
+    useEffect(() => {
+        if (!showMore) return undefined;
+        const onKeyDown = (event) => {
+            if (event.key !== 'Escape') return;
+            setShowMore(false);
+            moreButtonRef.current?.focus();
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [showMore]);
     const [customizerOpen, setCustomizerOpen] = useState(false);
 
-    const activeConfig = toolbarConfig ?? TOOLBAR_PRESETS.full;
+    // A host's config is validated (unknown, misplaced and duplicate ids dropped) once per value:
+    // duplicates used to render twice, under one React key.
+    const toolbarConfigKey = toolbarConfig ? JSON.stringify(toolbarConfig) : '';
+    const activeConfig = useMemo(
+        () => (toolbarConfig ? sanitizeToolConfig(toolbarConfig, 'toolbar') : TOOLBAR_PRESETS.full),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [toolbarConfigKey],
+    );
 
     // The tools read the editor (active marks, colours, what can be undone), so they are rebuilt
     // on every transaction, not only when a prop changes.
@@ -280,10 +308,13 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
     // Recompute whenever the TOOL SET changes (e.g. switching presets), not only on resize.
     // A preset swap changes the number of tools with no resize event, so without this the
     // count stays stale — leaving a phantom ">>" with empty space beside it.
+    // Keyed by the tools' widths, not the list itself: the list is rebuilt on every transaction
+    // (active states change), and measuring the container then forced a layout per keystroke.
+    toolsRef.current = tools;
+    const toolWidthsKey = tools.map(tool => (tool.type === 'divider' ? 'd' : (tool.width || TOOLBAR_SIZES.BUTTON))).join(',');
     useEffect(() => {
-        toolsRef.current = tools;
         recomputeVisible();
-    }, [tools, recomputeVisible]);
+    }, [toolWidthsKey, recomputeVisible]);
 
     // Recompute on container/window resize. Depends on `editor` so the ResizeObserver
     // attaches once the toolbar container actually mounts (editor can be null on first render).
@@ -329,8 +360,12 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                 <div className="ml-auto flex items-center gap-1 shrink-0">
                     {overflowTools.length > 0 && (
                         <div className="relative">
-                            <button
+                            <button type="button"
+                                ref={moreButtonRef}
                                 onClick={() => setShowMore(!showMore)}
+                                aria-haspopup="true"
+                                aria-expanded={showMore}
+                                aria-label={t('moreTools', 'More tools')}
                                 style={{ width: `${TOOLBAR_SIZES.BUTTON}px`, height: `${TOOLBAR_SIZES.BUTTON}px` }}
                                 className={`flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)] transition-colors shrink-0 ${showMore ? 'bg-[var(--inscript-color-active)] text-[var(--inscript-color-text)]' : ''}`}
                                 title={t('moreTools', 'More tools')}
@@ -340,7 +375,7 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                             {showMore && (
                                 <>
                                     <div className="fixed inset-0 z-40" onClick={() => setShowMore(false)} />
-                                    <div className="absolute right-0 top-full mt-2 bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl p-2 z-[60] flex flex-col gap-1 min-w-[150px]">
+                                    <div role="group" aria-label={t('moreTools', 'More tools')} className="absolute right-0 top-full mt-2 bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl p-2 z-[60] flex flex-col gap-1 min-w-[150px] max-h-[min(70vh,24rem)] overflow-y-auto custom-scrollbar">
                                         <div className="flex flex-wrap gap-1 max-w-[200px]">
                                             {overflowTools.map((tool, i) => renderTool(tool, i))}
                                         </div>
@@ -352,7 +387,7 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
 
                     {/* Settings gear — only rendered when consumer opts in via onToolbarConfigChange */}
                     {onToolbarConfigChange && (
-                        <button
+                        <button type="button"
                             onClick={() => setCustomizerOpen(true)}
                             style={{ width: `${TOOLBAR_SIZES.BUTTON}px`, height: `${TOOLBAR_SIZES.BUTTON}px` }}
                             className={`flex items-center justify-center rounded transition-colors shrink-0 ${

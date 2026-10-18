@@ -84,6 +84,34 @@ function inlineRuns(node) {
     return runs;
 }
 
+/**
+ * How long editing must pause before the map measures the document again, in ms. Measuring reads
+ * every block's box (a forced layout); at a shorter delay it ran between keystrokes while typing.
+ */
+const REMEASURE_DELAY_MS = 300;
+
+/** What a block's drawing depends on (its position in the document aside: positions move on every keystroke). */
+const sameRuns = (a = [], b = []) => a.length === b.length
+    && a.every((run, i) => run.start === b[i].start && run.len === b[i].len && run.kind === b[i].kind);
+const sameDrawing = (a, b) => a.type === b.type && a.lines === b.lines && a.textLen === b.textLen
+    && a.src === b.src && a.itemCount === b.itemCount && sameRuns(a.runs, b.runs);
+
+/**
+ * One block's box. Redrawn only when its place, size or drawing changes: a refresh after typing
+ * used to rebuild every block's box (tens of thousands of elements in a long document).
+ */
+const MiniMapBlock = React.memo(
+    function MiniMapBlock({ b, x, y, w, h, label }) {
+        return (
+            <div title={label} style={{ position: 'absolute', left: x, top: y, width: w, height: h }} className="opacity-90">
+                {blockBody(b, w, h)}
+            </div>
+        );
+    },
+    (prev, next) => prev.x === next.x && prev.y === next.y && prev.w === next.w && prev.h === next.h
+        && prev.label === next.label && sameDrawing(prev.b, next.b),
+);
+
 // Measure top-level blocks against the real ProseMirror DOM. Direct children of
 // .ProseMirror map 1:1 (in order) to top-level doc nodes.
 function measureBlocks(editor) {
@@ -371,7 +399,7 @@ export const MiniMap = ({ editor, width, className = '', showHeadingText = true,
         let ro = null;
         const debounced = () => {
             if (measureTimer.current) clearTimeout(measureTimer.current);
-            measureTimer.current = setTimeout(measure, 120);
+            measureTimer.current = setTimeout(measure, REMEASURE_DELAY_MS);
         };
         const observe = () => {
             if (ro) ro.disconnect();
@@ -541,7 +569,7 @@ export const MiniMap = ({ editor, width, className = '', showHeadingText = true,
     if (isCollapsed) {
         return (
             <div className={`flex flex-col border-l ${BORDER_CLS} ${BG_CLS} w-12 shrink-0 transition-all select-none ${className}`}>
-                <button onClick={handleToggleCollapse} className="p-3 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 flex justify-center" title={t('expandMinimap', 'Expand minimap')}>
+                <button type="button" onClick={handleToggleCollapse} className="p-3 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 flex justify-center" title={t('expandMinimap', 'Expand minimap')}>
                     <MapIcon size={18} />
                 </button>
             </div>
@@ -557,7 +585,7 @@ export const MiniMap = ({ editor, width, className = '', showHeadingText = true,
                 <div className={`flex items-center justify-between p-3 border-b ${BORDER_CLS} shrink-0`}>
                     <span className={`font-semibold text-xs ${HEADER_LABEL_CLS} uppercase tracking-wider`}>{t('minimap', 'Minimap')}</span>
                     {canCollapse && (
-                        <button onClick={handleToggleCollapse} className="p-1 rounded text-zinc-500 hover:bg-zinc-200 dark:text-zinc-400 dark:hover:bg-zinc-800" title={t('collapseMinimap', 'Collapse minimap')}>
+                        <button type="button" onClick={handleToggleCollapse} className="p-1 rounded text-zinc-500 hover:bg-zinc-200 dark:text-zinc-400 dark:hover:bg-zinc-800" title={t('collapseMinimap', 'Collapse minimap')}>
                             <ChevronRight size={16} />
                         </button>
                     )}
@@ -572,9 +600,7 @@ export const MiniMap = ({ editor, width, className = '', showHeadingText = true,
                 <div style={{ position: 'relative', height: contentHeight, width: '100%' }}>
                     {/* Blocks */}
                     {laidOut.map(({ key, b, x, y, w, h, label }) => (
-                        <div key={key} title={label} style={{ position: 'absolute', left: x, top: y, width: w, height: h }} className="opacity-90">
-                            {blockBody(b, w, h)}
-                        </div>
+                        <MiniMapBlock key={key} b={b} x={x} y={y} w={w} h={h} label={label} />
                     ))}
 
                     {/* Heading landmarks (ticks always; labels when they fit) */}

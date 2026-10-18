@@ -31,60 +31,60 @@ export const DIVIDER = '|';
  */
 export const TOOL_REGISTRY = {
     // History
-    undo:        { id: 'undo',        label: 'Undo',              icon: Undo,             group: 'history'    },
-    redo:        { id: 'redo',        label: 'Redo',              icon: Redo,             group: 'history'    },
+    undo:        { id: 'undo',        label: 'Undo', labelKey: 'undo',              icon: Undo,             group: 'history'    },
+    redo:        { id: 'redo',        label: 'Redo', labelKey: 'redo',              icon: Redo,             group: 'history'    },
 
     // Structure
-    h1:          { id: 'h1',          label: 'Heading 1',         icon: Heading1,         group: 'structure'  },
-    h2:          { id: 'h2',          label: 'Heading 2',         icon: Heading2,         group: 'structure'  },
-    h3:          { id: 'h3',          label: 'Heading 3',         icon: Heading3,         group: 'structure'  },
+    h1:          { id: 'h1',          label: 'Heading 1', labelKey: 'heading1',         icon: Heading1,         group: 'structure'  },
+    h2:          { id: 'h2',          label: 'Heading 2', labelKey: 'heading2',         icon: Heading2,         group: 'structure'  },
+    h3:          { id: 'h3',          label: 'Heading 3', labelKey: 'heading3',         icon: Heading3,         group: 'structure'  },
 
     // Inline formatting
-    bold:        { id: 'bold',        label: 'Bold',              icon: Bold,             group: 'formatting' },
-    italic:      { id: 'italic',      label: 'Italic',            icon: Italic,           group: 'formatting' },
-    underline:   { id: 'underline',   label: 'Underline',         icon: UnderlineIcon,    group: 'formatting' },
-    strike:      { id: 'strike',      label: 'Strikethrough',     icon: Strikethrough,    group: 'formatting' },
-    inlineCode:  { id: 'inlineCode',  label: 'Inline Code',       icon: Code,             group: 'formatting' },
-    sub:         { id: 'sub',         label: 'Subscript',         icon: SubscriptIcon,    group: 'formatting' },
-    sup:         { id: 'sup',         label: 'Superscript',       icon: SuperscriptIcon,  group: 'formatting' },
-    abbreviation:{ id: 'abbreviation',label: 'Abbreviation',      icon: TextSelect,       group: 'formatting' },
-    clearFormat: { id: 'clearFormat', label: 'Clear Formatting',  icon: RemoveFormatting, group: 'formatting' },
+    bold:        { id: 'bold',        label: 'Bold', labelKey: 'bold',              icon: Bold,             group: 'formatting' },
+    italic:      { id: 'italic',      label: 'Italic', labelKey: 'italic',            icon: Italic,           group: 'formatting' },
+    underline:   { id: 'underline',   label: 'Underline', labelKey: 'underline',         icon: UnderlineIcon,    group: 'formatting' },
+    strike:      { id: 'strike',      label: 'Strikethrough', labelKey: 'strike',     icon: Strikethrough,    group: 'formatting' },
+    inlineCode:  { id: 'inlineCode',  label: 'Inline Code', labelKey: 'inlineCode',       icon: Code,             group: 'formatting' },
+    sub:         { id: 'sub',         label: 'Subscript', labelKey: 'subscript',         icon: SubscriptIcon,    group: 'formatting' },
+    sup:         { id: 'sup',         label: 'Superscript', labelKey: 'superscript',       icon: SuperscriptIcon,  group: 'formatting' },
+    abbreviation:{ id: 'abbreviation',label: 'Abbreviation', labelKey: 'abbreviation',      icon: TextSelect,       group: 'formatting' },
+    clearFormat: { id: 'clearFormat', label: 'Clear Formatting', labelKey: 'clearFormat',  icon: RemoveFormatting, group: 'formatting' },
 
     // Styling
-    fontSize:    { id: 'fontSize',    label: 'Font Size',         icon: null,             group: 'styling'    },
-    highlight:   { id: 'highlight',   label: 'Highlight Color',   icon: Highlighter,      group: 'styling'    },
-    color:       { id: 'color',       label: 'Text Color',        icon: Palette,          group: 'styling'    },
+    fontSize:    { id: 'fontSize',    label: 'Font Size', labelKey: 'fontSize',         icon: null,             group: 'styling'    },
+    highlight:   { id: 'highlight',   label: 'Highlight Color', labelKey: 'highlightColor',   icon: Highlighter,      group: 'styling'    },
+    color:       { id: 'color',       label: 'Text Color', labelKey: 'textColor',        icon: Palette,          group: 'styling'    },
 
     // Links & references
-    link:        { id: 'link',        label: 'Link',              icon: Link,             group: 'links'      },
-    wikilink:    { id: 'wikilink',    label: 'Wikilink',          icon: Link2,            group: 'links'      },
-    footnote:    { id: 'footnote',    label: 'Footnote',          icon: MessageSquareQuote, group: 'links'    },
-    citation:    { id: 'citation',    label: 'Citation',          icon: BookOpen,         group: 'links'      },
+    link:        { id: 'link',        label: 'Link', labelKey: 'insertLink',              icon: Link,             group: 'links'      },
+    wikilink:    { id: 'wikilink',    label: 'Wikilink', labelKey: 'insertWikilink',          icon: Link2,            group: 'links'      },
+    footnote:    { id: 'footnote',    label: 'Footnote', labelKey: 'footnote',          icon: MessageSquareQuote, group: 'links'    },
+    citation:    { id: 'citation',    label: 'Citation', labelKey: 'citation',          icon: BookOpen,         group: 'links'      },
 
     // Lists
-    bullet:      { id: 'bullet',      label: 'Bullet List',       icon: List,             group: 'lists'      },
-    ordered:     { id: 'ordered',     label: 'Numbered List',     icon: ListOrdered,      group: 'lists'      },
-    task:        { id: 'task',        label: 'Task List',         icon: SquareCheck,      group: 'lists'      },
-    definition:  { id: 'definition',  label: 'Definition List',   icon: BookType,         group: 'lists'      },
+    bullet:      { id: 'bullet',      label: 'Bullet List', labelKey: 'bulletList',       icon: List,             group: 'lists'      },
+    ordered:     { id: 'ordered',     label: 'Numbered List', labelKey: 'orderedList',     icon: ListOrdered,      group: 'lists'      },
+    task:        { id: 'task',        label: 'Task List', labelKey: 'taskList',         icon: SquareCheck,      group: 'lists'      },
+    definition:  { id: 'definition',  label: 'Definition List', labelKey: 'definitionList',   icon: BookType,         group: 'lists'      },
 
     // Alignment (dropdown)
-    align:       { id: 'align',       label: 'Text Alignment',    icon: AlignLeft,        group: 'alignment'  },
+    align:       { id: 'align',       label: 'Text Alignment', labelKey: 'textAlign',    icon: AlignLeft,        group: 'alignment'  },
 
     // Block types
-    code:        { id: 'code',        label: 'Code Block',        icon: SquareCode,       group: 'blocks'     },
-    quote:       { id: 'quote',       label: 'Quote',             icon: Quote,            group: 'blocks'     },
-    admonitions: { id: 'admonitions', label: 'Admonitions',       icon: Info,             group: 'blocks'     },
-    hr:          { id: 'hr',          label: 'Divider',           icon: Minus,            group: 'blocks'     },
+    code:        { id: 'code',        label: 'Code Block', labelKey: 'codeBlock',        icon: SquareCode,       group: 'blocks'     },
+    quote:       { id: 'quote',       label: 'Quote', labelKey: 'quote',             icon: Quote,            group: 'blocks'     },
+    admonitions: { id: 'admonitions', label: 'Admonitions', labelKey: 'admonitions',       icon: Info,             group: 'blocks'     },
+    hr:          { id: 'hr',          label: 'Divider', labelKey: 'horizontalRule',           icon: Minus,            group: 'blocks'     },
 
     // Advanced
-    math:        { id: 'math',        label: 'Math Block',        icon: Sigma,            group: 'advanced'   },
-    mermaid:     { id: 'mermaid',     label: 'Mermaid Diagram',   icon: Workflow,         group: 'advanced'   },
+    math:        { id: 'math',        label: 'Math Block', labelKey: 'slash.math',        icon: Sigma,            group: 'advanced'   },
+    mermaid:     { id: 'mermaid',     label: 'Mermaid Diagram', labelKey: 'slash.mermaid',   icon: Workflow,         group: 'advanced'   },
 
     // Media & meta
-    image:       { id: 'image',       label: 'Image',             icon: ImageIcon,        group: 'media'      },
-    youtube:     { id: 'youtube',     label: 'YouTube',           icon: YoutubeIcon,      group: 'media'      },
-    table:       { id: 'table',       label: 'Table',             icon: TableIcon,        group: 'media'      },
-    tags:        { id: 'tags',        label: 'Tags & Categories', icon: Tag,              group: 'meta'       },
+    image:       { id: 'image',       label: 'Image', labelKey: 'insertImage',             icon: ImageIcon,        group: 'media'      },
+    youtube:     { id: 'youtube',     label: 'YouTube', labelKey: 'embedYoutube',           icon: YoutubeIcon,      group: 'media'      },
+    table:       { id: 'table',       label: 'Table', labelKey: 'insertTable',             icon: TableIcon,        group: 'media'      },
+    tags:        { id: 'tags',        label: 'Tags & Categories', labelKey: 'manageMetadata', icon: Tag,              group: 'meta'       },
 };
 
 /** Ordered list of all tool IDs (excludes dividers) */

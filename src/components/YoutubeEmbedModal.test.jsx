@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { YoutubeEmbedModal } from './YoutubeEmbedModal.jsx';
+import { YoutubeEmbedModal, formatDuration } from './YoutubeEmbedModal.jsx';
 
 const VALID_ID = 'dQw4w9WgXcQ';
 
@@ -173,7 +173,7 @@ describe('YoutubeEmbedModal', () => {
 
         await user.click(screen.getByRole('button', { name: 'Search YouTube (Experimental)' }));
         await user.type(screen.getByPlaceholderText('Search for videos...'), 'rick astley');
-        fireEvent.submit(screen.getByPlaceholderText('Search for videos...').closest('form'));
+        fireEvent.keyDown(screen.getByPlaceholderText('Search for videos...'), { key: 'Enter' });
 
         await waitFor(() => expect(screen.getByText('A video')).toBeInTheDocument());
         await user.click(screen.getByText('A video'));
@@ -187,11 +187,21 @@ describe('YoutubeEmbedModal', () => {
 
         await user.click(screen.getByRole('button', { name: 'Search YouTube (Experimental)' }));
         await user.type(screen.getByPlaceholderText('Search for videos...'), 'rick astley');
-        fireEvent.submit(screen.getByPlaceholderText('Search for videos...').closest('form'));
+        fireEvent.keyDown(screen.getByPlaceholderText('Search for videos...'), { key: 'Enter' });
 
         await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
         expect(screen.getByRole('alert')).toHaveTextContent('Search Failed');
         expect(consoleErrorSpy).not.toHaveBeenCalledWith(expect.stringContaining('YouTube Search Failed'), expect.anything());
+    });
+
+    it('search flow: the search button runs the search too', async () => {
+        const onSearch = vi.fn().mockResolvedValue([]);
+        render(<YoutubeEmbedModal isOpen onClose={() => {}} onConfirm={() => {}} onSearch={onSearch} />);
+
+        await user.click(screen.getByRole('button', { name: 'Search YouTube (Experimental)' }));
+        await user.type(screen.getByPlaceholderText('Search for videos...'), 'fjords');
+        await user.click(screen.getByRole('button', { name: 'Search videos' }));
+        expect(onSearch).toHaveBeenCalledWith('fjords');
     });
 
     it('resets state when closed and reopened', async () => {
@@ -211,5 +221,11 @@ describe('YoutubeEmbedModal', () => {
         render(<YoutubeEmbedModal isOpen onClose={onClose} onConfirm={() => {}} />);
         await user.click(screen.getByRole('button', { name: 'Cancel' }));
         expect(onClose).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('formatDuration', () => {
+    it.each([[61, '1:01'], [61.5, '1:02'], [5, '0:05'], [3725, '1:02:05'], [0, ''], [NaN, ''], [undefined, ''], [-3, '']])('%j seconds -> %j', (seconds, text) => {
+        expect(formatDuration(seconds)).toBe(text);
     });
 });

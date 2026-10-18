@@ -25,8 +25,10 @@ export const HostBridge = Extension.create({
 
     // The external-link opener <InscriptEditor> was given as its `onOpenExternal` prop, published
     // here (setExternalOpener) so a node view, which has no props, opens links the same way.
+    // Likewise its insert-handler props (onShowMediaLibrary, onAddYoutube, ...), which win over the
+    // editorOptions ones everywhere: the toolbar, the selection menu and the slash menu.
     addStorage() {
-        return { openExternal: null };
+        return { openExternal: null, handlerProps: {} };
     },
 });
 
@@ -37,7 +39,31 @@ export const HostBridge = Extension.create({
  */
 export function getHostHandlers(editor) {
     const ext = editor?.extensionManager?.extensions?.find((e) => e.name === 'hostBridge');
-    return ext?.options?.handlersRef?.current ?? {};
+    const fromOptions = ext?.options?.handlersRef?.current ?? {};
+    const fromProps = editor?.storage?.hostBridge?.handlerProps ?? {};
+    const merged = { ...fromOptions };
+    for (const [name, value] of Object.entries(fromProps)) {
+        if (typeof value === 'function') merged[name] = value;
+    }
+    return merged;
+}
+
+/** The insert handlers a host can give: <InscriptEditor> props and editorOptions alike. */
+export const HOST_HANDLER_NAMES = Object.freeze(['onAddCitation', 'onAddYoutube', 'onShowMediaLibrary', 'onAddWikilink', 'onAddAbbreviation']);
+
+/**
+ * Publish <InscriptEditor>'s insert-handler props on the editor (an empty object clears them).
+ * @param {import('@tiptap/core').Editor | null | undefined} editor
+ * @param {Record<string, unknown>} handlers
+ */
+export function setHostHandlerProps(editor, handlers) {
+    const storage = editor?.storage?.hostBridge;
+    if (!storage) return;
+    const props = {};
+    for (const name of HOST_HANDLER_NAMES) {
+        if (typeof handlers?.[name] === 'function') props[name] = handlers[name];
+    }
+    storage.handlerProps = props;
 }
 
 /**

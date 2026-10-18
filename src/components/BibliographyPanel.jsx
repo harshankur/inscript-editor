@@ -8,6 +8,8 @@ export const BibliographyPanel = ({ editor }) => {
     const [editingKey, setEditingKey] = useState(null);
     const [editLabel, setEditLabel] = useState('');
     const [editTitle, setEditTitle] = useState('');
+    // Whether the document may be edited: a read-only editor shows its citations, nothing more.
+    const [editable, setEditable] = useState(() => editor?.isEditable !== false);
 
     // Extract unique citation entries from editor doc
     const extractCitations = () => {
@@ -34,11 +36,16 @@ export const BibliographyPanel = ({ editor }) => {
         // Any doc change, not only 'update': TipTap skips 'update' for content set with
         // emitUpdate: false (a quiet load, a version restore), and those change the citations too.
         const onTransaction = ({ transaction }) => { if (transaction.docChanged) extractCitations(); };
+        // TipTap reports a change of editability (setEditable) as an update without a transaction.
+        const onUpdate = () => setEditable(editor.isEditable);
         editor.on('transaction', onTransaction);
+        editor.on('update', onUpdate);
         extractCitations();
+        setEditable(editor.isEditable);
 
         return () => {
             editor.off('transaction', onTransaction);
+            editor.off('update', onUpdate);
         };
     }, [editor]);
 
@@ -61,7 +68,7 @@ export const BibliographyPanel = ({ editor }) => {
 
     // Save changes and update all nodes with this key
     const saveEditing = (key) => {
-        if (!editor) return;
+        if (!editor || !editor.isEditable) { setEditingKey(null); return; }
         const { state, view } = editor;
         let tr = state.tr;
         let changed = false;
@@ -118,24 +125,26 @@ export const BibliographyPanel = ({ editor }) => {
                                                 @{cite.key}
                                             </span>
                                             <div className="flex-1" />
-                                            <button
+                                            <button type="button"
                                                 onClick={() => saveEditing(cite.key)}
                                                 className="p-1 rounded hover:bg-[var(--inscript-color-hover)] text-[var(--inscript-color-accent)]"
-                                                title="Save"
+                                                title={t('save', 'Save')}
+                                                aria-label={t('save', 'Save')}
                                             >
                                                 <Check size={14} />
                                             </button>
-                                            <button
+                                            <button type="button"
                                                 onClick={cancelEditing}
                                                 className="p-1 rounded hover:bg-[var(--inscript-color-hover)] text-red-500"
-                                                title="Cancel"
+                                                title={t('cancel', 'Cancel')}
+                                                aria-label={t('cancel', 'Cancel')}
                                             >
                                                 <X size={14} />
                                             </button>
                                         </div>
                                         <div>
                                             <label className="text-[10px] text-[var(--inscript-color-muted)] font-bold uppercase tracking-wider block mb-1">
-                                                Inline Label
+                                                {t('citationInlineLabel', 'Inline Label')}
                                                 <input
                                                     type="text"
                                                     value={editLabel}
@@ -146,7 +155,7 @@ export const BibliographyPanel = ({ editor }) => {
                                         </div>
                                         <div>
                                             <label className="text-[10px] text-[var(--inscript-color-muted)] font-bold uppercase tracking-wider block mb-1">
-                                                Full Citation Entry
+                                                {t('citationFullEntry', 'Full Citation Entry')}
                                                 <textarea
                                                     value={editTitle}
                                                     onChange={(e) => setEditTitle(e.target.value)}
@@ -159,24 +168,27 @@ export const BibliographyPanel = ({ editor }) => {
                                 ) : (
                                     <>
                                         <div className="flex items-center gap-2">
-                                            <button
+                                            <button type="button"
                                                 onClick={() => handleNavigate(cite.positions[0])}
                                                 className="text-xs font-mono bg-[var(--inscript-color-surface-raised)] hover:bg-[var(--inscript-color-hover)] text-[var(--inscript-color-muted)] px-1.5 py-0.5 rounded cursor-pointer shrink-0 transition-colors"
-                                                title="Locate in text"
+                                                title={t('locateInText', 'Locate in text')}
                                             >
                                                 @{cite.key}
                                             </button>
                                             <span className="text-xs font-bold text-[var(--inscript-color-text)] truncate">
-                                                [{cite.label}]
+                                                [{cite.label || cite.key}]
                                             </span>
                                             <div className="flex-1" />
-                                            <button
-                                                onClick={() => startEditing(cite)}
-                                                className="p-1 rounded opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-[var(--inscript-color-hover)] text-[var(--inscript-color-muted)] transition-opacity"
-                                                title="Edit citation"
-                                            >
-                                                <Edit2 size={13} />
-                                            </button>
+                                            {editable && (
+                                                <button type="button"
+                                                    onClick={() => startEditing(cite)}
+                                                    className="p-1 rounded opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-[var(--inscript-color-hover)] text-[var(--inscript-color-muted)] transition-opacity"
+                                                    title={t('editCitation', 'Edit citation')}
+                                                    aria-label={t('editCitation', 'Edit citation')}
+                                                >
+                                                    <Edit2 size={13} />
+                                                </button>
+                                            )}
                                         </div>
                                         <div className="text-[11px] text-[var(--inscript-color-muted)] leading-relaxed italic break-words">
                                             {cite.title || t('noTitle', 'No bibliography details set.')}

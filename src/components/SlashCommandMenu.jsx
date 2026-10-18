@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { slashCommandStore } from '../extensions/SlashCommand.js';
 
-export const SlashCommandMenu = ({ isReadonly }) => {
+/** The slash menu of one editor: its suggestion state lives in that editor's storage. */
+const storeOf = editor => (editor && !editor.isDestroyed ? editor.storage?.slashCommand ?? null : null);
+
+export const SlashCommandMenu = ({ editor, isReadonly }) => {
     // Subscribes to language changes: the default items resolve their title/subtitle through
     // i18next when read, so re-rendering is all it takes for an open menu to follow a switch.
     useTranslation('inscript-editor');
@@ -10,8 +12,10 @@ export const SlashCommandMenu = ({ isReadonly }) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const menuRef = useRef(null);
 
+    const store = storeOf(editor);
     useEffect(() => {
-        return slashCommandStore.subscribe(newState => {
+        if (!store) return undefined;
+        const unsubscribe = store.subscribe(newState => {
             if (!newState || !newState.active) {
                 setState(null);
             } else {
@@ -19,15 +23,18 @@ export const SlashCommandMenu = ({ isReadonly }) => {
                 setSelectedIndex(0); // Reset selection on update
             }
         });
-    }, []);
+        return () => { unsubscribe(); setState(null); };
+    }, [store]);
 
     useEffect(() => {
-        if (!state) {
-            slashCommandStore.onKeyDown = null;
-            return;
+        if (!store) return undefined;
+        // A read-only editor's menu never takes the keyboard (its suggestion does not open anyway).
+        if (!state || isReadonly) {
+            store.onKeyDown = null;
+            return undefined;
         }
 
-        slashCommandStore.onKeyDown = (event) => {
+        store.onKeyDown = (event) => {
             const items = state.items;
             if (!items.length) return false;
 
@@ -50,9 +57,9 @@ export const SlashCommandMenu = ({ isReadonly }) => {
         };
 
         return () => {
-            slashCommandStore.onKeyDown = null;
+            store.onKeyDown = null;
         };
-    }, [state, selectedIndex]);
+    }, [store, state, selectedIndex, isReadonly]);
 
     useEffect(() => {
         // Ensure selected item is in view
@@ -88,8 +95,8 @@ export const SlashCommandMenu = ({ isReadonly }) => {
             style={style}
         >
             {state.items.map((item, index) => (
-                <button
-                    key={item.id}
+                <button type="button"
+                    key={item.id ?? `${index}-${item.title ?? ''}`}
                     className={`w-full text-left px-4 py-2 flex items-center gap-3 transition-colors ${
                         index === selectedIndex
                             ? 'bg-[var(--inscript-color-active)]'

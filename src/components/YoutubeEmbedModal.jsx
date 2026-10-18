@@ -4,6 +4,23 @@ import { Filter, Plus, X, SquarePlay as YoutubeIcon } from 'lucide-react';
 import { InlineNotice } from './InlineNotice.jsx';
 import { extractYoutubeId, youtubeEmbedUrl } from '../utils/youtubeUrl.js';
 import { buildYoutubeConsent, YOUTUBE_CONSENT_DEFAULTS } from '../utils/youtubeConsent.js';
+
+/**
+ * The emphasized part of a translated sentence. A translation can put attributes on its tags
+ * (`<1 class="…" style="…">`), and react-i18next hands them to the element as props: this renders
+ * only the text, so a translation can neither style the page nor crash it (a string `style`).
+ */
+/** A duration in seconds as m:ss (h:mm:ss past an hour), whole seconds; '' when unknown. */
+export function formatDuration(seconds) {
+    if (!Number.isFinite(seconds) || seconds <= 0) return '';
+    const total = Math.round(seconds);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = String(total % 60).padStart(2, '0');
+    return h ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
+}
+
+const EmphasisText = ({ children }) => <strong>{children}</strong>;
 import { useInscriptEditorTranslations } from '../hooks/useInscriptEditorTranslations.js';
 
 // The query the live preview's player is loaded with.
@@ -111,7 +128,7 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch, privac
                             </p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-[var(--inscript-color-hover)] rounded-lg text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)] transition-colors">
+                    <button type="button" onClick={onClose} className="p-2 hover:bg-[var(--inscript-color-hover)] rounded-lg text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)] transition-colors">
                         <X size={20} />
                     </button>
                 </div>
@@ -119,13 +136,13 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch, privac
                 {/* Tabs (only with a search to offer: without one there is just the link) */}
                 {canSearch && (
                     <div className="flex px-6 pt-2 border-b border-[var(--inscript-color-border)] gap-6">
-                        <button
+                        <button type="button"
                             onClick={() => setActiveTab('link')}
                             className={`py-3 text-sm font-medium border-b-2 transition-all ${activeTab === 'link' ? 'border-[var(--inscript-color-accent)] text-[var(--inscript-color-accent)]' : 'border-transparent text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)]'}`}
                         >
                             {t('directLink', 'Direct Link')}
                         </button>
-                        <button
+                        <button type="button"
                             onClick={() => setActiveTab('search')}
                             className={`py-3 text-sm font-medium border-b-2 transition-all ${activeTab === 'search' ? 'border-[var(--inscript-color-accent)] text-[var(--inscript-color-accent)]' : 'border-transparent text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)]'}`}
                         >
@@ -138,7 +155,8 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch, privac
                 <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                     {activeTab === 'search' ? (
                         <div className="space-y-6">
-                            <form onSubmit={handleSearch} className="relative">
+                            {/* Not a <form>: the editor may sit inside the host's own form (Enter searches instead). */}
+                            <div className="relative">
                                 <input
                                     autoFocus
                                     type="text"
@@ -146,19 +164,27 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch, privac
                                     className="w-full bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-xl py-3 pl-4 pr-12 text-[var(--inscript-color-text)] focus:ring-2 focus:ring-[var(--inscript-color-accent-ring)] focus:border-[var(--inscript-color-accent)] outline-none transition-all shadow-inner"
                                     value={query}
                                     onChange={(e) => setQuery(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key !== 'Enter') return;
+                                        e.preventDefault();
+                                        handleSearch();
+                                    }}
                                 />
                                 <button
-                                    type="submit"
+                                    type="button"
+                                    onClick={() => handleSearch()}
+                                    aria-label={t('searchVideos', 'Search videos')}
+                                    title={t('searchVideos', 'Search videos')}
                                     disabled={searching}
                                     className="absolute right-2 top-2 p-1.5 bg-[var(--inscript-color-accent)] text-[var(--inscript-color-on-accent)] rounded-lg hover:opacity-90 transition-colors disabled:opacity-50"
                                 >
                                     <Filter size={18} />
                                 </button>
-                            </form>
+                            </div>
 
                             <InlineNotice variant="warning" title={t('experimentalFeature', 'Experimental Feature')}>
-                                <Trans i18nKey="experimentalFeatureDescription" ns="inscript-editor">
-                                    External search uses public proxy instances which can be unreliable. If search fails, please use the <strong>Direct Link</strong> tab instead.
+                                <Trans i18nKey="experimentalFeatureDescription" ns="inscript-editor" components={{ 1: <EmphasisText /> }}>
+                                    External search uses public proxy instances which can be unreliable. If search fails, please use the <EmphasisText>Direct Link</EmphasisText> tab instead.
                                 </Trans>
                             </InlineNotice>
 
@@ -180,7 +206,7 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch, privac
                             ) : results.length > 0 ? (
                                 <div className="grid grid-cols-2 gap-4">
                                     {results.map((video) => (
-                                        <button
+                                        <button type="button"
                                             key={video.url}
                                             onClick={() => {
                                                 const id = extractYoutubeId(video.url);
@@ -198,13 +224,13 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch, privac
                                                     <Plus size={32} className="text-[var(--inscript-color-on-accent)] bg-[var(--inscript-color-accent)] rounded-full p-2" />
                                                 </div>
                                                 <span className="absolute bottom-2 right-2 bg-black/80 text-[10px] px-1.5 py-0.5 rounded font-mono">
-                                                    {video.duration ? Math.floor(video.duration / 60) + ':' + (video.duration % 60).toString().padStart(2, '0') : ''}
+                                                    {formatDuration(video.duration)}
                                                 </span>
                                             </div>
                                             <div className="space-y-1">
                                                 <h4 className="text-sm font-medium line-clamp-2 leading-tight group-hover:text-[var(--inscript-color-accent)] transition-colors">{video.title}</h4>
                                                 <p className="text-[10px] text-[var(--inscript-color-muted)] flex items-center gap-1">
-                                                    {video.uploaderName} • {t('viewsSuffix', '{{views}} views', { views: video.views?.toLocaleString() })}
+                                                    {[video.uploaderName, Number.isFinite(video.views) ? t('viewsSuffix', '{{views}} views', { views: video.views.toLocaleString() }) : null].filter(Boolean).join(' • ')}
                                                 </p>
                                             </div>
                                         </button>
@@ -274,8 +300,8 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch, privac
 
                 {/* Footer */}
                 <div className="p-6 bg-[var(--inscript-color-surface)] border-t border-[var(--inscript-color-border)] flex justify-end gap-3">
-                    <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)] transition-colors">{t('cancel', 'Cancel')}</button>
-                    <button
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-[var(--inscript-color-muted)] hover:text-[var(--inscript-color-text)] transition-colors">{t('cancel', 'Cancel')}</button>
+                    <button type="button"
                         onClick={() => previewId && onConfirm(previewId)}
                         disabled={!previewId}
                         className="px-6 py-2 bg-[var(--inscript-color-accent)] text-[var(--inscript-color-on-accent)] rounded-lg text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50 disabled:grayscale"

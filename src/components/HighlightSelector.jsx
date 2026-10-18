@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { useEditorState } from '@tiptap/react';
 import { Highlighter } from 'lucide-react';
 import { ColorSelector } from './ColorSelector.jsx';
 import { DEFAULT_HIGHLIGHT_CSS, HIGHLIGHT_MARK, HIGHLIGHT_PRESETS } from '../constants.js';
@@ -17,8 +18,14 @@ import { DEFAULT_HIGHLIGHT_CSS, HIGHLIGHT_MARK, HIGHLIGHT_PRESETS } from '../con
  */
 export const HighlightSelector = ({ editor, title }) => {
     const { t } = useTranslation('inscript-editor');
-    const color = editor?.getAttributes(HIGHLIGHT_MARK).color;
-    const isDefaultActive = !!editor?.isActive(HIGHLIGHT_MARK) && !color;
+    // Read from the editor as it changes (used on its own, nothing else re-renders this).
+    const { color, isDefaultActive } = useEditorState({
+        editor,
+        selector: ({ editor: current }) => {
+            const active = current?.getAttributes(HIGHLIGHT_MARK).color;
+            return { color: active, isDefaultActive: !!current?.isActive(HIGHLIGHT_MARK) && !active };
+        },
+    }) ?? {};
     // Picking the default again removes it, like picking the active colour again does. Otherwise
     // set it with an explicit null colour: setHighlight() alone would keep the colour of a
     // highlight already there.

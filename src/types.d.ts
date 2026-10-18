@@ -150,6 +150,8 @@ export interface UseInscriptEditorOptions {
 
 export interface UseInscriptEditorResult {
     editor: Editor | null;
+    /** The `isReadonly` option, so spreading the result into <InscriptEditor> passes it on. */
+    isReadonly: boolean;
     history: HistoryEntry[];
     /** @deprecated Use `loadContent` to seed a document's baseline. */
     setHistory: (history: HistoryEntry[] | ((prev: HistoryEntry[]) => HistoryEntry[])) => void;
@@ -395,6 +397,8 @@ export type ToolSurface = 'toolbar' | 'bubble';
 export interface ToolMeta {
     id: string;
     label: string;
+    /** The translation key for the label (the one the toolbar's own button uses). */
+    labelKey?: string;
     icon: React.ComponentType<{ size?: number }> | null;
     group: string;
 }
@@ -421,7 +425,7 @@ export const DEFAULT_BUBBLE_CONFIG: string[];
 
 // --- Extensions ---
 export const Youtube: import('@tiptap/core').Node;
-export const FontSize: import('@tiptap/core').Mark;
+export const FontSize: import('@tiptap/core').Extension;
 export const CustomTable: import('@tiptap/core').Node;
 export const CustomImage: import('@tiptap/core').Node;
 export const Citation: import('@tiptap/core').Node;
@@ -523,7 +527,8 @@ export interface ResponsiveToolbarProps {
 export const ResponsiveToolbar: (props: ResponsiveToolbarProps) => ReactNode;
 
 export const ToolbarDropdown: (props: {
-    items?: Array<{ id: string; label?: string; icon?: React.ComponentType<{ size?: number }>; onClick?: () => void }>;
+    /** `action` runs when the item is picked (`onClick` is accepted as the same thing); `active` highlights it. */
+    items?: Array<{ id: string; label?: string; icon?: React.ComponentType<{ size?: number }>; action?: () => void; onClick?: () => void; active?: boolean }>;
     title?: string;
     activeId?: string;
 }) => ReactNode;
@@ -552,7 +557,8 @@ export const ImageSelectorModal: (props: {
     onClose: () => void;
     images: LibraryImage[];
     onSelect: (url: string) => void;
-    onUpload: (file: File) => Promise<void>;
+    /** Your upload. Without it the modal offers no upload control, only the library. */
+    onUpload?: (file: File) => Promise<void>;
 }) => ReactNode;
 
 export interface YoutubeSearchResult {
@@ -618,11 +624,23 @@ export const MiniMap: (props: HostablePanelProps & {
     showHeadingText?: boolean;
 }) => ReactNode;
 export const BibliographyPanel: (props: { editor: Editor | null }) => ReactNode;
-export const TextBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean; bubbleMenuConfig?: string[] }) => ReactNode;
-export const TableBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean }) => ReactNode;
-export const ImageBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean }) => ReactNode;
-export const YoutubeBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean; onOpenExternal?: (url: string) => void }) => ReactNode;
-export const EmbedBubbleMenu: (props: { editor: Editor | null; isReadonly?: boolean; onOpenExternal?: (url: string) => void }) => ReactNode;
+/**
+ * Props every selection menu takes. `scrollContainer`: the element the document scrolls in, so the
+ * menu follows what it is about as it scrolls (default: the window). `menuContainer`: where the menu
+ * is attached, outside any scrolling box that would clip it (default: the editor's own parent).
+ * `<InscriptEditor>` passes both.
+ */
+interface BubbleMenuBaseProps {
+    editor: Editor | null;
+    isReadonly?: boolean;
+    scrollContainer?: HTMLElement | null;
+    menuContainer?: HTMLElement | null;
+}
+export const TextBubbleMenu: (props: BubbleMenuBaseProps & { bubbleMenuConfig?: string[]; onAddAbbreviation?: () => void }) => ReactNode;
+export const TableBubbleMenu: (props: BubbleMenuBaseProps) => ReactNode;
+export const ImageBubbleMenu: (props: BubbleMenuBaseProps) => ReactNode;
+export const YoutubeBubbleMenu: (props: BubbleMenuBaseProps & { onOpenExternal?: (url: string) => void }) => ReactNode;
+export const EmbedBubbleMenu: (props: BubbleMenuBaseProps & { onOpenExternal?: (url: string) => void }) => ReactNode;
 /** Compact, editable URL/source field used inside bubble menus (see + replace a node's source). */
 export const SourceField: (props: {
     value?: string;
