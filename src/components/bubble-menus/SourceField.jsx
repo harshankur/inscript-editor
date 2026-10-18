@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
 
 /**
@@ -23,6 +23,8 @@ export function SourceField({ value = '', onApply, validate, placeholder, label,
     const [draft, setDraft] = useState(value);
     const [dirty, setDirty] = useState(false);
     const [invalid, setInvalid] = useState(false);
+    // Escape reverts and leaves the field; the blur that follows must not apply the typed draft.
+    const cancellingRef = useRef(false);
 
     // Re-sync when a different node is selected or the attribute changes elsewhere.
     useEffect(() => { setDraft(value); setDirty(false); setInvalid(false); }, [value]);
@@ -44,6 +46,7 @@ export function SourceField({ value = '', onApply, validate, placeholder, label,
                 value={draft}
                 placeholder={placeholder}
                 aria-label={label}
+                aria-invalid={invalid || undefined}
                 title={label}
                 spellCheck={false}
                 autoComplete="off"
@@ -52,9 +55,19 @@ export function SourceField({ value = '', onApply, validate, placeholder, label,
                 onFocus={(e) => e.currentTarget.select()}
                 onKeyDown={(e) => {
                     if (e.key === 'Enter') { e.preventDefault(); apply(); }
-                    else if (e.key === 'Escape') { e.preventDefault(); setDraft(value); setDirty(false); setInvalid(false); e.currentTarget.blur(); }
+                    else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        cancellingRef.current = true;
+                        setDraft(value);
+                        setDirty(false);
+                        setInvalid(false);
+                        e.currentTarget.blur();
+                    }
                 }}
-                onBlur={apply}
+                onBlur={() => {
+                    if (cancellingRef.current) { cancellingRef.current = false; return; }
+                    apply();
+                }}
             />
             {dirty && (
                 <button

@@ -1,10 +1,12 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BubbleMenu } from '@tiptap/react/menus';
+import { BUBBLE_MENU_STYLE, bubbleMenuContainer, useBubbleMenuOptions } from './menuOptions.js';
 import { useEditorState } from '@tiptap/react';
 import { ExternalLink, Trash2, Globe, Type } from 'lucide-react';
 import { ToolbarButton } from '../ToolbarButton.jsx';
 import { SourceField } from './SourceField.jsx';
+import { isWebUrl } from '../../utils/url.js';
 import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTranslations.js';
 
 /**
@@ -12,7 +14,7 @@ import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTran
  * otherwise hidden once the iframe loads) and lets you replace it, edit the caption,
  * open it in a new tab, or delete it.
  */
-export const EmbedBubbleMenu = ({ editor, isReadonly, onOpenExternal }) => {
+export const EmbedBubbleMenu = ({ editor, isReadonly, onOpenExternal, scrollContainer, menuContainer }) => {
     useInscriptEditorTranslations();
     const { t } = useTranslation('inscript-editor');
     // The host may own external-link opening (e.g. a desktop app where window.open is blocked); fall
@@ -28,6 +30,7 @@ export const EmbedBubbleMenu = ({ editor, isReadonly, onOpenExternal }) => {
     // Stable identity: TipTap's BubbleMenu dispatches a transaction whenever this prop changes,
     // so an inline function would dispatch one on every render (and a menu that
     // re-renders on transactions would loop forever).
+    const menuOptions = useBubbleMenuOptions('top', scrollContainer);
     const shouldShow = useCallback(({ editor: current }) => !isReadonly && current.isActive('embed'), [isReadonly]);
     if (!editor) return null;
     return (
@@ -35,7 +38,9 @@ export const EmbedBubbleMenu = ({ editor, isReadonly, onOpenExternal }) => {
             editor={editor}
             pluginKey="embedBubbleMenu"
             shouldShow={shouldShow}
-            tippyOptions={{ duration: 100, zIndex: 9999, maxWidth: '98vw', interactive: true, placement: 'top' }}
+            options={menuOptions}
+            appendTo={bubbleMenuContainer(menuContainer)}
+            style={BUBBLE_MENU_STYLE}
         >
             <div className="bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl flex items-center p-1 gap-1 overflow-visible custom-scrollbar">
                 <SourceField
@@ -43,8 +48,8 @@ export const EmbedBubbleMenu = ({ editor, isReadonly, onOpenExternal }) => {
                     label={t('embedUrl', 'Embed URL')}
                     placeholder={t('embedUrl', 'Embed URL')}
                     value={attrs.src}
-                    validate={(v) => v.length > 0}
-                    onApply={(v) => editor.chain().focus().updateAttributes('embed', { src: v }).run()}
+                    validate={isWebUrl}
+                    onApply={(v) => editor.chain().focus().updateAttributes('embed', { src: v.trim() }).run()}
                     inputClassName="w-52"
                 />
                 <SourceField
@@ -59,8 +64,9 @@ export const EmbedBubbleMenu = ({ editor, isReadonly, onOpenExternal }) => {
                 <div className="flex items-center gap-0.5 bg-[var(--inscript-color-surface-raised)] p-0.5 rounded border border-[var(--inscript-color-border)]">
                     <ToolbarButton
                         onClick={() => {
+                            // The source comes from the document: only a web address is opened.
                             const src = editor.getAttributes('embed').src;
-                            if (src) openExternal(src);
+                            if (isWebUrl(src)) openExternal(src.trim());
                         }}
                         title={t('openEmbed', 'Open in new tab')}
                     >

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BubbleMenu } from '@tiptap/react/menus';
+import { BUBBLE_MENU_STYLE, bubbleMenuContainer, useBubbleMenuOptions } from './menuOptions.js';
 import { useEditorState } from '@tiptap/react';
 import { AlignCenter, AlignLeft, AlignRight, ExternalLink, Trash2, SquarePlay as YoutubeIcon } from 'lucide-react';
 import { ToolbarButton } from '../ToolbarButton.jsx';
@@ -8,7 +9,7 @@ import { SourceField } from './SourceField.jsx';
 import { extractYoutubeId } from '../../utils/youtubeUrl.js';
 import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTranslations.js';
 
-export const YoutubeBubbleMenu = ({ editor, isReadonly, onOpenExternal }) => {
+export const YoutubeBubbleMenu = ({ editor, isReadonly, onOpenExternal, scrollContainer, menuContainer }) => {
     useInscriptEditorTranslations();
     const { t } = useTranslation('inscript-editor');
     // The host may own external-link opening (e.g. a desktop app where window.open is blocked); fall
@@ -26,6 +27,7 @@ export const YoutubeBubbleMenu = ({ editor, isReadonly, onOpenExternal }) => {
     // Stable identity: TipTap's BubbleMenu dispatches a transaction whenever this prop changes,
     // so an inline function would dispatch one on every render (and a menu that
     // re-renders on transactions would loop forever).
+    const menuOptions = useBubbleMenuOptions('top', scrollContainer);
     const shouldShow = useCallback(({ editor: current }) => !isReadonly && current.isActive('youtube'), [isReadonly]);
     if (!editor) return null;
     return (
@@ -33,7 +35,9 @@ export const YoutubeBubbleMenu = ({ editor, isReadonly, onOpenExternal }) => {
             editor={editor}
             pluginKey="youtubeBubbleMenu"
             shouldShow={shouldShow}
-            tippyOptions={{ duration: 100, zIndex: 9999, maxWidth: '98vw', interactive: true, placement: 'top' }}
+            options={menuOptions}
+            appendTo={bubbleMenuContainer(menuContainer)}
+            style={BUBBLE_MENU_STYLE}
         >
             <div className="bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl flex items-center p-1 gap-1 overflow-visible custom-scrollbar">
                 {/* The video's URL, visible and replaceable inline. */}

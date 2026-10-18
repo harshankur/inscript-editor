@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BubbleMenu } from '@tiptap/react/menus';
+import { BUBBLE_MENU_STYLE, bubbleMenuContainer, useBubbleMenuOptions } from './menuOptions.js';
 import {
     AlignCenter, AlignLeft, AlignRight, ArrowLeftRight,
     BetweenHorizontalEnd, BetweenHorizontalStart, BetweenVerticalEnd, BetweenVerticalStart,
@@ -12,7 +13,7 @@ import { TABLE_ALIGN } from '../../constants.js';
 import { useEditorTransaction } from '../../hooks/useEditorTransaction.js';
 import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTranslations.js';
 
-export const TableBubbleMenu = ({ editor, isReadonly }) => {
+export const TableBubbleMenu = ({ editor, isReadonly, scrollContainer, menuContainer }) => {
     useInscriptEditorTranslations();
     const { t } = useTranslation('inscript-editor');
     // The active placement and header toggles are read from the editor while rendering.
@@ -20,6 +21,7 @@ export const TableBubbleMenu = ({ editor, isReadonly }) => {
     // Stable identity: TipTap's BubbleMenu dispatches a transaction whenever this prop changes,
     // so an inline function would dispatch one on every render (and, in a menu that re-renders
     // on transactions, loop forever).
+    const menuOptions = useBubbleMenuOptions('bottom', scrollContainer);
     const shouldShow = useCallback(({ editor: current }) => {
         if (isReadonly) return false;
         return '$anchorCell' in current.state.selection;
@@ -30,7 +32,9 @@ export const TableBubbleMenu = ({ editor, isReadonly }) => {
             editor={editor}
             pluginKey="tableBubbleMenu"
             shouldShow={shouldShow}
-            tippyOptions={{ duration: 100, zIndex: 9999, maxWidth: '98vw', interactive: true, placement: 'bottom' }}
+            options={menuOptions}
+            appendTo={bubbleMenuContainer(menuContainer)}
+            style={BUBBLE_MENU_STYLE}
         >
             <div className="bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl flex items-center p-1 gap-1 flex-wrap overflow-visible max-w-[90vw] custom-scrollbar">
                 {/* Columns Group */}

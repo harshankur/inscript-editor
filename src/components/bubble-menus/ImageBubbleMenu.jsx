@@ -1,13 +1,15 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BubbleMenu } from '@tiptap/react/menus';
+import { BUBBLE_MENU_STYLE, bubbleMenuContainer, useBubbleMenuOptions } from './menuOptions.js';
 import { useEditorState } from '@tiptap/react';
 import { AlignCenter, AlignLeft, AlignRight, Trash2, ImageIcon, Type } from 'lucide-react';
 import { ToolbarButton } from '../ToolbarButton.jsx';
 import { SourceField } from './SourceField.jsx';
+import { isImageUrl } from '../../utils/url.js';
 import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTranslations.js';
 
-export const ImageBubbleMenu = ({ editor, isReadonly }) => {
+export const ImageBubbleMenu = ({ editor, isReadonly, scrollContainer, menuContainer }) => {
     useInscriptEditorTranslations();
     const { t } = useTranslation('inscript-editor');
     const attrs = useEditorState({
@@ -20,6 +22,7 @@ export const ImageBubbleMenu = ({ editor, isReadonly }) => {
     // Stable identity: TipTap's BubbleMenu dispatches a transaction whenever this prop changes,
     // so an inline function would dispatch one on every render (and a menu that
     // re-renders on transactions would loop forever).
+    const menuOptions = useBubbleMenuOptions('top', scrollContainer);
     const shouldShow = useCallback(({ editor: current }) => !isReadonly && current.isActive('image'), [isReadonly]);
     if (!editor) return null;
     return (
@@ -27,7 +30,9 @@ export const ImageBubbleMenu = ({ editor, isReadonly }) => {
             editor={editor}
             pluginKey="imageBubbleMenu"
             shouldShow={shouldShow}
-            tippyOptions={{ duration: 100, zIndex: 9999, maxWidth: '98vw', interactive: true, placement: 'top' }}
+            options={menuOptions}
+            appendTo={bubbleMenuContainer(menuContainer)}
+            style={BUBBLE_MENU_STYLE}
         >
             <div className="bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl flex items-center p-1 gap-1 overflow-visible custom-scrollbar">
                 {/* The image source and alt text, visible and editable inline. */}
@@ -36,8 +41,8 @@ export const ImageBubbleMenu = ({ editor, isReadonly }) => {
                     label={t('imageUrl', 'Image URL')}
                     placeholder={t('imageUrl', 'Image URL')}
                     value={attrs.src}
-                    validate={(v) => v.length > 0}
-                    onApply={(v) => editor.chain().focus().updateAttributes('image', { src: v }).run()}
+                    validate={isImageUrl}
+                    onApply={(v) => editor.chain().focus().updateAttributes('image', { src: v.trim() }).run()}
                     inputClassName="w-44"
                 />
                 <SourceField

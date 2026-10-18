@@ -7,12 +7,14 @@ import { YoutubeBubbleMenu } from './YoutubeBubbleMenu.jsx';
 import { TableBubbleMenu } from './TableBubbleMenu.jsx';
 import { EmbedBubbleMenu } from './EmbedBubbleMenu.jsx';
 
-// Every shouldShow the (mocked) BubbleMenu is rendered with, in order.
+// Every shouldShow the (mocked) BubbleMenu is rendered with, in order, and every set of props.
 const seenShouldShow = vi.hoisted(() => []);
+const seenProps = vi.hoisted(() => []);
 
 vi.mock('@tiptap/react/menus', () => ({
-    BubbleMenu: ({ children, shouldShow }) => {
+    BubbleMenu: ({ children, shouldShow, ...props }) => {
         seenShouldShow.push(shouldShow);
+        seenProps.push(props);
         return <div data-testid="bubble-menu">{children}</div>;
     },
     FloatingMenu: ({ children }) => <div>{children}</div>,
@@ -23,6 +25,40 @@ describe('bubble menus', () => {
 
     afterEach(() => {
         editor?.destroy();
+    });
+
+    // TipTap v3's BubbleMenu takes floating-ui `options`; the v2 `tippyOptions` were ignored, so the
+    // menus lost their z-index and placement and were clipped by the editor's scroll container.
+    describe('positioning options', () => {
+        it.each([
+            ['TextBubbleMenu', TextBubbleMenu, 'top'],
+            ['TableBubbleMenu', TableBubbleMenu, 'bottom'],
+            ['ImageBubbleMenu', ImageBubbleMenu, 'top'],
+            ['YoutubeBubbleMenu', YoutubeBubbleMenu, 'top'],
+            ['EmbedBubbleMenu', EmbedBubbleMenu, 'top'],
+        ])('%s: placed %s, above the document, attached outside the scroll container and following it', (name, Menu, placement) => {
+            editor = createEditor();
+            const scroller = document.createElement('div');
+            const root = document.createElement('div');
+            seenProps.length = 0;
+            const { rerender } = render(<Menu editor={editor} scrollContainer={scroller} menuContainer={root} />);
+            const props = seenProps.at(-1);
+            expect(props.tippyOptions).toBeUndefined();
+            expect(props.options).toMatchObject({ placement, offset: 8, hide: true, scrollTarget: scroller });
+            expect(props.appendTo).toBe(root);
+            expect(props.style).toEqual({ zIndex: 50 });
+            // One options object while the inputs stay the same (a new one dispatches a transaction).
+            rerender(<Menu editor={editor} scrollContainer={scroller} menuContainer={root} />);
+            expect(seenProps.at(-1).options).toBe(props.options);
+        });
+
+        it('falls back to the window without a scroll container', () => {
+            editor = createEditor();
+            seenProps.length = 0;
+            render(<TextBubbleMenu editor={editor} />);
+            expect(seenProps.at(-1).options.scrollTarget).toBe(window);
+            expect(seenProps.at(-1).appendTo).toBeUndefined();
+        });
     });
 
     // TipTap's BubbleMenu dispatches a transaction whenever its shouldShow prop changes
@@ -129,6 +165,37 @@ describe('bubble menus', () => {
             expect(editor.getAttributes('image').src).toBe('https://example.com/b.png');
         });
 
+        it.each(['javascript:alert(1)', 'java\tscript:alert(1)', 'data:text/html,<b>x</b>', 'vbscript:x'])('refuses %j as the image source', (value) => {
+            render(<ImageBubbleMenu editor={editor} />);
+            const input = screen.getByLabelText('Image URL');
+            fireEvent.change(input, { target: { value } });
+            fireEvent.keyDown(input, { key: 'Enter' });
+            expect(editor.getAttributes('image').src).toBe('https://example.com/a.png');
+            expect(input.getAttribute('aria-invalid')).toBe('true');
+        });
+
+        it('Escape reverts the typed source and does not apply it', () => {
+            render(<ImageBubbleMenu editor={editor} />);
+            const input = screen.getByLabelText('Image URL');
+            input.focus();
+            fireEvent.change(input, { target: { value: 'https://example.com/typed.png' } });
+            fireEvent.keyDown(input, { key: 'Escape' });
+            fireEvent.blur(input);
+            expect(editor.getAttributes('image').src).toBe('https://example.com/a.png');
+            expect(input.value).toBe('https://example.com/a.png');
+        });
+
+        it('accepts a relative path or a data:image URL as the image source', () => {
+            render(<ImageBubbleMenu editor={editor} />);
+            const input = screen.getByLabelText('Image URL');
+            fireEvent.change(input, { target: { value: ' /uploads/b.png ' } });
+            fireEvent.keyDown(input, { key: 'Enter' });
+            expect(editor.getAttributes('image').src).toBe('/uploads/b.png');
+            fireEvent.change(input, { target: { value: 'data:image/png;base64,AAAA' } });
+            fireEvent.keyDown(input, { key: 'Enter' });
+            expect(editor.getAttributes('image').src).toBe('data:image/png;base64,AAAA');
+        });
+
         it('edits the alt text', () => {
             render(<ImageBubbleMenu editor={editor} />);
             const input = screen.getByLabelText('Alt text');
@@ -230,6 +297,26 @@ describe('bubble menus', () => {
             render(<EmbedBubbleMenu editor={editor} onOpenExternal={onOpenExternal} />);
             fireEvent.click(screen.getByTitle('Open in new tab'));
             expect(onOpenExternal).toHaveBeenCalledWith('https://example.com/widget');
+            expect(openSpy).not.toHaveBeenCalled();
+            openSpy.mockRestore();
+        });
+
+        it('refuses a source that is not a web address', () => {
+            render(<EmbedBubbleMenu editor={editor} />);
+            const input = screen.getByLabelText('Embed URL');
+            fireEvent.change(input, { target: { value: 'javascript:alert(1)' } });
+            fireEvent.keyDown(input, { key: 'Enter' });
+            expect(editor.getAttributes('embed').src).toBe('https://example.com/widget');
+        });
+
+        it('never opens a script URL the document gave as the source', () => {
+            const openSpy = vi.spyOn(window, 'open').mockImplementation(() => {});
+            const onOpenExternal = vi.fn();
+            editor.commands.setContent('<div data-embed-src="javascript:alert(document.domain)" data-embed-gated="true"></div>');
+            editor.commands.setNodeSelection(0);
+            render(<EmbedBubbleMenu editor={editor} onOpenExternal={onOpenExternal} />);
+            fireEvent.click(screen.getByTitle('Open in new tab'));
+            expect(onOpenExternal).not.toHaveBeenCalled();
             expect(openSpy).not.toHaveBeenCalled();
             openSpy.mockRestore();
         });

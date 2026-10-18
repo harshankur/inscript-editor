@@ -21,3 +21,12 @@ export const DEFAULT_HIGHLIGHT_CSS = 'var(--inscript-color-mark-bg, rgb(234 179 
 
 /** The mark a highlight is stored as. */
 export const HIGHLIGHT_MARK = 'highlight';
+
+/**
+ * Selection menus (bubble menus) sit above the document, including the click layer over a loaded
+ * video (z-index 10), and below the toolbar's own dropdowns (z-index 60).
+ */
+export const BUBBLE_MENU_Z_INDEX = 50;
+
+/** The gap between a selection menu and what it is about, and its margin from the viewport edges, in px. */
+export const BUBBLE_MENU_OFFSET = 8;
