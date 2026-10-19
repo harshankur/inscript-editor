@@ -64,6 +64,29 @@ describe('ImageSelectorModal', () => {
         expect(screen.getByRole('alert')).toHaveTextContent('Upload failed');
     });
 
+    it('shows the reason the host gives as userMessage when onUpload rejects', async () => {
+        const user = userEvent.setup();
+        const reason = Object.assign(new Error('Request failed with status code 415'), { userMessage: 'Only PNG and JPEG images can be uploaded' });
+        render(<ImageSelectorModal isOpen onClose={() => {}} images={IMAGES} onSelect={() => {}} onUpload={vi.fn().mockRejectedValue(reason)} />);
+
+        await user.upload(document.querySelector('input[type="file"]'), new File(['data'], 'page.png', { type: 'image/png' }));
+
+        await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Only PNG and JPEG images can be uploaded'));
+        expect(screen.getByRole('alert')).not.toHaveTextContent('415');
+    });
+
+    it('falls back to the general message when userMessage is empty or not text', async () => {
+        const user = userEvent.setup();
+        for (const userMessage of ['   ', 42, { text: 'x' }]) {
+            const reason = Object.assign(new Error('Request failed with status code 500'), { userMessage });
+            const { unmount } = render(<ImageSelectorModal isOpen onClose={() => {}} images={IMAGES} onSelect={() => {}} onUpload={vi.fn().mockRejectedValue(reason)} />);
+            await user.upload(document.querySelector('input[type="file"]'), new File(['data'], 'photo.png', { type: 'image/png' }));
+            await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Upload failed'));
+            expect(screen.getByRole('alert')).not.toHaveTextContent('500');
+            unmount();
+        }
+    });
+
     it('shows the empty-state message when no images match', async () => {
         const user = userEvent.setup();
         render(<ImageSelectorModal isOpen onClose={() => {}} images={IMAGES} onSelect={() => {}} onUpload={() => {}} />);

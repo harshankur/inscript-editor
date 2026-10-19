@@ -28,7 +28,10 @@ export const ImageSelectorModal = ({ isOpen, onClose, images, onSelect, onUpload
         try {
             await onUpload(file);
         } catch (err) {
-            setUploadError(t('uploadFailedMessage', 'Upload failed. Please try again.'));
+            // The host may say why, in the reader's words, as the error's userMessage. Any other
+            // error text (a network or HTTP status) is not meant for readers and is not shown.
+            const userMessage = typeof err?.userMessage === 'string' ? err.userMessage.trim() : '';
+            setUploadError(userMessage || t('uploadFailedMessage', 'Upload failed. Please try again.'));
         } finally {
             setUploading(false);
         }

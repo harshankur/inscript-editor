@@ -557,7 +557,12 @@ export const ImageSelectorModal: (props: {
     onClose: () => void;
     images: LibraryImage[];
     onSelect: (url: string) => void;
-    /** Your upload. Without it the modal offers no upload control, only the library. */
+    /**
+     * Your upload. Without it the modal offers no upload control, only the library. When it
+     * rejects, the modal shows the error's `userMessage` if it is a non-empty string (say why,
+     * in the reader's language, such as "Only PNG and JPEG images can be uploaded"), and a
+     * general "Upload failed" message otherwise.
+     */
     onUpload?: (file: File) => Promise<void>;
 }) => ReactNode;
 

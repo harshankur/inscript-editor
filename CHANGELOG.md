@@ -5,6 +5,14 @@ All notable changes to `inscript-editor` are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (pre-1.0: minor versions may
 carry small breaking changes, called out below).
 
+## [Unreleased]
+
+### Added
+- **The media library can say why an upload failed.** When `onUpload` rejects with an error
+  that has a non-empty `userMessage` string, `ImageSelectorModal` shows that text instead of
+  the general "Upload failed. Please try again." Other error text, such as an HTTP status, is
+  still not shown to readers.
+
 ## [0.6.0] - 2026-10-18
 
 ### Added
