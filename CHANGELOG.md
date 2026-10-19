@@ -5,7 +5,7 @@ All notable changes to `inscript-editor` are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (pre-1.0: minor versions may
 carry small breaking changes, called out below).
 
-## [Unreleased]
+## [0.7.0] - 2026-10-19
 
 ### Added
 - **The media library can say why an upload failed.** When `onUpload` rejects with an error
@@ -522,6 +522,8 @@ behaviour changes are listed under **Changed**.
 
 - First tagged release of the standalone `inscript-editor` package extracted from Inscript.
 
+[0.7.0]: https://github.com/harshankur/inscript-editor/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/harshankur/inscript-editor/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/harshankur/inscript-editor/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/harshankur/inscript-editor/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/harshankur/inscript-editor/compare/v0.3.2...v0.3.3
