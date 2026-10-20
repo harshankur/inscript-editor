@@ -23,6 +23,8 @@ const CONSENT_SRC = 'https://views.harshankur.com/consent.js';
 const APP_ID = 'inscript-editor';
 const PRODUCTION_HOST = 'inscript-editor.harshankur.com';
 const PRIVACY_URL = 'https://harshankur.com/datenschutz#en-inscript-editor'; // the prompt is in English
+/** Who runs the site, which the prompt names before it asks (the Impressum's operator). */
+const OPERATOR = 'Harsh Ankur';
 /** Opens the prompt when the page is opened with it, as the embed page's link does. */
 const SETTINGS_HASH = '#datenschutz-einstellungen';
 
@@ -35,6 +37,7 @@ export function trackPageView() {
     script.dataset.app = APP_ID;
     script.dataset.hosts = PRODUCTION_HOST;
     script.dataset.privacyUrl = PRIVACY_URL;
+    script.dataset.operator = OPERATOR;
     script.addEventListener('load', () => {
         if (location.hash !== SETTINGS_HASH || !window.viewcounterConsent) return;
         // Asked once: the address loses the hash, so a reload does not ask again.
