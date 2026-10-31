@@ -71,4 +71,9 @@ describe('buildThemeVars', () => {
             expect(cssVar.startsWith('--inscript-')).toBe(true);
         }
     });
+
+    it('maps the two spacing tokens, and emits nothing when they are unset', () => {
+        expect(buildThemeVars({ gutter: '4px', padding: '12px 16px' })).toEqual({ '--inscript-gutter': '4px', '--inscript-padding': '12px 16px' });
+        expect(buildThemeVars({})).toEqual({});
+    });
 });

@@ -189,7 +189,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                     />
                 ) : (
                     <div 
-                        className={`mx-auto px-2 pt-3 pb-[57px] md:px-8 md:pt-12 md:pb-[57px] flex flex-col min-h-full inscript-editor-container w-full ${focusMode ? 'focus-mode' : ''} ${focusMode && focusDim ? 'focus-dim' : ''}`}
+                        className={`mx-auto px-[var(--inscript-gutter,calc(var(--spacing,0.25rem)*2))] pt-3 pb-[57px] md:px-[var(--inscript-gutter,calc(var(--spacing,0.25rem)*8))] md:pt-12 md:pb-[57px] flex flex-col min-h-full inscript-editor-container w-full ${focusMode ? 'focus-mode' : ''} ${focusMode && focusDim ? 'focus-dim' : ''}`}
                         style={{ '--inscript-max-width': resolvedMaxWidth }}
                     >
                         {/* Mounted once the root they attach to exists: TipTap reads where a menu goes

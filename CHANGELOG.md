@@ -5,6 +5,22 @@ All notable changes to `inscript-editor` are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (pre-1.0: minor versions may
 carry small breaking changes, called out below).
 
+## [0.8.0] - 2026-11-01
+
+### Added
+- **Two theme tokens for the space around the text.** `theme.gutter` sets the side space around
+  the content column, and `theme.padding` the padding inside the editable area. An embedded editor,
+  such as a reply box, no longer has to override the editor's CSS. Leaving them unset changes
+  nothing.
+
+### Fixed
+- **The editor no longer crashes on mount when i18next has not been initialized.** It threw
+  ``registerInscriptEditorTranslations: `i18n` must be an i18next instance`` from an effect, which
+  also hit an app that uses its own instance through `I18nextProvider` and never initializes the
+  default one. The strings now register when the app initializes, and until then the editor shows
+  its English defaults. Calling `registerInscriptEditorTranslations` directly with an uninitialized
+  instance still throws.
+
 ## [0.7.0] - 2026-10-19
 
 ### Added

@@ -165,7 +165,7 @@ img.ProseMirror-separator {
 .ProseMirror {
   @apply outline-none;
   min-height: var(--inscript-min-height, 500px);
-  padding: 2rem;
+  padding: var(--inscript-padding, 2rem);
   color: var(--inscript-color-text, #18181b);
   /* Reading text size. Default 1.125rem (18px). Headings below scale in `em` off
      this, so one knob resizes the whole document coherently. */

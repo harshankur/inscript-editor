@@ -55,6 +55,8 @@ export const THEME_VAR_MAP = {
     radius: '--inscript-radius',
     radiusSm: '--inscript-radius-sm',
     minHeight: '--inscript-min-height',
+    gutter: '--inscript-gutter',
+    padding: '--inscript-padding',
     focusDimOpacity: '--inscript-focus-dim-opacity',
 };
 

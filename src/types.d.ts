@@ -275,6 +275,10 @@ export interface InscriptEditorTheme {
     radius?: string;
     radiusSm?: string;
     minHeight?: string;
+    /** Side space around the content column. Default: 0.5rem, and 2rem from the `md` breakpoint. One value replaces both. */
+    gutter?: string;
+    /** Padding inside the editable area. Default 2rem. */
+    padding?: string;
     focusDimOpacity?: string | number;
 }
 

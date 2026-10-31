@@ -238,7 +238,7 @@ The editor's own strings (toolbar tooltips, modal copy, etc.) ship in **English*
 
 **Zero-config**: if your app already initializes i18next and renders `<InscriptEditor>` (or any of the individually-exported modals/bubble-menus), the library auto-registers English into your active i18next instance on mount. Nothing else to do.
 
-**No i18next at all?** Every string carries an English `defaultValue`, so the editor renders correctly in English even if your app never sets up i18next.
+**Never initialized i18next?** `i18next` and `react-i18next` must be installed, as they are peer dependencies, but you don't have to call `init()`. Every string carries an English `defaultValue`, so the editor renders correctly in English. If your app initializes i18next later, the editor's strings are registered at that point.
 
 **Adding a language, or rewording the defaults**, from the `inscript-editor/locales` subpath:
 
@@ -446,7 +446,7 @@ That works because the prop just sets the same `--inscript-*` variables inline o
 | Tables | `tableBorder`, `tableHeaderBg` |
 | Marks & selection | `markBg`, `markText`, `selection` |
 | Typography | `fontFamily`, `fontSize`, `lineHeight`, `headingFont`, `monoFont`, `headingWeight`, `h1Size`, `h2Size`, `h3Size` |
-| Layout & shape | `maxWidth`, `focusMaxWidth`, `blockGap`, `radius`, `radiusSm`, `minHeight`, `focusDimOpacity` |
+| Layout & shape | `maxWidth`, `focusMaxWidth`, `blockGap`, `radius`, `radiusSm`, `minHeight`, `gutter`, `padding`, `focusDimOpacity` |
 
 Each key `fooBar` maps to the CSS variable `--inscript-…` (e.g. `surfaceRaised` → `--inscript-color-surface-raised`, `radius` → `--inscript-radius`). Interactive `hover`/`active` overlays are semi-transparent so they read correctly on any surface color you pick. `onAccent` is the text/icon color on accent-filled buttons; its default clears WCAG AA against the default accent, so if you pick a **dark** accent set `onAccent` too (e.g. `'#fff'`).
 

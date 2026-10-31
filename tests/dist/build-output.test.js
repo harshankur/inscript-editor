@@ -81,6 +81,14 @@ maybeDescribe('dist build output', () => {
         expect(css).toMatch(/@container[^{]*\(\s*(min-width:\s*48rem|width\s*>=\s*48rem)\s*\)/);
     });
 
+    it('ships the spacing tokens in both stylesheets, with the responsive gutter still responsive', () => {
+        const content = fs.readFileSync(path.join(DIST_DIR, 'styles', 'content.css'), 'utf-8');
+        expect(content).toContain('--inscript-padding');
+        const full = fs.readFileSync(path.join(DIST_DIR, 'styles', 'inscript-editor.css'), 'utf-8');
+        expect(full).toContain('--inscript-padding');
+        expect(full).toMatch(/@media[^{]*48rem[^{]*\{[^}]*--inscript-gutter|md\\:px-\\\[var\\\(--inscript-gutter/);
+    });
+
     it('the content-only stylesheet ships every @keyframes its rules animate with', () => {
         const css = fs.readFileSync(path.join(DIST_DIR, 'styles', 'content.css'), 'utf-8');
         expect(css).toContain('@keyframes ProseMirror-cursor-blink');
