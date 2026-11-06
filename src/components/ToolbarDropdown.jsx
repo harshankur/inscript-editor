@@ -12,6 +12,9 @@ import { TOOLBAR_SIZES } from './ToolbarButton.jsx';
  *
  * Props:
  *   items     – array of { id, icon: LucideComponent, label, action, active? }
+ *               `active` marks the current choice: the main button, which shows it, reports it as
+ *               aria-pressed (like any toolbar button showing a state); in the list of choices it is
+ *               aria-current (the current one of several options, not a switch).
  *   title     – tooltip on the whole control
  *   activeId  – externally-resolved active id (overrides internal lastId when set)
  */
@@ -63,6 +66,9 @@ export const ToolbarDropdown = ({ items = [], title, activeId }) => {
             <button
                 type="button"
                 title={activeItem?.label ?? title}
+                aria-label={activeItem?.label ?? title}
+                // Pressed when the item it runs is the current state (the paragraph's alignment).
+                aria-pressed={activeItem && 'active' in activeItem ? !!activeItem.active : undefined}
                 onClick={() => runItem(activeItem)}
                 style={{ width: `${BTN_W}px`, height: `${BTN_W}px` }}
                 className={`flex items-center justify-center rounded-l transition-colors
@@ -81,6 +87,8 @@ export const ToolbarDropdown = ({ items = [], title, activeId }) => {
             <button
                 type="button"
                 title={title}
+                aria-label={title}
+                aria-expanded={open}
                 onClick={() => setOpen(v => !v)}
                 style={{ width: `${CHEVRON_W}px`, height: `${BTN_W}px` }}
                 className={`flex items-center justify-center rounded-r transition-colors
@@ -96,6 +104,8 @@ export const ToolbarDropdown = ({ items = [], title, activeId }) => {
             {open && (
                 <div
                     ref={popoverRef}
+                    role="group"
+                    aria-label={title}
                     className="absolute left-0 top-full mt-1 z-[70] bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border)] rounded-lg shadow-xl overflow-hidden"
                     style={{ minWidth: '160px' }}
                 >
@@ -106,6 +116,7 @@ export const ToolbarDropdown = ({ items = [], title, activeId }) => {
                                 key={item.id}
                                 type="button"
                                 onClick={() => handlePick(item)}
+                                aria-current={item.active ? 'true' : undefined}
                                 className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors
                                     ${item.active
                                         ? 'bg-[var(--inscript-color-active)] text-[var(--inscript-color-text)] font-medium'

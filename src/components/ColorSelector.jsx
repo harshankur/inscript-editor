@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useInscriptT } from '../hooks/useInscriptT.js';
 import { XCircle } from 'lucide-react';
 import { ToolbarButton } from './ToolbarButton.jsx';
 
@@ -11,17 +11,22 @@ import { ToolbarButton } from './ToolbarButton.jsx';
  * `active` whether it is the current choice, and `onSelect` what picking it does.
  */
 export const ColorSelector = ({ icon: Icon, title, activeColor, onChange, onRemove, presets, variant = 'text', defaultSwatch }) => {
-    const { t } = useTranslation('inscript-editor');
+    const { t } = useInscriptT();
     const [isOpen, setIsOpen] = useState(false);
     const isDefaultActive = !!defaultSwatch?.active;
     // What the button's indicator shows: the active colour, or the default swatch when that is active.
     const indicatorColor = activeColor || (isDefaultActive ? defaultSwatch.css : undefined);
+    // The colour applied, for the button's name: the colour itself, or the default swatch's name.
+    const applied = activeColor || isDefaultActive ? { name: title, color: activeColor || defaultSwatch.title } : null;
     return (
         <div className="relative">
             <ToolbarButton
                 onClick={() => setIsOpen(!isOpen)}
                 active={!!activeColor || isDefaultActive}
+                expanded={isOpen}
                 title={title}
+                // A popover button reports open or closed, so the colour applied is in its name.
+                ariaLabel={applied ? t('colorValue', '{{name}}: {{color}}', applied) : title}
             >
                 <div className="relative flex items-center justify-center">
                     <Icon size={16} style={{ color: variant === 'text' ? activeColor : undefined }} />
@@ -43,7 +48,7 @@ export const ColorSelector = ({ icon: Icon, title, activeColor, onChange, onRemo
                                     style={{ backgroundColor: defaultSwatch.css }}
                                     title={defaultSwatch.title}
                                     aria-label={defaultSwatch.title}
-                                    aria-pressed={isDefaultActive}
+                                    aria-current={isDefaultActive ? 'true' : undefined}
                                 />
                             )}
                             {presets.map(color => (
@@ -53,6 +58,8 @@ export const ColorSelector = ({ icon: Icon, title, activeColor, onChange, onRemo
                                     className={`w-6 h-6 rounded border ${activeColor === color ? 'border-white ring-1 ring-white' : 'border-[var(--inscript-color-border-strong)] hover:scale-110 active:scale-95'} transition-all`}
                                     style={{ backgroundColor: color }}
                                     title={color}
+                                    aria-label={color}
+                                    aria-current={activeColor === color ? 'true' : undefined}
                                 />
                             ))}
                         </div>

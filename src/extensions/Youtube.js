@@ -1,10 +1,10 @@
 import { Node } from '@tiptap/core';
 import { Plugin } from '@tiptap/pm/state';
-import i18next from 'i18next';
 import { getExternalOpener } from './HostBridge.js';
 import { extractYoutubeId, isYoutubeId, youtubeEmbedUrl } from '../utils/youtubeUrl.js';
 import { DEFAULT_LAYOUT_ALIGN, DEFAULT_LAYOUT_WIDTH, cssLength, layoutAlign } from '../utils/layout.js';
 import { buildYoutubeConsent, buildYoutubeIcon, YOUTUBE_CONSENT_DEFAULTS } from '../utils/youtubeConsent.js';
+import { editorT, onEditorLanguageChanged } from '../utils/editorT.js';
 
 /** The node's video ID when it is one, else null (a document may hold anything there). */
 const videoId = attrs => (isYoutubeId(attrs?.['data-youtube-video']) ? attrs['data-youtube-video'] : null);
@@ -47,13 +47,12 @@ const PLACEHOLDER_TEXT = 'Video unavailable';
 const PLACEHOLDER_ICON_SIZE = 32;
 
 /** The consent placeholder's labels, in the current language. */
-function consentLabels() {
-    const t = (key, defaultValue) => i18next.t(key, { ns: 'inscript-editor', defaultValue });
+function consentLabels(editor) {
     return {
-        title: t('youtubeConsentTitle', YOUTUBE_CONSENT_DEFAULTS.title),
-        text: t('youtubeConsentText', YOUTUBE_CONSENT_DEFAULTS.text),
-        load: t('youtubeConsentLoad', YOUTUBE_CONSENT_DEFAULTS.load),
-        privacy: t('youtubeConsentPrivacy', YOUTUBE_CONSENT_DEFAULTS.privacy),
+        title: editorT('youtubeConsentTitle', YOUTUBE_CONSENT_DEFAULTS.title, {}, editor),
+        text: editorT('youtubeConsentText', YOUTUBE_CONSENT_DEFAULTS.text, {}, editor),
+        load: editorT('youtubeConsentLoad', YOUTUBE_CONSENT_DEFAULTS.load, {}, editor),
+        privacy: editorT('youtubeConsentPrivacy', YOUTUBE_CONSENT_DEFAULTS.privacy, {}, editor),
     };
 }
 
@@ -76,13 +75,13 @@ function buildPlaceholderSpec(text = PLACEHOLDER_TEXT) {
     ];
 }
 
-function buildPlaceholderDom() {
+function buildPlaceholderDom(editor) {
     const wrapper = document.createElement('div');
     wrapper.className = 'absolute inset-0 flex flex-col items-center justify-center gap-2 text-[var(--inscript-color-muted)]';
     wrapper.appendChild(buildYoutubeIcon(PLACEHOLDER_ICON_SIZE));
     const label = document.createElement('span');
     label.className = 'text-xs';
-    label.textContent = i18next.t('youtubeVideoUnavailable', { ns: 'inscript-editor', defaultValue: PLACEHOLDER_TEXT });
+    label.textContent = editorT('youtubeVideoUnavailable', PLACEHOLDER_TEXT, {}, editor);
     wrapper.appendChild(label);
     return wrapper;
 }
@@ -237,7 +236,7 @@ export const Youtube = Node.create({
             iframe.setAttribute('allow', IFRAME_ALLOW);
             iframe.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%;';
 
-            let placeholder = buildPlaceholderDom();
+            let placeholder = buildPlaceholderDom(editor);
 
             // Transparent overlay so ProseMirror sees clicks and creates a NodeSelection.
             // Without this, clicks go straight to the cross-origin iframe and TipTap never selects the node.
@@ -266,14 +265,14 @@ export const Youtube = Node.create({
                 if (facadeMode === YOUTUBE_FACADE.LOCAL) {
                     // Drawn entirely here: no request leaves the page until "Load video" is
                     // pressed. That press is the consent, for this video only; nothing is kept.
-                    consentEl = buildYoutubeConsent({ labels: consentLabels(), onLoad: loadPlayer, privacyUrl, getOpenExternal });
+                    consentEl = buildYoutubeConsent({ labels: consentLabels(editor), onLoad: loadPlayer, privacyUrl, getOpenExternal });
                     consentEl.setAttribute('data-youtube-facade', YOUTUBE_FACADE.LOCAL);
                     return consentEl;
                 }
                 const wrap = document.createElement('button');
                 facadeButton = wrap;
                 wrap.type = 'button';
-                wrap.setAttribute('aria-label', i18next.t('youtubeLoadVideo', { ns: 'inscript-editor', defaultValue: LOAD_LABEL }));
+                wrap.setAttribute('aria-label', editorT('youtubeLoadVideo', LOAD_LABEL, {}, editor));
                 wrap.className = 'absolute inset-0 w-full h-full block cursor-pointer group border-0 p-0';
                 wrap.setAttribute('data-youtube-facade', YOUTUBE_FACADE.THUMBNAIL);
                 // The thumbnail is the ONLY network request until the user clicks.
@@ -346,18 +345,19 @@ export const Youtube = Node.create({
             // placeholder, the thumbnail's label, the "Video unavailable" placeholder. A loaded
             // player is left alone (rebuilding it would stop the video).
             const onLanguageChanged = () => {
-                placeholder = buildPlaceholderDom();
+                placeholder = buildPlaceholderDom(editor);
                 if (state === 'facade' || state === 'placeholder') {
                     state = null;
                     render(currentAttrs);
                 }
             };
-            i18next.on('languageChanged', onLanguageChanged);
+            // The editor's instance (see editorI18n), followed also when the editor is given another.
+            const stopListening = onEditorLanguageChanged(editor, onLanguageChanged);
 
             return {
                 dom,
                 destroy() {
-                    i18next.off('languageChanged', onLanguageChanged);
+                    stopListening();
                 },
                 update(newNode) {
                     if (newNode.type.name !== 'youtube') return false;

@@ -1,7 +1,7 @@
 import { Node } from '@tiptap/core';
 import { DOMParser as ProseMirrorDOMParser } from '@tiptap/pm/model';
-import i18next from 'i18next';
 import { normalizeForParse } from '../utils/parseDom.js';
+import { editorT, onEditorLanguageChanged } from '../utils/editorT.js';
 
 /** Collapse runs of whitespace so a multi-line comment reads as one line in its chip. */
 const collapse = text => text.replace(/\s+/g, ' ');
@@ -69,16 +69,20 @@ export const HtmlComment = Node.create({
     },
 
     addNodeView() {
+        const { editor } = this;
         return ({ node }) => {
             const text = node.attrs.text ?? '';
             const dom = document.createElement('span');
             dom.className = 'html-comment';
             dom.setAttribute('contenteditable', 'false'); // attribute, not the property: reflects everywhere
             dom.setAttribute('role', 'note');
-            dom.setAttribute('aria-label', i18next.t('htmlComment', { ns: 'inscript-editor', defaultValue: 'Hidden comment' }));
+            const label = () => dom.setAttribute('aria-label', editorT('htmlComment', 'Hidden comment', {}, editor));
+            label();
             dom.title = text.trim();
             dom.textContent = `<!--${collapse(text)}-->`;
-            return { dom };
+            // The label follows a language switch, as the rest of the editor does.
+            const stopListening = onEditorLanguageChanged(editor, label);
+            return { dom, destroy: stopListening };
         };
     },
 });

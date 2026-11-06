@@ -76,6 +76,7 @@ export function SourceField({ value = '', onApply, validate, placeholder, label,
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={apply}
                     title={label}
+                    aria-label={label}
                     className="shrink-0 flex items-center justify-center w-5 h-5 rounded text-[var(--inscript-color-accent)] hover:bg-[var(--inscript-color-accent-soft)]"
                 >
                     <Check size={13} />

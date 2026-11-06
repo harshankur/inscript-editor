@@ -15,6 +15,9 @@ import { HighlightSelector } from '../../src/components/HighlightSelector.jsx';
 import { ColorSelector } from '../../src/components/ColorSelector.jsx';
 import { FontSizeSelector } from '../../src/components/FontSizeSelector.jsx';
 
+// The link button is titled Insert Link, or Edit Link with the cursor in a link.
+const LINK_BUTTON = /^(Insert|Edit) Link$/;
+
 const lastShouldShow = vi.hoisted(() => ({ fn: null }));
 vi.mock('@tiptap/react/menus', () => ({
     BubbleMenu: ({ children, shouldShow }) => { lastShouldShow.fn = shouldShow; return <div data-testid="bubble-menu">{children}</div>; },
@@ -124,7 +127,7 @@ describe('YoutubeBubbleMenu', () => {
         act(() => { fireEvent.click(screen.getByTitle('Video width 50%')); });
         expect(editor.state.doc.firstChild.attrs.width).toBe('50%');
         expect(screen.getByTitle('Video width 50%').className).toMatch(/shadow-inner/);
-        act(() => { fireEvent.click(screen.getByTitle('Align Right')); });
+        act(() => { fireEvent.click(screen.getByTitle('Place video right')); });
         expect(editor.state.doc.firstChild.attrs.align).toBe('right');
     });
 
@@ -202,7 +205,7 @@ describe('TableBubbleMenu', () => {
         expect(screen.getByTitle('Split Cell').disabled).toBe(false);
         act(() => { fireEvent.click(screen.getByTitle('Split Cell')); });
         expect(editor.getHTML()).not.toMatch(/colspan/);
-        for (const title of ['Add Column Left', 'Add Column Right', 'Add Row Above', 'Add Row Below', 'Toggle Header Row', 'Toggle Header Column', 'Align Left', 'Align Right', 'Align Center']) {
+        for (const title of ['Add Column Left', 'Add Column Right', 'Add Row Above', 'Add Row Below', 'Toggle Header Row', 'Toggle Header Column', 'Place table left', 'Place table right', 'Center table on the page', 'Align column left', 'Align column right', 'Center column', 'Clear column alignment']) {
             act(() => { fireEvent.click(screen.getByTitle(title)); });
             editor.state.doc.check();
         }
@@ -229,7 +232,7 @@ describe('LinkSelector', () => {
         return editor;
     };
     const apply = (value) => {
-        fireEvent.click(screen.getByTitle('Insert Link'));
+        fireEvent.click(screen.getByTitle(LINK_BUTTON));
         const input = screen.getByPlaceholderText('Enter URL...');
         fireEvent.change(input, { target: { value } });
         act(() => { fireEvent.keyDown(input, { key: 'Enter' }); });
@@ -239,21 +242,21 @@ describe('LinkSelector', () => {
         const editor = setup('<p>hello world</p>', 7, 12);
         apply('https://example.com');
         expect(editor.getHTML()).toContain('<a target="_blank" rel="noopener noreferrer nofollow" href="https://example.com">world</a>');
-        expect(screen.getByTitle('Insert Link').className).toMatch(/shadow-inner/);
+        expect(screen.getByTitle(LINK_BUTTON).className).toMatch(/shadow-inner/);
     });
 
     it('edits an existing link (cursor inside it) across the whole link', () => {
         const editor = setup('<p>a <a href="https://old.example">link text</a> b</p>', 6, 6);
-        fireEvent.click(screen.getByTitle('Insert Link'));
+        fireEvent.click(screen.getByTitle(LINK_BUTTON));
         expect(screen.getByPlaceholderText('Enter URL...').value).toBe('https://old.example');
-        fireEvent.click(screen.getByTitle('Insert Link'));
+        fireEvent.click(screen.getByTitle(LINK_BUTTON));
         apply('https://new.example');
         expect(editor.getHTML()).toContain('href="https://new.example">link text</a>');
     });
 
     it('removes a link with the remove button', () => {
         const editor = setup('<p>a <a href="https://old.example">link text</a> b</p>', 6, 6);
-        fireEvent.click(screen.getByTitle('Insert Link'));
+        fireEvent.click(screen.getByTitle(LINK_BUTTON));
         act(() => { fireEvent.click(screen.getByTitle('Remove Link')); });
         expect(editor.getHTML()).not.toContain('<a');
     });

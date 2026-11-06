@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useEditor } from '@tiptap/react';
+import { I18nContext, getI18n } from 'react-i18next';
+import { setEditorI18n } from '../extensions/HostBridge.js';
 import { createDocument, getHTMLFromFragment } from '@tiptap/core';
 import { buildExtensions } from '../extensions/index.js';
 import { hasView, viewDom } from '../utils/editorView.js';
@@ -323,6 +325,12 @@ export function useInscriptEditor({
         },
     });
     const editor = useEditor(editorConfig, [contentKey, optionsKey]);
+    // The i18next instance this hook's React tree uses (a host's I18nextProvider, or react-i18next's),
+    // for the editor's text built outside React. Read from context, not through useTranslation,
+    // which would suspend the host's component while a namespace loads; handed over once committed
+    // (node views built before redraw in its language, see setEditorI18n).
+    const i18n = useContext(I18nContext)?.i18n ?? getI18n();
+    useLayoutEffect(() => { setEditorI18n(editor, i18n); }, [editor, i18n]);
 
     // Live-toggle spellcheck on the editor DOM so the host's setting flips without recreating the
     // editor (which would lose the undo stack and cursor).

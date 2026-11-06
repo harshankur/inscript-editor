@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useInscriptT } from '../hooks/useInscriptT.js';
 import { BookOpen, Edit2, Check, X, Search } from 'lucide-react';
 
 export const BibliographyPanel = ({ editor }) => {
-    const { t } = useTranslation('inscript-editor');
+    const { t } = useInscriptT();
     const [citations, setCitations] = useState([]);
     const [editingKey, setEditingKey] = useState(null);
     const [editLabel, setEditLabel] = useState('');

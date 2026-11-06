@@ -1,5 +1,6 @@
 import { Extension } from '@tiptap/core';
 import Suggestion from '@tiptap/suggestion';
+import { slashItemText } from './slashCommandItems.js';
 
 /**
  * The slash menu's state for one editor, kept in that editor's extension storage: the open
@@ -50,12 +51,12 @@ export const SlashCommand = Extension.create({
                 items: ({ query, editor }) => {
                     const { options } = editor.extensionManager.extensions.find(e => e.name === 'slashCommand');
                     const items = (typeof options.resolveItems === 'function' ? options.resolveItems() : options.items) || [];
-                    // `title` is read here, at query time, so filtering matches the current language.
+                    // The title is read here, at query time, as the menu shows it (this editor's language).
                     const q = query.toLowerCase();
                     return items.filter(item =>
                         // An item that needs a host handler is offered only while there is one.
                         (typeof item.isAvailable !== 'function' || item.isAvailable({ editor })) && (
-                            String(item.title ?? '').toLowerCase().includes(q) ||
+                            String(slashItemText(item, 'title', editor) ?? '').toLowerCase().includes(q) ||
                             (item.keywords || []).some(k => String(k).toLowerCase().includes(q))
                         )
                     );

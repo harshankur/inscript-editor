@@ -27,6 +27,10 @@ function extractKeys(source) {
     for (const m of source.matchAll(/\bt\(\s*['"]([a-zA-Z0-9_.]+)['"]/g)) {
         keys.add(m[1]);
     }
+    // editorT('key', 'default') (text built outside React)
+    for (const m of source.matchAll(/\beditorT\(\s*['"]([a-zA-Z0-9_.]+)['"]/g)) {
+        keys.add(m[1]);
+    }
     // i18next.t('key', { ns: 'inscript-editor', ... })
     for (const m of source.matchAll(/i18next\.t\(\s*['"]([a-zA-Z0-9_.]+)['"]/g)) {
         keys.add(m[1]);

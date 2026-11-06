@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, Fragment } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useInscriptT } from '../hooks/useInscriptT.js';
 import {
     AlignCenter, AlignJustify, AlignLeft, AlignRight,
     Bold, ChevronsRight, Code, SquareCode, Minus, RemoveFormatting, Heading1, Heading2, Heading3,
@@ -24,7 +24,9 @@ import { LinkSelector } from './LinkSelector.jsx';
 import { useInscriptEditorTranslations } from '../hooks/useInscriptEditorTranslations.js';
 import { DIVIDER, sanitizeToolConfig } from '../toolbar/toolRegistry.js';
 import { TOOLBAR_PRESETS } from '../toolbar/presets.js';
+import { abbreviationTool } from '../toolbar/abbreviationTool.js';
 import { isActiveCached } from '../utils/editorView.js';
+import { selectionTextAlign } from '../utils/selectionTextAlign.js';
 
 // Width of a ToolbarDropdown (primary btn + divider + chevron)
 const DROPDOWN_WIDTH = TOOLBAR_SIZES.BUTTON + 14 + 1;
@@ -33,11 +35,13 @@ const DROPDOWN_WIDTH = TOOLBAR_SIZES.BUTTON + 14 + 1;
  * Builds the full map of tool ID → tool slot descriptor.
  * This needs the editor instance + callbacks, so it's a function not a constant.
  */
-function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t }) {
+function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t, showsAlignment = true }) {
     // In a code block marks and inline nodes cannot apply: those tools are off there (a mark set
     // for typing would otherwise light up its button without ever applying).
     const inCode = !!editor.state.selection.$from.parent.type.spec.code;
     const mark = (name) => ({ active: !inCode && isActiveCached(editor, name), disabled: inCode });
+    // Read only when the toolbar shows the alignment control: it walks the selection.
+    const textAlign = showsAlignment ? selectionTextAlign(editor) : null;
     return {
         undo: { id: 'undo', icon: Undo, action: onHistoryUndo, disabled: !canUndo, title: t('undo', 'Undo') },
         redo: { id: 'redo', icon: Redo, action: onHistoryRedo, disabled: !canRedo, title: t('redo', 'Redo') },
@@ -55,14 +59,7 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
         inlineCode:  { id: 'inlineCode',  icon: Code,             action: () => editor.chain().focus().toggleCode().run(),         ...mark('code'),         title: t('inlineCode', 'Inline Code') },
         sub:         { id: 'sub',         icon: SubscriptIcon,    action: () => editor.chain().focus().toggleSubscript().run(),    ...mark('subscript'),    title: t('subscript', 'Subscript') },
         sup:         { id: 'sup',         icon: SuperscriptIcon,  action: () => editor.chain().focus().toggleSuperscript().run(),  ...mark('superscript'),  title: t('superscript', 'Superscript') },
-        abbreviation:{ id: 'abbreviation',icon: TextSelect,       action: () => {
-            // An abbreviation needs its expansion (the <abbr title>). A host can own the
-            // input via onAddAbbreviation; otherwise fall back to a native prompt.
-            if (onAddAbbreviation) return onAddAbbreviation();
-            if (isActiveCached(editor, 'abbreviation')) { editor.chain().focus().unsetAbbreviation().run(); return; }
-            const title = window.prompt(t('abbreviationPrompt', 'Enter the full form (e.g. HyperText Markup Language):'));
-            if (title) editor.chain().focus().setAbbreviation(title).run();
-        }, active: isActiveCached(editor, 'abbreviation'), title: t('abbreviation', 'Abbreviation') },
+        abbreviation:{ id: 'abbreviation',icon: TextSelect,       ...abbreviationTool(editor, t, onAddAbbreviation), title: t('abbreviation', 'Abbreviation') },
         clearFormat: { id: 'clearFormat', icon: RemoveFormatting, action: () => editor.chain().focus().unsetAllMarks().clearNodes().run(), title: t('clearFormat', 'Clear Formatting') },
 
         // Styling — these are custom-rendered, so we mark them
@@ -143,16 +140,14 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
         align: {
             id: 'align', type: 'dropdown',
             width: DROPDOWN_WIDTH,
-            activeId: isActiveCached(editor, { textAlign: 'center' }) ? 'center'
-                : isActiveCached(editor, { textAlign: 'right' }) ? 'right'
-                    : isActiveCached(editor, { textAlign: 'justify' }) ? 'justify'
-                        : 'left',
+            // The dropdown shows the current alignment, else Align Left (what a click there would do).
+            activeId: textAlign ?? 'left',
             title: t('textAlign', 'Text Alignment'),
             items: [
-                { id: 'left',    icon: AlignLeft,    label: t('alignLeft', 'Align Left'),     action: () => editor.chain().focus().setTextAlign('left').run(),    active: isActiveCached(editor, { textAlign: 'left' }) },
-                { id: 'center',  icon: AlignCenter,  label: t('alignCenter', 'Align Center'), action: () => editor.chain().focus().setTextAlign('center').run(),  active: isActiveCached(editor, { textAlign: 'center' }) },
-                { id: 'right',   icon: AlignRight,   label: t('alignRight', 'Align Right'),   action: () => editor.chain().focus().setTextAlign('right').run(),   active: isActiveCached(editor, { textAlign: 'right' }) },
-                { id: 'justify', icon: AlignJustify, label: t('alignJustify', 'Justify'),     action: () => editor.chain().focus().setTextAlign('justify').run(), active: isActiveCached(editor, { textAlign: 'justify' }) },
+                { id: 'left',    icon: AlignLeft,    label: t('alignLeft', 'Align Left'),     action: () => editor.chain().focus().setTextAlign('left').run(),    active: textAlign === 'left' },
+                { id: 'center',  icon: AlignCenter,  label: t('alignCenter', 'Align Center'), action: () => editor.chain().focus().setTextAlign('center').run(),  active: textAlign === 'center' },
+                { id: 'right',   icon: AlignRight,   label: t('alignRight', 'Align Right'),   action: () => editor.chain().focus().setTextAlign('right').run(),   active: textAlign === 'right' },
+                { id: 'justify', icon: AlignJustify, label: t('alignJustify', 'Justify'),     action: () => editor.chain().focus().setTextAlign('justify').run(), active: textAlign === 'justify' },
             ]
         },
 
@@ -182,8 +177,8 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
         },
 
         // Advanced blocks
-        math:    { id: 'math',    icon: Sigma,    action: () => editor.chain().focus().insertContent({ type: 'mathBlock' }).run(), active: isActiveCached(editor, 'mathBlock'), title: t('slash.math', 'Math Block') },
-        mermaid: { id: 'mermaid', icon: Workflow, action: () => editor.chain().focus().insertContent({ type: 'mermaid' }).run(),   active: isActiveCached(editor, 'mermaid'),   title: t('slash.mermaid', 'Mermaid Diagram') },
+        math:    { id: 'math',    icon: Sigma,    action: () => editor.chain().focus().insertContent({ type: 'mathBlock' }).run(), active: isActiveCached(editor, 'mathBlock'), toggle: false, title: t('slash.math', 'Math Block') },
+        mermaid: { id: 'mermaid', icon: Workflow, action: () => editor.chain().focus().insertContent({ type: 'mermaid' }).run(),   active: isActiveCached(editor, 'mermaid'),   toggle: false, title: t('slash.mermaid', 'Mermaid Diagram') },
 
         // Media & metadata
         // These open the host's own picker: without one there is nothing to do, so they are off.
@@ -194,7 +189,7 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
             id: 'tags', type: 'custom',
             width: TOOLBAR_SIZES.CUSTOM,
             render: () => (
-                <ToolbarButton onClick={onShowMetadataModal} active={showMetadataActive} disabled={typeof onShowMetadataModal !== 'function'} title={t('manageMetadata', 'Manage Tags & Categories')} width={TOOLBAR_SIZES.CUSTOM}>
+                <ToolbarButton onClick={onShowMetadataModal} active={showMetadataActive} expanded={!!showMetadataActive} hasPopup="dialog" disabled={typeof onShowMetadataModal !== 'function'} title={t('manageMetadata', 'Manage Tags & Categories')} width={TOOLBAR_SIZES.CUSTOM}>
                     <div className="relative flex items-center justify-center">
                         <Tag size={18} />
                         {hasMetadata && <span className="absolute -top-1 -right-1 w-2 h-2 bg-[var(--inscript-color-accent)] rounded-full" />}
@@ -231,7 +226,7 @@ function configToSlots(config, toolMap) {
  */
 export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, toolbarConfig, onToolbarConfigChange, bubbleMenuConfig, onBubbleMenuConfigChange, toolbarPresets, bubbleMenuPresets, toolbarPresetLabels, presetsMode, customizerContainer }) => {
     useInscriptEditorTranslations();
-    const { t } = useTranslation('inscript-editor');
+    const { t } = useInscriptT();
     const containerRef = useRef(null);
     const [visibleCount, setVisibleCount] = useState(100);
     const [showMore, setShowMore] = useState(false);
@@ -248,6 +243,8 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
         return () => document.removeEventListener('keydown', onKeyDown);
     }, [showMore]);
     const [customizerOpen, setCustomizerOpen] = useState(false);
+    // Focus goes back to the Customize button when its dialog closes.
+    const customizeButtonRef = useRef(null);
 
     // A host's config is validated (unknown, misplaced and duplicate ids dropped) once per value:
     // duplicates used to render twice, under one React key.
@@ -266,7 +263,8 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
         const toolMap = buildToolMap(editor, {
             onHistoryUndo, onHistoryRedo, canUndo, canRedo,
             onShowMetadataModal, hasMetadata, showMetadataActive,
-            onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t
+            onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t,
+            showsAlignment: activeConfig.includes('align'),
         });
         return configToSlots(activeConfig, toolMap);
     }, [editor, editorVersion, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t, activeConfig]);
@@ -345,7 +343,7 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
         const Icon = tool.icon;
         if (!Icon) return null;
         return (
-            <ToolbarButton key={tool.id} onClick={tool.action} active={tool.active} disabled={tool.disabled} title={tool.title}>
+            <ToolbarButton key={tool.id} onClick={tool.action} active={tool.active} toggle={tool.toggle !== false} disabled={tool.disabled} title={tool.title}>
                 <Icon size={18} />
             </ToolbarButton>
         );
@@ -363,7 +361,6 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                             <button type="button"
                                 ref={moreButtonRef}
                                 onClick={() => setShowMore(!showMore)}
-                                aria-haspopup="true"
                                 aria-expanded={showMore}
                                 aria-label={t('moreTools', 'More tools')}
                                 style={{ width: `${TOOLBAR_SIZES.BUTTON}px`, height: `${TOOLBAR_SIZES.BUTTON}px` }}
@@ -388,6 +385,7 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                     {/* Settings gear — only rendered when consumer opts in via onToolbarConfigChange */}
                     {onToolbarConfigChange && (
                         <button type="button"
+                            ref={customizeButtonRef}
                             onClick={() => setCustomizerOpen(true)}
                             style={{ width: `${TOOLBAR_SIZES.BUTTON}px`, height: `${TOOLBAR_SIZES.BUTTON}px` }}
                             className={`flex items-center justify-center rounded transition-colors shrink-0 ${
@@ -396,6 +394,9 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                                     : 'text-[var(--inscript-color-muted)] hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)]'
                             }`}
                             title={t('customizeToolbar', 'Customize toolbar')}
+                            aria-label={t('customizeToolbar', 'Customize toolbar')}
+                            aria-haspopup="dialog"
+                            aria-expanded={customizerOpen}
                         >
                             <SlidersHorizontal size={16} />
                         </button>
@@ -416,6 +417,7 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                     presetsMode={presetsMode}
                     container={customizerContainer}
                     onClose={() => setCustomizerOpen(false)}
+                    returnFocusRef={customizeButtonRef}
                 />
             )}
         </>

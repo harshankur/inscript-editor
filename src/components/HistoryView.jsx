@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useInscriptT } from '../hooks/useInscriptT.js';
 import * as Diff from 'diff';
 import { Redo } from 'lucide-react';
 import { getTextContent } from '../utils/getTextContent.js';
@@ -53,7 +53,7 @@ export const HistoryView = ({
     onSelect,
 }) => {
     useInscriptEditorTranslations();
-    const { t, i18n } = useTranslation('inscript-editor');
+    const { t, i18n } = useInscriptT();
     const hasEntries = history.length > 0;
     const clampIndex = (index) => (hasEntries ? Math.min(Math.max(index, 0), history.length - 1) : -1);
     const [selectedIdx, setSelectedIdx] = useState(() => clampIndex(currentIndex));

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useInscriptT } from '../hooks/useInscriptT.js';
 import { ALargeSmall, CheckCircle, XCircle } from 'lucide-react';
 import { ToolbarButton, TOOLBAR_SIZES } from './ToolbarButton.jsx';
 
 export const FontSizeSelector = ({ editor }) => {
-    const { t } = useTranslation('inscript-editor');
+    const { t } = useInscriptT();
     const [isOpen, setIsOpen] = useState(false);
     const sizes = [12, 14, 16, 18, 20, 24, 30, 36, 48, 60, 72];
     const currentSize = editor?.getAttributes('textStyle')?.fontSize;
@@ -14,7 +14,10 @@ export const FontSizeSelector = ({ editor }) => {
             <ToolbarButton
                 onClick={() => setIsOpen(!isOpen)}
                 active={!!currentSize}
+                expanded={isOpen}
                 title={t('fontSize', 'Font Size')}
+                // The button shows the size, so its name says it too.
+                ariaLabel={currentSize ? t('fontSizeValue', 'Font Size {{size}}', { size: currentSize }) : t('fontSize', 'Font Size')}
                 width={TOOLBAR_SIZES.CUSTOM}
             >
                 <div className="flex items-center justify-center gap-0.5">
@@ -30,6 +33,7 @@ export const FontSizeSelector = ({ editor }) => {
                             <button type="button"
                                 key={size}
                                 onClick={() => { editor.chain().focus().setFontSize(size).run(); setIsOpen(false); }}
+                                aria-current={currentSize == size ? 'true' : undefined}
                                 className={`px-3 py-2 text-left hover:bg-[var(--inscript-color-hover)] transition-colors text-sm flex items-center justify-between ${currentSize == size ? 'text-[var(--inscript-color-text)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                             >
                                 <span>{size}px</span>

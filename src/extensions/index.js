@@ -38,7 +38,7 @@ import { Citation } from './Citation.js';
 import { HtmlComment } from './HtmlComment.js';
 import { Embed } from './Embed.jsx';
 import { getDefaultSlashItems } from './slashCommandItems.js';
-import i18next from 'i18next';
+import { editorT } from '../utils/editorT.js';
 
 const lowlight = createLowlight(common);
 
@@ -181,8 +181,7 @@ export function buildExtensions(options = {}) {
     // The "/" command menu can be turned off entirely (options.slashCommand === false); otherwise it
     // offers the host-provided items or the defaults.
     if (options.slashCommand !== false) {
-        const t = (k, f) => i18next.t(k, { defaultValue: f, ns: 'inscript-editor' });
-        const items = options.slashCommands ?? getDefaultSlashItems(t, options);
+        const items = options.slashCommands ?? getDefaultSlashItems(editorT, options);
         extensions.push(
             SlashCommand.configure({
                 items,

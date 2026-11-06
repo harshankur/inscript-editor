@@ -1,4 +1,4 @@
-import { useTranslation } from 'react-i18next';
+import { useInscriptT } from '../hooks/useInscriptT.js';
 import { useEditorState } from '@tiptap/react';
 import { Highlighter } from 'lucide-react';
 import { ColorSelector } from './ColorSelector.jsx';
@@ -17,7 +17,7 @@ import { DEFAULT_HIGHLIGHT_CSS, HIGHLIGHT_MARK, HIGHLIGHT_PRESETS } from '../con
  * @param {string} props.title - The button's tooltip.
  */
 export const HighlightSelector = ({ editor, title }) => {
-    const { t } = useTranslation('inscript-editor');
+    const { t } = useInscriptT();
     // Read from the editor as it changes (used on its own, nothing else re-renders this).
     const { color, isDefaultActive } = useEditorState({
         editor,

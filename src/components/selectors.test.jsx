@@ -7,6 +7,9 @@ import { FontSizeSelector } from './FontSizeSelector.jsx';
 import { LinkSelector } from './LinkSelector.jsx';
 import { createEditor } from '../../tests/helpers/createEditor.js';
 
+// The link button is titled Insert Link, or Edit Link with the cursor in a link.
+const LINK_BUTTON = /^(Insert|Edit) Link$/;
+
 describe('selector popovers', () => {
     let editor;
 
@@ -81,7 +84,7 @@ describe('selector popovers', () => {
             fireEvent.click(screen.getByTitle('Highlight'));
             const swatch = screen.getByRole('button', { name: 'Default highlight' });
             expect(swatch.style.backgroundColor).toBe('rgb(1, 2, 3)');
-            expect(swatch.getAttribute('aria-pressed')).toBe('false');
+            expect(swatch.hasAttribute('aria-current')).toBe(false);
             expect(swatch.nextElementSibling.getAttribute('title')).toBe('#bbf7d0');
             fireEvent.click(swatch);
             expect(picked).toBe(1);
@@ -95,7 +98,7 @@ describe('selector popovers', () => {
             const button = screen.getByTitle('Highlight');
             expect(button.querySelector('span[style]').style.backgroundColor).toBe('rgb(1, 2, 3)');
             fireEvent.click(button);
-            expect(screen.getByRole('button', { name: 'Default highlight' }).getAttribute('aria-pressed')).toBe('true');
+            expect(screen.getByRole('button', { name: 'Default highlight' }).getAttribute('aria-current')).toBe('true');
         });
 
         it('is absent unless asked for', () => {
@@ -145,13 +148,13 @@ describe('selector popovers', () => {
             editor.commands.setHighlight({ color: null });
             const { rerender } = render(<HighlightSelector editor={editor} title="Highlight" />);
             open();
-            expect(screen.getByRole('button', { name: 'Default highlight' }).getAttribute('aria-pressed')).toBe('true');
+            expect(screen.getByRole('button', { name: 'Default highlight' }).getAttribute('aria-current')).toBe('true');
             fireEvent.click(screen.getByTitle('Highlight'));
 
             editor.commands.setHighlight({ color: '#bbf7d0' });
             rerender(<HighlightSelector editor={editor} title="Highlight" />);
             open();
-            expect(screen.getByRole('button', { name: 'Default highlight' }).getAttribute('aria-pressed')).toBe('false');
+            expect(screen.getByRole('button', { name: 'Default highlight' }).hasAttribute('aria-current')).toBe(false);
         });
 
         it('renders with no editor', () => {
@@ -179,7 +182,7 @@ describe('selector popovers', () => {
     describe('LinkSelector', () => {
         it('opens the popover, types a URL, and applies it as a link', () => {
             render(<LinkSelector editor={editor} />);
-            fireEvent.click(screen.getByTitle('Insert Link'));
+            fireEvent.click(screen.getByTitle(LINK_BUTTON));
             fireEvent.change(screen.getByPlaceholderText('Enter URL...'), { target: { value: 'https://example.com' } });
             fireEvent.click(screen.getByText('Apply'));
             expect(editor.getAttributes('link').href).toBe('https://example.com');
@@ -188,14 +191,14 @@ describe('selector popovers', () => {
         it('removes the link via the remove-link action', () => {
             editor.commands.setLink({ href: 'https://example.com' });
             render(<LinkSelector editor={editor} />);
-            fireEvent.click(screen.getByTitle('Insert Link'));
+            fireEvent.click(screen.getByTitle(LINK_BUTTON));
             fireEvent.click(screen.getByTitle('Remove Link'));
             expect(editor.isActive('link')).toBe(false);
         });
 
         it('applies on Enter in the address field', () => {
             render(<LinkSelector editor={editor} />);
-            fireEvent.click(screen.getByTitle('Insert Link'));
+            fireEvent.click(screen.getByTitle(LINK_BUTTON));
             const input = screen.getByPlaceholderText('Enter URL...');
             fireEvent.change(input, { target: { value: 'https://example.com/enter' } });
             fireEvent.keyDown(input, { key: 'Enter' });
@@ -205,7 +208,7 @@ describe('selector popovers', () => {
 
         it('stores the address without surrounding spaces', () => {
             render(<LinkSelector editor={editor} />);
-            fireEvent.click(screen.getByTitle('Insert Link'));
+            fireEvent.click(screen.getByTitle(LINK_BUTTON));
             fireEvent.change(screen.getByPlaceholderText('Enter URL...'), { target: { value: '  https://example.com/x  ' } });
             fireEvent.click(screen.getByText('Apply'));
             expect(editor.getAttributes('link').href).toBe('https://example.com/x');
@@ -214,7 +217,7 @@ describe('selector popovers', () => {
         it('removes the link when the address is only whitespace', () => {
             editor.commands.setLink({ href: 'https://example.com' });
             render(<LinkSelector editor={editor} />);
-            fireEvent.click(screen.getByTitle('Insert Link'));
+            fireEvent.click(screen.getByTitle(LINK_BUTTON));
             fireEvent.change(screen.getByPlaceholderText('Enter URL...'), { target: { value: '   ' } });
             fireEvent.click(screen.getByText('Apply'));
             expect(editor.isActive('link')).toBe(false);
@@ -222,7 +225,7 @@ describe('selector popovers', () => {
 
         it('keeps the popover open and says so when the address is refused', () => {
             render(<LinkSelector editor={editor} />);
-            fireEvent.click(screen.getByTitle('Insert Link'));
+            fireEvent.click(screen.getByTitle(LINK_BUTTON));
             const input = screen.getByPlaceholderText('Enter URL...');
             fireEvent.change(input, { target: { value: 'javascript:alert(1)' } });
             fireEvent.click(screen.getByText('Apply'));
@@ -236,7 +239,7 @@ describe('selector popovers', () => {
 
         it('renders no <form> and no submit button (it may sit inside a host form)', () => {
             const { container } = render(<LinkSelector editor={editor} />);
-            fireEvent.click(screen.getByTitle('Insert Link'));
+            fireEvent.click(screen.getByTitle(LINK_BUTTON));
             expect(container.querySelector('form')).toBeNull();
             expect([...container.querySelectorAll('button')].filter(b => b.type === 'submit')).toEqual([]);
         });

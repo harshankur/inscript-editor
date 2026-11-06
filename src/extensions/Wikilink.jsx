@@ -2,7 +2,7 @@ import { Node, mergeAttributes } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
-import { useTranslation } from 'react-i18next';
+import { useInscriptT } from '../hooks/useInscriptT.js';
 
 // Bumping this plugin's revision gives every wikilink a new (empty) node decoration, which is
 // how ProseMirror tells a node view to update without touching the document or the undo stack.
@@ -10,7 +10,7 @@ const wikilinkRefreshKey = new PluginKey('wikilinkRefresh');
 
 const WikilinkComponent = (props) => {
     const { node, extension } = props;
-    const { t } = useTranslation('inscript-editor');
+    const { t } = useInscriptT();
     const { target, alias } = node.attrs;
     const { resolver } = extension.options;
 

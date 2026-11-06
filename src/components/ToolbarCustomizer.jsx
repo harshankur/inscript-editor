@@ -1,9 +1,12 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { useTranslation } from 'react-i18next';
+import { useInscriptT } from '../hooks/useInscriptT.js';
 import { GripVertical, X, Plus, Check, SlidersHorizontal } from 'lucide-react';
 import { TOOL_REGISTRY, DIVIDER, TOOLBAR_TOOL_IDS, BUBBLE_ALLOWED_TOOL_IDS, sanitizeToolConfig } from '../toolbar/toolRegistry.js';
 import { TOOLBAR_PRESETS, BUBBLE_PRESETS, PRESET_LABELS, DEFAULT_TOOLBAR_CONFIG, DEFAULT_BUBBLE_CONFIG } from '../toolbar/presets.js';
+
+/** What Tab can reach inside the drawer. */
+const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 /**
  * ToolbarCustomizer — a slide-in drawer for reordering and customizing
@@ -28,8 +31,10 @@ export const ToolbarCustomizer = ({
     // it (position:absolute) instead of covering the viewport (position:fixed).
     // The element should be position:relative + overflow:hidden.
     container = null,
+    // Where focus goes back to when the drawer closes (the button that opened it).
+    returnFocusRef = null,
 }) => {
-    const { t } = useTranslation('inscript-editor');
+    const { t } = useInscriptT();
     const [activeTab, setActiveTab] = useState('toolbar'); // 'toolbar' | 'bubble'
     // A tool's name (under the key the toolbar uses for it) and a built-in preset's name in the UI language. A host's own preset labels
     // (toolbarPresetLabels) are its own words and are shown as given.
@@ -86,11 +91,69 @@ export const ToolbarCustomizer = ({
         return () => cancelAnimationFrame(raf);
     }, []);
 
+    // A modal dialog: it takes focus when it opens (onto its Close button), Tab cycles inside it
+    // rather than into the page under the backdrop, and focus goes back to `returnFocusRef` when it
+    // closes, unless the reader has already moved it somewhere else.
+    const closeButtonRef = useRef(null);
+    const drawerRef = useRef(null);
+    // Where focus was when it opened: where it goes back to when the host gives no returnFocusRef.
+    const openerRef = useRef(null);
+    useEffect(() => {
+        const active = closeButtonRef.current?.ownerDocument.activeElement;
+        if (active && active !== active.ownerDocument.body) openerRef.current = active;
+        closeButtonRef.current?.focus({ preventScroll: true });
+    }, []);
+    const keepFocusInside = useCallback((e) => {
+        const drawer = drawerRef.current;
+        if (!drawer) return;
+        // What Tab really stops at: not disabled, not taken out of the order, not hidden (itself or
+        // by a parent; checkVisibility sees both, where the browser has it).
+        const view = drawer.ownerDocument.defaultView;
+        const visible = el => (typeof el.checkVisibility === 'function'
+            ? el.checkVisibility({ visibilityProperty: true })
+            : !el.closest('[hidden], [aria-hidden="true"]') && view?.getComputedStyle(el).display !== 'none');
+        const focusable = Array.from(drawer.querySelectorAll(FOCUSABLE))
+            .filter(el => !el.disabled && el.tabIndex >= 0 && visible(el));
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const active = drawer.ownerDocument.activeElement;
+        if (!drawer.contains(active)) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
+        else if (e.shiftKey && active === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+    }, []);
+
+    // Focus goes back when the drawer goes away (not when a host keeps it open after onClose), and
+    // only if it is still in the drawer or nowhere: a reader who moved it on keeps it there. A layout
+    // effect's cleanup runs before the drawer leaves the DOM, so where focus is can still be told.
+    const returnFocusTo = useRef(returnFocusRef);
+    returnFocusTo.current = returnFocusRef?.current ? returnFocusRef : openerRef;
+    useLayoutEffect(() => () => {
+        const drawer = drawerRef.current;
+        const doc = drawer?.ownerDocument ?? (typeof document !== 'undefined' ? document : null);
+        const active = doc?.activeElement;
+        if (!active || active === doc.body || drawer?.contains(active)) returnFocusTo.current?.current?.focus();
+    }, []);
+
+    // Escape, the backdrop and Save can all close it: onClose runs once, when it has slid out, and it
+    // stays out (a host shows it again by mounting it again). An unmount before then cancels it.
+    const closingRef = useRef(false);
+    const closeTimerRef = useRef(null);
+    useEffect(() => () => clearTimeout(closeTimerRef.current), []);
     const handleClose = useCallback(() => {
+        if (closingRef.current) return;
+        closingRef.current = true;
+        // Focus leaves before the drawer is hidden from assistive technology (never hide a focused
+        // element): back to where it came from, if it is in the drawer.
+        const drawer = drawerRef.current;
+        const active = drawer?.ownerDocument.activeElement;
+        if (drawer && drawer.contains(active)) {
+            const target = returnFocusTo.current?.current;
+            if (target) target.focus();
+            else active.blur(); // nowhere to return it: at least not left inside the hidden drawer
+        }
         setIsClosing(true);
-        setTimeout(() => {
-            onClose();
-        }, 300);
+        closeTimerRef.current = setTimeout(onClose, 300);
     }, [onClose]);
 
     const handleSave = () => {
@@ -101,16 +164,28 @@ export const ToolbarCustomizer = ({
         handleClose();
     };
 
-    // Close on Escape key
+    // Close on Escape. Covering the page, it is modal: Tab stays inside it wherever focus is (also
+    // once it has left it). Scoped to a host's container, the rest of the page stays usable.
+    const modal = !container;
     useEffect(() => {
         const handleKeyDown = (e) => {
+            // A dialog of the host's, open over the drawer, keeps its own keys.
+            const target = e.target;
+            const otherModal = target?.closest?.('[aria-modal="true"]');
+            const inDrawer = target instanceof Node && !!drawerRef.current?.contains(target);
+            if (otherModal && !inDrawer && otherModal !== drawerRef.current) return;
+            // Scoped to a container, the rest of the page is the reader's: Escape there is not ours.
+            if (e.key === 'Escape' && !modal && !inDrawer) return;
             if (e.key === 'Escape') {
                 handleClose();
+            } else if (e.key === 'Tab' && modal && !closingRef.current) {
+                // Once it has started sliding out it no longer holds focus.
+                keepFocusInside(e);
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handleClose]);
+    }, [handleClose, keepFocusInside, modal]);
 
     // ── Getters/Setters based on Active Tab ───────────────────────────────────
     const getConfig = () => (activeTab === 'toolbar' ? toolbarConfig : bubbleConfig);
@@ -190,7 +265,13 @@ export const ToolbarCustomizer = ({
 
     const tree = (
         // Backdrop container — fixed (viewport) by default, absolute when contained.
-        <div className={`${container ? 'absolute' : 'fixed'} inset-0 z-[80] flex justify-end`} onClick={handleClose}>
+        // Once it is sliding out it is out of the way: no clicks caught, nothing announced (a host may
+        // keep it mounted after onClose).
+        <div
+            className={`${container ? 'absolute' : 'fixed'} inset-0 z-[80] flex justify-end ${isClosing ? 'pointer-events-none' : ''}`}
+            aria-hidden={isClosing || undefined}
+            onClick={handleClose}
+        >
             {/* Overlay background with fade-in and backdrop-blur */}
             <div
                 className={`absolute inset-0 transition-all duration-300 ease-in-out ${
@@ -198,8 +279,12 @@ export const ToolbarCustomizer = ({
                 }`}
             />
 
-            {/* Drawer panel with slide-in transform */}
+            {/* Drawer panel with slide-in transform; the dialog the toolbar's Customize button opens */}
             <div
+                ref={drawerRef}
+                role="dialog"
+                aria-modal={modal ? 'true' : undefined}
+                aria-label={t('customizeLayout', 'Customize Layout')}
                 className={`relative w-full max-w-sm h-full bg-[var(--inscript-color-surface-raised)] shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${
                     isEntered && !isClosing ? 'translate-x-0' : 'translate-x-full'
                 }`}
@@ -212,6 +297,7 @@ export const ToolbarCustomizer = ({
                         <span className="font-semibold text-[var(--inscript-color-text)] text-sm">{t('customizeLayout', 'Customize Layout')}</span>
                     </div>
                     <button type="button"
+                        ref={closeButtonRef}
                         onClick={handleClose}
                         aria-label={t('close', 'Close')}
                         title={t('close', 'Close')}

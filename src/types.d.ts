@@ -448,6 +448,28 @@ export function isHeaderRowActive(editor: Editor): boolean;
 export function isHeaderColumnActive(editor: Editor): boolean;
 export function setTableLayout(editor: Editor, attrs: Record<string, unknown>): boolean;
 
+export type ColumnAlign = 'left' | 'center' | 'right';
+export const COLUMN_ALIGNMENTS: readonly ColumnAlign[];
+/** The alignment the selected columns' text shares, as a reader sees it (a paragraph's own
+ *  alignment over its cell's): null when none is set, undefined when the cells differ, when one is
+ *  justified, or outside a table. */
+export function getColumnAlign(state: import('@tiptap/pm/state').EditorState): ColumnAlign | null | undefined;
+/** Aligns the selected columns (every cell, header included; null clears it). Same as
+ *  `editor.commands.setColumnAlign(align)`. False, changing nothing, outside a table, for any other
+ *  value, or on an editor without this library's table extension. */
+export function setColumnAlign(editor: Editor, align: ColumnAlign | null): boolean;
+
+declare module '@tiptap/core' {
+    interface Commands<ReturnType> {
+        inscriptTable: {
+            /** Aligns the columns the selection covers: every cell of each, header included, and
+             *  clears the alignment of the paragraphs inside them. null clears the column's; any
+             *  other value is refused (false, nothing changed). Cells added later take their column's alignment. */
+            setColumnAlign: (align: ColumnAlign | null) => ReturnType;
+        };
+    }
+}
+
 // --- Other utils ---
 export function getTextContent(html: string): string;
 export function extractYoutubeId(input: string): string | null;
@@ -473,9 +495,23 @@ export function applyInscriptEditorTurndownRules(turndownService: {
 // --- UI components ---
 export interface ToolbarButtonProps {
     onClick?: () => void;
+    /** Makes the button a toggle: it reports `aria-pressed` with this state. */
     active?: boolean;
+    /** For a button that shows a popover: whether it is open. It then reports `aria-expanded`
+     *  instead of `aria-pressed`; `active` only draws it as set. */
+    expanded?: boolean;
+    /** `aria-haspopup`, for a button that opens a real dialog (one that takes focus). */
+    hasPopup?: 'dialog' | 'menu' | 'listbox' | 'tree' | 'grid' | boolean;
+    /** Classes for the on and off states (default: the toolbar's). */
+    activeClassName?: string;
+    inactiveClassName?: string;
+    /** Default true. False keeps `active` as a highlight only (no `aria-pressed`), for a button
+     *  that always does the same thing whatever it shows. */
+    toggle?: boolean;
     disabled?: boolean;
+    /** The tooltip, and the button's accessible name unless `ariaLabel` is given. */
     title?: string;
+    ariaLabel?: string;
     width?: number;
     className?: string;
     children?: ReactNode;
@@ -531,7 +567,9 @@ export interface ResponsiveToolbarProps {
 export const ResponsiveToolbar: (props: ResponsiveToolbarProps) => ReactNode;
 
 export const ToolbarDropdown: (props: {
-    /** `action` runs when the item is picked (`onClick` is accepted as the same thing); `active` highlights it. */
+    /** `action` runs when the item is picked (`onClick` is accepted as the same thing); `active` marks
+     *  the current choice: `aria-pressed` on the main button that shows it, `aria-current` in the
+     *  list of choices. */
     items?: Array<{ id: string; label?: string; icon?: React.ComponentType<{ size?: number }>; action?: () => void; onClick?: () => void; active?: boolean }>;
     title?: string;
     activeId?: string;
@@ -549,6 +587,9 @@ export interface ToolbarCustomizerProps {
     presetsMode?: 'replace' | 'merge';
     /** Render into + scope to this element (absolute) instead of the viewport (fixed). */
     container?: HTMLElement | null;
+    /** Where focus goes back to when the drawer closes (the button that opened it), unless the
+     *  reader has already moved focus somewhere else. The drawer takes focus when it opens. */
+    returnFocusRef?: { current: HTMLElement | null };
 }
 export const ToolbarCustomizer: (props: ToolbarCustomizerProps) => ReactNode;
 

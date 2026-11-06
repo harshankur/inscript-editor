@@ -1,8 +1,14 @@
 // Values shared by more than one module. A value used by a single file stays a constant in
 // that file; it moves here the moment a second file needs it, so the two can never drift.
 
-/** Where a table sits on the page when it is narrower than the column. */
-export const TABLE_ALIGN = Object.freeze({ LEFT: 'left', CENTER: 'center', RIGHT: 'right' });
+/** Left, centre and right: the values of a placement and of a column's alignment. */
+const HORIZONTAL = Object.freeze({ LEFT: 'left', CENTER: 'center', RIGHT: 'right' });
+
+/** Where an object (a table, an image, a video) sits on the page when it is narrower than the column. */
+export const PLACEMENT = HORIZONTAL;
+
+/** Where a table sits on the page (its placement). */
+export const TABLE_ALIGN = PLACEMENT;
 
 /** The placement of a table nobody placed. It is the default, so it is never written to the HTML. */
 export const DEFAULT_TABLE_ALIGN = TABLE_ALIGN.CENTER;
@@ -30,3 +36,7 @@ export const BUBBLE_MENU_Z_INDEX = 50;
 
 /** The gap between a selection menu and what it is about, and its margin from the viewport edges, in px. */
 export const BUBBLE_MENU_OFFSET = 8;
+
+/** The alignments a table column can carry (a cell's `text-align`; a Markdown `:---`, `:---:`, `---:`). */
+export const COLUMN_ALIGN = HORIZONTAL;
+export const COLUMN_ALIGNMENTS = Object.freeze(Object.values(COLUMN_ALIGN));

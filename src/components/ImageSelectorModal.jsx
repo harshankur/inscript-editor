@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useInscriptT } from '../hooks/useInscriptT.js';
 import { Filter, Image as ImageIcon, Loader2, Plus, X } from 'lucide-react';
 import { InlineNotice } from './InlineNotice.jsx';
 import { useInscriptEditorTranslations } from '../hooks/useInscriptEditorTranslations.js';
 
 export const ImageSelectorModal = ({ isOpen, onClose, images, onSelect, onUpload }) => {
     useInscriptEditorTranslations();
-    const { t } = useTranslation('inscript-editor');
+    const { t } = useInscriptT();
     const [search, setSearch] = useState('');
     const [uploading, setUploading] = useState(false);
     const [uploadError, setUploadError] = useState(null);

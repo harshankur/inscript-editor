@@ -1,17 +1,19 @@
 import { useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useInscriptT } from '../../hooks/useInscriptT.js';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { BUBBLE_MENU_STYLE, bubbleMenuContainer, useBubbleMenuOptions } from './menuOptions.js';
 import { useEditorState } from '@tiptap/react';
-import { AlignCenter, AlignLeft, AlignRight, Trash2, ImageIcon, Type } from 'lucide-react';
+import { Trash2, ImageIcon, Type } from 'lucide-react';
 import { ToolbarButton } from '../ToolbarButton.jsx';
+import { PlacementButtons } from './PlacementButtons.jsx';
+import { PLACEMENT } from '../../constants.js';
 import { SourceField } from './SourceField.jsx';
 import { isImageUrl } from '../../utils/url.js';
 import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTranslations.js';
 
 export const ImageBubbleMenu = ({ editor, isReadonly, scrollContainer, menuContainer }) => {
     useInscriptEditorTranslations();
-    const { t } = useTranslation('inscript-editor');
+    const { t } = useInscriptT();
     const attrs = useEditorState({
         editor,
         selector: ({ editor }) => {
@@ -68,15 +70,15 @@ export const ImageBubbleMenu = ({ editor, isReadonly, scrollContainer, menuConta
                 </div>
                 <div className="w-px h-4 bg-[var(--inscript-color-border)] mx-0.5" />
                 <div className="flex items-center gap-0.5 bg-[var(--inscript-color-surface-raised)] p-0.5 rounded border border-[var(--inscript-color-border)]">
-                    <ToolbarButton onClick={() => editor.chain().focus().updateAttributes('image', { align: 'left' }).run()} active={attrs.align === 'left'} title={t('alignLeft', 'Align Left')}>
-                        <AlignLeft size={15} />
-                    </ToolbarButton>
-                    <ToolbarButton onClick={() => editor.chain().focus().updateAttributes('image', { align: 'center' }).run()} active={attrs.align === 'center' || !attrs.align} title={t('alignCenter', 'Align Center')}>
-                        <AlignCenter size={15} />
-                    </ToolbarButton>
-                    <ToolbarButton onClick={() => editor.chain().focus().updateAttributes('image', { align: 'right' }).run()} active={attrs.align === 'right'} title={t('alignRight', 'Align Right')}>
-                        <AlignRight size={15} />
-                    </ToolbarButton>
+                    <PlacementButtons
+                        value={attrs.align}
+                        onPlace={align => editor.chain().focus().updateAttributes('image', { align }).run()}
+                        titles={{
+                            [PLACEMENT.LEFT]: t('placeImageLeft', 'Place image left'),
+                            [PLACEMENT.CENTER]: t('placeImageCenter', 'Center image'),
+                            [PLACEMENT.RIGHT]: t('placeImageRight', 'Place image right'),
+                        }}
+                    />
                 </div>
                 <div className="w-px h-4 bg-[var(--inscript-color-border)] mx-0.5" />
                 <div className="flex items-center gap-0.5 bg-[var(--inscript-color-surface-raised)] p-0.5 rounded border border-[var(--inscript-color-border)]">

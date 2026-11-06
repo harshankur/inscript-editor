@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Trans, useTranslation } from 'react-i18next';
+import { Trans } from 'react-i18next';
 import { Filter, Plus, X, SquarePlay as YoutubeIcon } from 'lucide-react';
 import { InlineNotice } from './InlineNotice.jsx';
 import { extractYoutubeId, youtubeEmbedUrl } from '../utils/youtubeUrl.js';
@@ -22,6 +22,7 @@ export function formatDuration(seconds) {
 
 const EmphasisText = ({ children }) => <strong>{children}</strong>;
 import { useInscriptEditorTranslations } from '../hooks/useInscriptEditorTranslations.js';
+import { useInscriptT } from '../hooks/useInscriptT.js';
 
 // The query the live preview's player is loaded with.
 const PREVIEW_PLAYER_QUERY = '?controls=0&modestbranding=1';
@@ -56,7 +57,7 @@ function YoutubeConsentPreview({ labels, onLoad, privacyUrl, onOpenExternal }) {
 // where a new tab cannot (a desktop webview). The search tab shows only when onSearch is given.
 export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch, privacyUrl, onOpenExternal }) => {
     useInscriptEditorTranslations();
-    const { t } = useTranslation('inscript-editor');
+    const { t } = useInscriptT();
     const canSearch = typeof onSearch === 'function';
     const [selectedTab, setActiveTab] = useState('link'); // 'link' or 'search'
     const activeTab = canSearch ? selectedTab : 'link';

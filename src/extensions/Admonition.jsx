@@ -1,6 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer, NodeViewWrapper, NodeViewContent } from '@tiptap/react';
-import { useTranslation } from 'react-i18next';
+import { useInscriptT } from '../hooks/useInscriptT.js';
 import { Info, Lightbulb, AlertTriangle, AlertOctagon, Flame } from 'lucide-react';
 
 /** The kinds of admonition (callout), as GitHub and officeParser name them. */
@@ -31,7 +31,7 @@ const icons = {
 };
 
 const AdmonitionComponent = ({ node }) => {
-    const { t } = useTranslation('inscript-editor');
+    const { t } = useInscriptT();
     const type = resolveAdmonitionType(node.attrs.admonitionType);
     const Icon = icons[type] || Info;
     const [labelKey, labelDefault] = ADMONITION_TYPE_LABELS[type];

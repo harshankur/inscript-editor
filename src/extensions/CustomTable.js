@@ -2,8 +2,10 @@ import { mergeAttributes } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Table } from '@tiptap/extension-table';
 import { TABLE_ALIGN, DEFAULT_TABLE_ALIGN, TABLE_ALIGN_ATTRIBUTE } from '../constants.js';
+import { alignNewTableCells, applyColumnAlign, canApplyColumnAlign } from '../utils/tableHelpers.js';
 
 const tableAlignKey = new PluginKey('tableAlign');
+const columnAlignKey = new PluginKey('tableColumnAlign');
 const TABLE_NODE = 'table';
 const MARGIN_FLUSH = '0';
 const MARGIN_AUTO = 'auto';
@@ -49,6 +51,20 @@ export const CustomTable = Table.extend({
             },
         };
     },
+    addCommands() {
+        return {
+            ...this.parent?.(),
+            /**
+             * Align the columns the selection covers ('left', 'center', 'right', or null to clear):
+             * every cell of each column, header included, so it is an aligned column to a reader of
+             * the HTML and to a Markdown writer (`---:`). See applyColumnAlign.
+             */
+            setColumnAlign: align => ({ state, tr, dispatch }) => {
+                if (!dispatch) return canApplyColumnAlign(state, align);
+                return applyColumnAlign(state, tr, align);
+            },
+        };
+    },
     renderHTML({ node, HTMLAttributes }) {
         const align = resolveTableAlign(node.attrs.align);
         // The default placement adds no markup: only a placement the user chose is written. A
@@ -75,6 +91,12 @@ export const CustomTable = Table.extend({
         const parentPlugins = this.parent?.() || [];
         return [
             ...parentPlugins,
+            // Cells a change creates (a row added, by a button or by Tab in the last cell) take their
+            // column's alignment, in the same undo step, so an aligned column stays aligned.
+            new Plugin({
+                key: columnAlignKey,
+                appendTransaction: alignNewTableCells,
+            }),
             new Plugin({
                 key: tableAlignKey,
                 view(editorView) {

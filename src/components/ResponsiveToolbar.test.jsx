@@ -92,7 +92,7 @@ describe('ResponsiveToolbar overflow', () => {
         stubClientWidth(300);
         render(<ResponsiveToolbar editor={editor} />);
         const moreButton = screen.getByTitle('More tools');
-        expect(moreButton.getAttribute('aria-haspopup')).toBe('true');
+        expect(moreButton.hasAttribute('aria-haspopup')).toBe(false);
         expect(moreButton.getAttribute('aria-expanded')).toBe('false');
         fireEvent.click(moreButton);
         expect(moreButton.getAttribute('aria-expanded')).toBe('true');

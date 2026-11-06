@@ -1,9 +1,13 @@
 import { getHostHandlers } from './HostBridge.js';
+import { editorT } from '../utils/editorT.js';
 
 // Read a host handler live: <InscriptEditor>'s prop or the editorOptions one through the editor's
 // host bridge (options.hostHandlersRef is refreshed every render by useInscriptEditor), falling
 // back to a plain editorOptions value. The slash menu, the toolbar and the selection menu share it.
 const handler = (options, name, editor) => getHostHandlers(editor)[name] ?? options.hostHandlersRef?.current?.[name] ?? options[name];
+
+/** Marks a built-in item, with the keys and defaults its text is translated from (not copied by a spread). */
+const BUILT_IN_TEXT = Symbol('inscript-editor.slashItemText');
 
 /**
  * An item whose `title`/`subtitle` are resolved through `t` every time they are read, so the
@@ -14,7 +18,22 @@ function localized(t, { titleKey, titleDefault, subtitleKey, subtitleDefault, ..
     return Object.defineProperties({ ...item, titleKey, subtitleKey }, {
         title: { get: () => t(titleKey, titleDefault), enumerable: true },
         subtitle: { get: () => t(subtitleKey, subtitleDefault), enumerable: true },
+        [BUILT_IN_TEXT]: { value: { titleKey, titleDefault, subtitleKey, subtitleDefault }, enumerable: false },
     });
+}
+
+/**
+ * A slash item's title or subtitle as an editor shows it: a built-in item's in that editor's
+ * language (its i18next instance, see editorT); a host's own item, or a copy of a built-in one it
+ * changed, as given. The menu and its filtering read it the same way.
+ * @param {object} item
+ * @param {'title'|'subtitle'} field
+ * @param {import('@tiptap/core').Editor | null} editor
+ */
+export function slashItemText(item, field, editor) {
+    const builtIn = Object.prototype.hasOwnProperty.call(item, BUILT_IN_TEXT) ? item[BUILT_IN_TEXT] : null;
+    if (!builtIn) return item[field];
+    return editorT(builtIn[`${field}Key`], builtIn[`${field}Default`], {}, editor);
 }
 
 export const getDefaultSlashItems = (t, options = {}) => [
@@ -160,10 +179,12 @@ export const getDefaultSlashItems = (t, options = {}) => [
                     onAddCitation();
                     return;
                 }
-                const key = window.prompt(t('citationKeyPrompt', 'Enter citation key (e.g. author2026):'), '');
+                // In this editor's language (`t` takes the editor as its fourth argument; a host's own
+                // `t` ignores it).
+                const key = window.prompt(t('citationKeyPrompt', 'Enter citation key (e.g. author2026):', {}, editor), '');
                 if (key) {
-                    const label = window.prompt(t('citationLabelPrompt', 'Enter inline label (e.g. Author, 2026):'), key);
-                    const title = window.prompt(t('citationTitlePrompt', 'Enter bibliography entry details:'), '');
+                    const label = window.prompt(t('citationLabelPrompt', 'Enter inline label (e.g. Author, 2026):', {}, editor), key);
+                    const title = window.prompt(t('citationTitlePrompt', 'Enter bibliography entry details:', {}, editor), '');
                     editor.chain().focus().deleteRange(range).insertCitation({ key, label: label || key, title: title || '' }).run();
                 } else {
                     editor.chain().focus().deleteRange(range).run();

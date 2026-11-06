@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createEditor } from '../../tests/helpers/createEditor.js';
-import { hasView, isActiveCached, viewDom } from './editorView.js';
+import { cachedPerState, hasView, isActiveCached, viewDom } from './editorView.js';
 
 let editor;
 afterEach(() => { if (editor && !editor.isDestroyed) editor.destroy(); });
@@ -35,5 +35,30 @@ describe('editorView helpers', () => {
         editor.destroy();
         expect(isActiveCached(editor, 'bold')).toBe(false);
         expect(isActiveCached(null, 'bold')).toBe(false);
+    });
+
+    it('keeps separate answers for different attribute objects', () => {
+        const element = document.createElement('div');
+        document.body.appendChild(element);
+        const editor = createEditor({ element, content: '<p style="text-align: center">x</p>' });
+        try {
+            expect(isActiveCached(editor, { textAlign: 'center' })).toBe(true);
+            expect(isActiveCached(editor, { textAlign: 'right' })).toBe(false);
+        } finally { editor.destroy(); element.remove(); }
+    });
+
+    it('cachedPerState computes once per state and key', () => {
+        const element = document.createElement('div');
+        document.body.appendChild(element);
+        const editor = createEditor({ element, content: '<p>x</p>' });
+        try {
+            let runs = 0;
+            const compute = () => ++runs;
+            expect(cachedPerState(editor.state, 'a', compute)).toBe(1);
+            expect(cachedPerState(editor.state, 'a', compute)).toBe(1);
+            expect(cachedPerState(editor.state, 'b', compute)).toBe(2);
+            editor.commands.insertContent('y');
+            expect(cachedPerState(editor.state, 'a', compute)).toBe(3);
+        } finally { editor.destroy(); element.remove(); }
     });
 });

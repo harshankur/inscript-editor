@@ -1,4 +1,5 @@
-import { DEFAULT_TABLE_ALIGN, TABLE_ALIGN_ATTRIBUTE } from '../constants.js';
+import { COLUMN_ALIGN, COLUMN_ALIGNMENTS, DEFAULT_TABLE_ALIGN, TABLE_ALIGN_ATTRIBUTE } from '../constants.js';
+import { columnAlignOf, readingAlign } from '../utils/cellAlignment.js';
 import { encodeCommentText } from '../utils/commentText.js';
 
 /**
@@ -139,6 +140,7 @@ function adjacentCharacter(node, direction) {
 const KEPT_INLINE_TAGS = ['mark', 'sub', 'sup', 'u'];
 /** Alignments that are the page default, so a block carrying one is still plain Markdown. */
 const DEFAULT_TEXT_ALIGNMENTS = ['left', 'start'];
+/** A block's `text-align` declaration. */
 const TEXT_ALIGN_PATTERN = /(?:^|;)\s*text-align\s*:\s*([a-z-]+)/i;
 const ALIGNABLE_BLOCK_PATTERN = /^(P|H[1-6])$/;
 
@@ -277,27 +279,41 @@ const closestTable = node => {
 
 const tableRows = table => Array.from(table.rows || []);
 
-const GFM_ALIGNMENTS = ['left', 'center', 'right'];
-const CELL_ALIGN_STYLE = /^\s*text-align\s*:\s*(left|center|right)\s*;?\s*$/i;
+const CELL_ALIGN_STYLE = /^\s*text-align\s*:\s*(left|center|right|start)\s*;?\s*$/i;
 
-/** A cell's alignment: null for none, false when its style holds anything GFM cannot write. */
-function cellAlign(cell) {
-    const style = cell.getAttribute('style');
+/** An element's `text-align`: null for none, false when its style holds anything GFM cannot write. */
+function styleAlign(element) {
+    const style = element.getAttribute('style');
     if (!style || !style.trim()) return null;
     const match = CELL_ALIGN_STYLE.exec(style);
     return match ? match[1].toLowerCase() : false;
 }
 
+/**
+ * How a cell's text is aligned, as GFM would write it: as a reader sees it (readingAlign, the same
+ * rule the table menu uses), so a column aligned from the toolbar, paragraph by paragraph, is
+ * written as the same column as one aligned cell by cell. Null for none, false when either the
+ * cell or its paragraph holds a style GFM cannot write (justify, a colour).
+ */
+function cellAlign(cell, paragraph) {
+    const own = styleAlign(cell);
+    if (own === false) return false;
+    const inner = paragraph ? styleAlign(paragraph) : null;
+    if (inner === false) return false;
+    return readingAlign(own, inner);
+}
+
 /** A GFM separator cell for an alignment. */
-const separatorCell = align => (align === 'left' ? ':---' : align === 'center' ? ':---:' : align === 'right' ? '---:' : '---');
+const SEPARATORS = { [COLUMN_ALIGN.LEFT]: ':---', [COLUMN_ALIGN.CENTER]: ':---:', [COLUMN_ALIGN.RIGHT]: '---:' };
+const separatorCell = align => SEPARATORS[align] ?? '---';
 
 /**
  * Can this table be written as a GFM table without losing anything? Anything GFM can't
  * express keeps the table as raw HTML instead: merged cells, a header column or a missing
  * header row, resized columns, a non-default table placement, cells of one column aligned
  * differently, a backslash before a pipe (GFM reads the pair as an escaped pipe, also inside
- * code), and cells holding more than one paragraph (or any other block) or a paragraph with its
- * own alignment. Memoized on the node with the column alignments and the header row: the row
+ * code), and cells holding more than one paragraph (or any other block). A cell's alignment is
+ * its paragraph's when that has one (see cellAlign). Memoized on the node with the column alignments and the header row: the row
  * and cell rules ask about the same table once per cell.
  */
 function gfmTableInfo(table) {
@@ -309,7 +325,7 @@ function gfmTableInfo(table) {
         if (rows.length === 0) return null;
         const width = rows[0].cells.length;
         if (width === 0) return null;
-        const columns = new Array(width).fill(undefined);
+        const columnCells = Array.from({ length: width }, () => []);
         const ok = rows.every((row, r) => {
             if (row.cells.length !== width) return false;
             return Array.from(row.cells).every((cell, c) => {
@@ -318,17 +334,20 @@ function gfmTableInfo(table) {
                 if ((cell.getAttribute('rowspan') || '1') !== '1') return false;
                 if (cell.hasAttribute('colwidth') || cell.hasAttribute('data-colwidth')) return false;
                 if (cell.innerHTML.includes('\\|')) return false;
-                const cellAlignment = cellAlign(cell);
-                if (cellAlignment === false) return false;
-                if (columns[c] === undefined) columns[c] = cellAlignment;
-                else if (columns[c] !== cellAlignment) return false;
                 const blocks = Array.from(cell.children);
                 if (blocks.length > 1) return false;
-                return blocks.length === 0 || (blocks[0].nodeName === 'P' && !blocks[0].hasAttribute('style'));
+                if (blocks.length === 1 && blocks[0].nodeName !== 'P') return false;
+                const cellAlignment = cellAlign(cell, blocks[0]);
+                if (cellAlignment === false) return false;
+                columnCells[c].push({ align: cellAlignment, isHeader: cell.nodeName === 'TH' });
+                return true;
             });
         });
         if (!ok) return null;
-        return { header: rows[0], columns: columns.map(a => (GFM_ALIGNMENTS.includes(a) ? a : null)) };
+        // One alignment per column (columnAlignOf, the rule the table menu reads too), or HTML.
+        const columns = columnCells.map(columnAlignOf);
+        if (columns.some(align => align === undefined)) return null;
+        return { header: rows[0], columns: columns.map(a => (COLUMN_ALIGNMENTS.includes(a) ? a : null)) };
     })();
     table.__inscriptGfm = info;
     return info;
@@ -458,9 +477,11 @@ export function applyInscriptEditorTurndownRules(turndownService) {
         replacement: keepInlineTag,
     });
     // A centred, right-aligned or justified paragraph or heading keeps its alignment as HTML;
-    // one with the default alignment stays plain Markdown.
+    // one with the default alignment stays plain Markdown. In a GFM table cell the alignment is
+    // the column's, written in the separator row (see cellAlign), so the paragraph is plain text.
+    const inGfmCell = node => !!node.parentNode && ['TH', 'TD'].includes(node.parentNode.nodeName) && inGfmTable(node.parentNode);
     add('inscriptAlignedBlock', {
-        filter: node => blockTextAlign(node) !== null,
+        filter: node => blockTextAlign(node) !== null && !inGfmCell(node),
         replacement: rawBlock,
     });
 

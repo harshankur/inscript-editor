@@ -10,7 +10,7 @@ A standalone, TipTap-based rich text editor for React. Extracted from [Inscript]
 
 - **Rich text editing** built on [TipTap v3](https://tiptap.dev) — bold/italic/underline/strike, headings, lists, blockquotes, code blocks, sub/superscript, text alignment, font size, text/highlight color, and links.
 - **Images** with inline resizing, alignment, and a media-library modal (bring your own upload/list backend).
-- **Tables** with per-cell/row/column controls, header row/column toggles, and layout alignment.
+- **Tables** with per-cell/row/column controls, header row/column toggles, column alignment (a Markdown `---:` column), and placement on the page.
 - **YouTube embeds** by URL or search, with strict ID validation, a placeholder for legacy/corrupt content instead of a broken embed, and an optional consent placeholder that contacts YouTube only once the visitor agrees ([YouTube options](#youtube-options)).
 - **Version history**: append-only versions with undo, redo and one-click restore, compared in a visual/text/source diff that fits whatever width the editor has.
 - **Markdown round trips**: turndown rules that keep what Markdown cannot say (highlights, sub/superscript, embeds, citations, comments) and write checklists and tables as GFM, so a save loses nothing.
@@ -207,7 +207,7 @@ What the rules do:
 | In the editor | Written as |
 | --- | --- |
 | Checklists | GFM task items (`- [x] done`) |
-| Tables | GFM tables, with column alignment (`:---:`); a table GFM cannot express (merged cells, a header column, resized columns, several paragraphs in a cell, left or right placement, cells of one column aligned differently, a backslash before a pipe) stays HTML |
+| Tables | GFM tables, with column alignment (`:---:`). A column is aligned by its cells (the table menu's column alignment) or by the paragraph in each cell (the toolbar's text alignment): either way it is the same column, since a cell's paragraph alignment is what a reader sees. A table GFM cannot express (merged cells, a header column, resized columns, several paragraphs in a cell, left or right placement, cells of one column aligned differently, a justified cell, a backslash before a pipe) stays HTML |
 | Emphasis inside a word or against punctuation | `*` delimiters, or the HTML tag where Markdown would not read them back (`un*believ*able`, `H<strong><sub>2</sub></strong>O`) |
 | Hard line breaks | Two spaces and a newline, or `<br>` where that would end a heading, make a blank line, or be dropped |
 | Empty paragraphs between blocks, empty list items, headings and code blocks | Kept (`<p></p>` for a paragraph) |
@@ -346,6 +346,7 @@ The editor can sit inside your own `<form>`: none of its buttons submit it, it n
 ### Utilities
 
 - `getTableNode(state)`, `isHeaderRowActive(editor)`, `isHeaderColumnActive(editor)`, `setTableLayout(editor, attrs)` — table introspection/commands used by `TableBubbleMenu`.
+- `setColumnAlign(editor, align)` (also the command `editor.commands.setColumnAlign(align)`): aligns the columns the selection covers, `'left'`, `'center'` or `'right'` (`COLUMN_ALIGNMENTS`), or `null` to clear; any other value is refused (it returns false and changes nothing). It sets the alignment on every cell of each column, header included, and clears the alignment of the paragraphs inside them, which would otherwise override it. A merged cell reaching into a column that is not selected is left alone. A row added later (Add Row Above or Below, Tab in the last cell) takes the alignment its column's body cells share, so the column stays aligned; a header aligned on its own does not spread into new rows. `getColumnAlign(state)` reads the alignment the selected columns share as a reader sees it, over the cells the command sets (a merged cell reaching into another column is neither's): a paragraph's own alignment counts over its cell's, and body cells left-aligned or unaligned read alike, the header deciding between left and none (as in the Markdown output). `null` when none is set, `undefined` when their cells differ or one is justified. A table nested in a cell keeps its own columns. `setTableLayout(editor, { align })` is something else: it places the whole table on the page.
 - `getTextContent(html)`: strips HTML to plain text; SSR-safe (without `DOMParser` it skips the tags in a single pass, in linear time on any input).
 - `extractYoutubeId(input)` — extracts an 11-character YouTube video ID from a known URL shape or a bare ID string; returns `null` otherwise.
 
@@ -364,7 +365,22 @@ the menu is attached, outside any box that scrolls or hides overflow (default: t
 `<InscriptEditor>` passes its own. Their source fields take only what can load safely: an image from
 http(s), `blob:` or `data:image/…`, an embed from http(s) (an embed with any other source shows as
 unavailable, and only a web address is opened in a new tab). `ToolbarDropdown` items run their `action`
-(or `onClick`).
+(or `onClick`); `active` marks the current choice: `aria-pressed` on the main button that shows it,
+`aria-current` in the list of choices.
+
+Every icon-only button in the toolbar and the menus is named for assistive technology by the same text
+as its tooltip (a button showing text, like a width, is named by that text), and says whether it is on. `ToolbarButton` takes `active` for a toggle (bold, a list, an
+alignment, a placement): it then reports `aria-pressed`. A button that shows a popover (link, colour,
+font size) takes `expanded` instead and reports `aria-expanded`, not `aria-pressed`, while `active` only
+draws it as set; `hasPopup="dialog"` adds `aria-haspopup` for one that opens a real dialog (the tags
+button opens the host's; the Customize button's drawer takes focus and gives it back).
+`toggle={false}` keeps `active` as a highlight only, for a button that always does the same thing (Math
+inserts a block even with the cursor in one). `ariaLabel` overrides the name taken from `title`; a
+button that shows text of its own, like the font size, includes that text in it. The alignment control
+shows the alignment of the selected paragraphs and headings: Align Left for text with none of its own,
+and none in a code block, on an image or across paragraphs aligned differently. The
+exported `ToolbarCustomizer` takes `returnFocusRef`, where focus goes back when it closes; it is a modal
+dialog (Tab stays inside) when it covers the page, and not when scoped to a `container`.
 
 These read the editor while rendering. The exported toolbar and bubble menus keep themselves current;
 in a component of your own, use TipTap's `useEditorState` to re-render when the editor changes

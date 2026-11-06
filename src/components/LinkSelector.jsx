@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useInscriptT } from '../hooks/useInscriptT.js';
 import { Link as LinkIcon, Link2Off } from 'lucide-react';
 import { ToolbarButton } from './ToolbarButton.jsx';
 
 export const LinkSelector = ({ editor }) => {
-    const { t } = useTranslation('inscript-editor');
+    const { t } = useInscriptT();
     const [isOpen, setIsOpen] = useState(false);
     const [url, setUrl] = useState('');
     // The Link extension refused the address (a script URL, say): keep the popover open and say so.
@@ -45,7 +45,9 @@ export const LinkSelector = ({ editor }) => {
             <ToolbarButton
                 onClick={() => setIsOpen(!isOpen)}
                 active={isActive}
-                title={t('insertLink', 'Insert Link')}
+                expanded={isOpen}
+                // A popover button reports open or closed, so whether a link is applied is in its name.
+                title={isActive ? t('editLink', 'Edit Link') : t('insertLink', 'Insert Link')}
             >
                 <LinkIcon size={16} />
             </ToolbarButton>
@@ -57,7 +59,7 @@ export const LinkSelector = ({ editor }) => {
                     <div
                         className="absolute top-full left-0 mt-2 p-3 bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl z-[80] min-w-[260px] animate-in slide-in-from-top-2 fade-in flex flex-col gap-3"
                     >
-                        <div className="text-xs font-medium text-[var(--inscript-color-muted)] uppercase tracking-wider">{t('insertLink', 'Insert Link')}</div>
+                        <div className="text-xs font-medium text-[var(--inscript-color-muted)] uppercase tracking-wider">{isActive ? t('editLink', 'Edit Link') : t('insertLink', 'Insert Link')}</div>
                         <input
                             type="text"
                             value={url}
@@ -92,6 +94,7 @@ export const LinkSelector = ({ editor }) => {
                                     onClick={handleRemove}
                                     className="p-2 text-red-400 hover:bg-red-400/10 rounded transition-colors"
                                     title={t('removeLink', 'Remove Link')}
+                                    aria-label={t('removeLink', 'Remove Link')}
                                 >
                                     <Link2Off size={16} />
                                 </button>

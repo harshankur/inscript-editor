@@ -1,10 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { slashItemText } from '../extensions/slashCommandItems.js';
 
 /** The slash menu of one editor: its suggestion state lives in that editor's storage. */
 const storeOf = editor => (editor && !editor.isDestroyed ? editor.storage?.slashCommand ?? null : null);
 
 export const SlashCommandMenu = ({ editor, isReadonly }) => {
+    // A built-in item's text in this editor's language; a host's own item as given (as the filter reads it).
+    const textOf = (item, field) => slashItemText(item, field, editor);
     // Subscribes to language changes: the default items resolve their title/subtitle through
     // i18next when read, so re-rendering is all it takes for an open menu to follow a switch.
     useTranslation('inscript-editor');
@@ -94,7 +97,9 @@ export const SlashCommandMenu = ({ editor, isReadonly }) => {
             className="bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl py-2 min-w-[240px] z-[9999]"
             style={style}
         >
-            {state.items.map((item, index) => (
+            {state.items.map((item, index) => {
+                const subtitle = textOf(item, 'subtitle');
+                return (
                 <button type="button"
                     key={item.id ?? `${index}-${item.title ?? ''}`}
                     className={`w-full text-left px-4 py-2 flex items-center gap-3 transition-colors ${
@@ -105,11 +110,12 @@ export const SlashCommandMenu = ({ editor, isReadonly }) => {
                     onClick={() => state.command(item)}
                 >
                     <div>
-                        <div className="text-sm font-medium text-[var(--inscript-color-text)]">{item.title}</div>
-                        {item.subtitle && <div className="text-xs text-[var(--inscript-color-muted)]">{item.subtitle}</div>}
+                        <div className="text-sm font-medium text-[var(--inscript-color-text)]">{textOf(item, 'title')}</div>
+                        {subtitle && <div className="text-xs text-[var(--inscript-color-muted)]">{subtitle}</div>}
                     </div>
                 </button>
-            ))}
+                );
+            })}
         </div>
     );
 };

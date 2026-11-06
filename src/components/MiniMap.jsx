@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { ChevronRight, Map as MapIcon } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useInscriptT } from '../hooks/useInscriptT.js';
 import { hasView, viewDom } from '../utils/editorView.js';
 
 // ── What this is ────────────────────────────────────────────────────────────
@@ -367,7 +367,7 @@ function blockBody(b, w, h) {
  *                                            ignores the stored collapsed state. Implied by `chrome={false}`.
  */
 export const MiniMap = ({ editor, width, className = '', showHeadingText = true, chrome = true, collapsible = true }) => {
-    const { t } = useTranslation('inscript-editor');
+    const { t } = useInscriptT();
     const [meta, setMeta] = useState({ blocks: [], docHeight: 0, colWidth: 0, measured: false, lineHeightPx: 28 });
     const [panel, setPanel] = useState({ w: 0, h: 0 });
     // Without its header there is no button to expand it again, so a chrome-less minimap can't

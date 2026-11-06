@@ -152,7 +152,7 @@ describe('bubble menus', () => {
 
         it('sets alignment via the align buttons', () => {
             render(<ImageBubbleMenu editor={editor} />);
-            fireEvent.click(screen.getByTitle('Align Right'));
+            fireEvent.click(screen.getByTitle('Place image right'));
             expect(editor.getAttributes('image').align).toBe('right');
         });
 
@@ -337,11 +337,11 @@ describe('bubble menus', () => {
         it('shows the chosen placement as active as soon as it is clicked', () => {
             render(<TableBubbleMenu editor={editor} />);
             const lit = title => screen.getByTitle(title).className.includes('shadow-inner');
-            expect(lit('Align Center')).toBe(true);
-            expect(lit('Align Right')).toBe(false);
-            fireEvent.click(screen.getByTitle('Align Right'));
-            expect(lit('Align Right')).toBe(true);
-            expect(lit('Align Center')).toBe(false);
+            expect(lit('Center table on the page')).toBe(true);
+            expect(lit('Place table right')).toBe(false);
+            fireEvent.click(screen.getByTitle('Place table right'));
+            expect(lit('Place table right')).toBe(true);
+            expect(lit('Center table on the page')).toBe(false);
             expect(editor.getHTML()).toContain('<table data-align="right"');
         });
 

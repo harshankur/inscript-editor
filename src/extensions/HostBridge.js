@@ -1,4 +1,5 @@
 import { Extension } from '@tiptap/core';
+import { editorI18n } from '../utils/editorT.js';
 
 /**
  * Carries a live ref of host handlers (onAddCitation, onAddYoutube,
@@ -28,7 +29,11 @@ export const HostBridge = Extension.create({
     // Likewise its insert-handler props (onShowMediaLibrary, onAddYoutube, ...), which win over the
     // editorOptions ones everywhere: the toolbar, the selection menu and the slash menu.
     addStorage() {
-        return { openExternal: null, handlerProps: {} };
+        // i18n: the i18next instance the host's React tree gives this editor, for the text built
+        // outside React (node views, the slash menu), which cannot read React context.
+        // languageListeners: node views' language-change listeners (onEditorLanguageChanged), moved to
+        // a new instance when the editor is given one.
+        return { openExternal: null, handlerProps: {}, i18n: null, languageListeners: new Map() };
     },
 });
 
@@ -87,4 +92,29 @@ export function getExternalOpener(editor) {
     if (typeof fromProp === 'function') return fromProp;
     const fromOptions = getHostHandlers(editor).onOpenExternal;
     return typeof fromOptions === 'function' ? fromOptions : null;
+}
+
+/**
+ * Give the editor the i18next instance its host's React tree uses (useInscriptEditor does this), so
+ * the text built outside React is in the same language as the rest of the editor.
+ * @param {import('@tiptap/core').Editor | null | undefined} editor
+ * @param {object | null | undefined} i18n - An i18next instance, or react-i18next's wrapper of one.
+ */
+export function setEditorI18n(editor, i18n) {
+    const storage = editor?.storage?.hostBridge;
+    if (!storage) return;
+    const instance = i18n?.__original ?? i18n;
+    const next = instance && typeof instance.t === 'function' ? instance : null;
+    if (next === storage.i18n) return;
+    storage.i18n = next;
+    const after = editorI18n(editor);
+    // Each listener moves from the instance it is on (it remembers it) to the editor's new one, and
+    // runs once if the language differs: what it built is redrawn in the new one's language.
+    for (const [listener, on] of storage.languageListeners) {
+        if (on === after) continue;
+        on?.off?.('languageChanged', listener);
+        after?.on?.('languageChanged', listener);
+        storage.languageListeners.set(listener, after);
+        if (on?.language !== after?.language) listener();
+    }
 }

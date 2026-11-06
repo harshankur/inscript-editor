@@ -1,7 +1,7 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useInscriptT } from '../hooks/useInscriptT.js';
 import { Globe, Play } from 'lucide-react';
 import { isWebUrl } from '../utils/url.js';
 
@@ -30,7 +30,7 @@ function isTrustedSrc(src, options) {
 }
 
 const EmbedComponent = ({ node, extension }) => {
-    const { t } = useTranslation('inscript-editor');
+    const { t } = useInscriptT();
     const { src, label } = node.attrs;
     // Auto-load only for host-trusted sources; otherwise wait for an explicit click. The click is
     // consent for that source only: a node view reused for another source asks again.

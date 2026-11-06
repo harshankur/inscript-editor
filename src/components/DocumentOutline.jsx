@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { extractHeadings } from '../utils/headingExtraction.js';
 import { ChevronRight, List as ListIcon } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useInscriptT } from '../hooks/useInscriptT.js';
 import { hasView } from '../utils/editorView.js';
 
 const STORAGE_KEY = 'inscript-outline-collapsed';
@@ -32,7 +32,7 @@ const writeCollapsed = (value) => {
  *                                          the stored collapsed state. Implied by `chrome={false}`.
  */
 export const DocumentOutline = ({ editor, width, className = '', chrome = true, collapsible = true }) => {
-    const { t } = useTranslation('inscript-editor');
+    const { t } = useInscriptT();
     const [headings, setHeadings] = useState([]);
 
     // Without its header there is no button to expand it again, so a chrome-less outline can't

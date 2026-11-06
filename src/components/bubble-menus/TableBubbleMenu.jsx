@@ -1,21 +1,23 @@
 import { useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useInscriptT } from '../../hooks/useInscriptT.js';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { BUBBLE_MENU_STYLE, bubbleMenuContainer, useBubbleMenuOptions } from './menuOptions.js';
 import {
-    AlignCenter, AlignLeft, AlignRight, ArrowLeftRight,
+    AlignCenter, AlignLeft, AlignRight, ArrowLeftRight, CircleSlash,
     BetweenHorizontalEnd, BetweenHorizontalStart, BetweenVerticalEnd, BetweenVerticalStart,
     Columns, Rows, SplitSquareHorizontal, Trash2,
 } from 'lucide-react';
 import { ToolbarButton } from '../ToolbarButton.jsx';
-import { getTableNode, isHeaderRowActive, isHeaderColumnActive, setTableLayout } from '../../utils/tableHelpers.js';
-import { TABLE_ALIGN } from '../../constants.js';
+import { ChoiceButtons } from './ChoiceButtons.jsx';
+import { PlacementButtons } from './PlacementButtons.jsx';
+import { canAlignColumns, getColumnAlign, getTableNode, isHeaderRowActive, isHeaderColumnActive, setColumnAlign, setTableLayout } from '../../utils/tableHelpers.js';
+import { COLUMN_ALIGN, TABLE_ALIGN } from '../../constants.js';
 import { useEditorTransaction } from '../../hooks/useEditorTransaction.js';
 import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTranslations.js';
 
 export const TableBubbleMenu = ({ editor, isReadonly, scrollContainer, menuContainer }) => {
     useInscriptEditorTranslations();
-    const { t } = useTranslation('inscript-editor');
+    const { t } = useInscriptT();
     // The active placement and header toggles are read from the editor while rendering.
     useEditorTransaction(editor);
     // Stable identity: TipTap's BubbleMenu dispatches a transaction whenever this prop changes,
@@ -27,6 +29,13 @@ export const TableBubbleMenu = ({ editor, isReadonly, scrollContainer, menuConta
         return '$anchorCell' in current.state.selection;
     }, [isReadonly]);
     if (!editor) return null;
+    // The selected columns' shared alignment: null when none is set, undefined when they differ.
+    // Column alignment needs this library's table extension (its setColumnAlign command).
+    const columnsAlignable = canAlignColumns(editor);
+    // Read only while the menu can show (a cell selection): it walks the selected columns' cells.
+    const columnAlign = '$anchorCell' in editor.state.selection ? getColumnAlign(editor.state) : undefined;
+    // The table's placement on the page; no attribute is the default, centred.
+    const tableAlign = getTableNode(editor.state)?.node.attrs.align;
     return (
         <BubbleMenu
             editor={editor}
@@ -119,17 +128,36 @@ export const TableBubbleMenu = ({ editor, isReadonly, scrollContainer, menuConta
 
                 <div className="w-px h-4 bg-[var(--inscript-color-border)] mx-0.5" />
 
-                {/* Layout Group */}
+                {/* Column alignment: every cell of the column, header included (a Markdown `---:`) */}
                 <div className="flex items-center gap-0.5 bg-[var(--inscript-color-surface-raised)] p-0.5 rounded border border-[var(--inscript-color-border)]">
-                    <ToolbarButton onClick={() => setTableLayout(editor, { align: TABLE_ALIGN.LEFT })} active={getTableNode(editor.state)?.node.attrs.align === TABLE_ALIGN.LEFT} title={t('alignLeft', 'Align Left')}>
-                        <AlignLeft size={15} />
+                    <ChoiceButtons
+                        value={columnAlign}
+                        onPick={align => setColumnAlign(editor, align)}
+                        disabled={!columnsAlignable}
+                        options={[
+                            { value: COLUMN_ALIGN.LEFT, Icon: AlignLeft, title: t('alignColumnLeft', 'Align column left') },
+                            { value: COLUMN_ALIGN.CENTER, Icon: AlignCenter, title: t('alignColumnCenter', 'Center column') },
+                            { value: COLUMN_ALIGN.RIGHT, Icon: AlignRight, title: t('alignColumnRight', 'Align column right') },
+                        ]}
+                    />
+                    <ToolbarButton onClick={() => setColumnAlign(editor, null)} disabled={!columnsAlignable} title={t('clearColumnAlign', 'Clear column alignment')}>
+                        <CircleSlash size={15} />
                     </ToolbarButton>
-                    <ToolbarButton onClick={() => setTableLayout(editor, { align: TABLE_ALIGN.CENTER })} active={getTableNode(editor.state)?.node.attrs.align === TABLE_ALIGN.CENTER || !getTableNode(editor.state)?.node.attrs.align} title={t('alignCenter', 'Align Center')}>
-                        <AlignCenter size={15} />
-                    </ToolbarButton>
-                    <ToolbarButton onClick={() => setTableLayout(editor, { align: TABLE_ALIGN.RIGHT })} active={getTableNode(editor.state)?.node.attrs.align === TABLE_ALIGN.RIGHT} title={t('alignRight', 'Align Right')}>
-                        <AlignRight size={15} />
-                    </ToolbarButton>
+                </div>
+
+                <div className="w-px h-4 bg-[var(--inscript-color-border)] mx-0.5" />
+
+                {/* Table placement on the page (not the text inside it) */}
+                <div className="flex items-center gap-0.5 bg-[var(--inscript-color-surface-raised)] p-0.5 rounded border border-[var(--inscript-color-border)]">
+                    <PlacementButtons
+                        value={tableAlign}
+                        onPlace={align => setTableLayout(editor, { align })}
+                        titles={{
+                            [TABLE_ALIGN.LEFT]: t('placeTableLeft', 'Place table left'),
+                            [TABLE_ALIGN.CENTER]: t('placeTableCenter', 'Center table on the page'),
+                            [TABLE_ALIGN.RIGHT]: t('placeTableRight', 'Place table right'),
+                        }}
+                    />
                 </div>
 
                 <div className="w-px h-4 bg-[var(--inscript-color-border)] mx-0.5" />

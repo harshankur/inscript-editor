@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useInscriptT } from '../../hooks/useInscriptT.js';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { BUBBLE_MENU_STYLE, bubbleMenuContainer, useBubbleMenuOptions } from './menuOptions.js';
 import {
@@ -9,6 +9,7 @@ import {
     TextSelect, RemoveFormatting,
 } from 'lucide-react';
 import { ColorSelector } from '../ColorSelector.jsx';
+import { ToolbarButton } from '../ToolbarButton.jsx';
 import { HighlightSelector } from '../HighlightSelector.jsx';
 import { useEditorTransaction } from '../../hooks/useEditorTransaction.js';
 import { TEXT_COLOR_PRESETS } from '../../constants.js';
@@ -18,97 +19,103 @@ import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTran
 import { BUBBLE_PRESETS } from '../../toolbar/presets.js';
 import { DIVIDER, sanitizeToolConfig } from '../../toolbar/toolRegistry.js';
 import { isActiveCached } from '../../utils/editorView.js';
+import { abbreviationTool } from '../../toolbar/abbreviationTool.js';
+
+/**
+ * A button of the selection menu: a ToolbarButton (named by its tooltip, a toggle when given
+ * `active`) drawn the way this menu marks an applied format, in the accent colour.
+ */
+const MenuButton = (props) => (
+    <ToolbarButton
+        {...props}
+        activeClassName="text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)] hover:bg-[var(--inscript-color-hover)]"
+    />
+);
 
 function buildToolMap(editor, t, onAddAbbreviation) {
     return {
         bold: {
             id: 'bold',
             render: () => (
-                <button type="button"
+                <MenuButton
                     onClick={() => editor.chain().focus().toggleBold().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${isActiveCached(editor, 'bold') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('bold', 'Bold')}
+                    active={isActiveCached(editor, 'bold')}
                 >
                     <Bold size={16} />
-                </button>
+                </MenuButton>
             )
         },
         italic: {
             id: 'italic',
             render: () => (
-                <button type="button"
+                <MenuButton
                     onClick={() => editor.chain().focus().toggleItalic().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${isActiveCached(editor, 'italic') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('italic', 'Italic')}
+                    active={isActiveCached(editor, 'italic')}
                 >
                     <Italic size={16} />
-                </button>
+                </MenuButton>
             )
         },
         underline: {
             id: 'underline',
             render: () => (
-                <button type="button"
+                <MenuButton
                     onClick={() => editor.chain().focus().toggleUnderline().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${isActiveCached(editor, 'underline') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('underline', 'Underline')}
+                    active={isActiveCached(editor, 'underline')}
                 >
                     <UnderlineIcon size={16} />
-                </button>
+                </MenuButton>
             )
         },
         strike: {
             id: 'strike',
             render: () => (
-                <button type="button"
+                <MenuButton
                     onClick={() => editor.chain().focus().toggleStrike().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${isActiveCached(editor, 'strike') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('strike', 'Strikethrough')}
+                    active={isActiveCached(editor, 'strike')}
                 >
                     <Strikethrough size={16} />
-                </button>
+                </MenuButton>
             )
         },
         sub: {
             id: 'sub',
             render: () => (
-                <button type="button"
+                <MenuButton
                     onClick={() => editor.chain().focus().toggleSubscript().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${isActiveCached(editor, 'subscript') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('subscript', 'Subscript')}
+                    active={isActiveCached(editor, 'subscript')}
                 >
                     <SubscriptIcon size={16} />
-                </button>
+                </MenuButton>
             )
         },
         sup: {
             id: 'sup',
             render: () => (
-                <button type="button"
+                <MenuButton
                     onClick={() => editor.chain().focus().toggleSuperscript().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${isActiveCached(editor, 'superscript') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('superscript', 'Superscript')}
+                    active={isActiveCached(editor, 'superscript')}
                 >
                     <SuperscriptIcon size={16} />
-                </button>
+                </MenuButton>
             )
         },
         abbreviation: {
             id: 'abbreviation',
-            render: () => (
-                <button type="button"
-                    onClick={() => {
-                        if (onAddAbbreviation) return onAddAbbreviation();
-                        if (isActiveCached(editor, 'abbreviation')) { editor.chain().focus().unsetAbbreviation().run(); return; }
-                        const title = window.prompt(t('abbreviationPrompt', 'Enter the full form (e.g. HyperText Markup Language):'));
-                        if (title) editor.chain().focus().setAbbreviation(title).run();
-                    }}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${isActiveCached(editor, 'abbreviation') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
-                    title={t('abbreviation', 'Abbreviation')}
-                >
-                    <TextSelect size={16} />
-                </button>
-            )
+            render: () => {
+                const { action, active, toggle } = abbreviationTool(editor, t, onAddAbbreviation);
+                return (
+                    <MenuButton onClick={action} title={t('abbreviation', 'Abbreviation')} active={active} toggle={toggle}>
+                        <TextSelect size={16} />
+                    </MenuButton>
+                );
+            }
         },
         fontSize: {
             id: 'fontSize',
@@ -141,49 +148,48 @@ function buildToolMap(editor, t, onAddAbbreviation) {
         inlineCode: {
             id: 'inlineCode',
             render: () => (
-                <button type="button"
+                <MenuButton
                     onClick={() => editor.chain().focus().toggleCode().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${isActiveCached(editor, 'code') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('inlineCode', 'Inline Code')}
+                    active={isActiveCached(editor, 'code')}
                 >
                     <Code size={16} />
-                </button>
+                </MenuButton>
             )
         },
         clearFormat: {
             id: 'clearFormat',
             render: () => (
-                <button type="button"
+                <MenuButton
                     onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
-                    className="w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors text-[var(--inscript-color-muted)]"
                     title={t('clearFormat', 'Clear Formatting')}
                 >
                     <RemoveFormatting size={16} />
-                </button>
+                </MenuButton>
             )
         },
         code: {
             id: 'code',
             render: () => (
-                <button type="button"
+                <MenuButton
                     onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${isActiveCached(editor, 'codeBlock') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('codeBlock', 'Code Block')}
+                    active={isActiveCached(editor, 'codeBlock')}
                 >
                     <Code size={16} />
-                </button>
+                </MenuButton>
             )
         },
         quote: {
             id: 'quote',
             render: () => (
-                <button type="button"
+                <MenuButton
                     onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                    className={`w-[38px] h-[38px] flex items-center justify-center rounded hover:bg-[var(--inscript-color-hover)] hover:text-[var(--inscript-color-text)] transition-colors ${isActiveCached(editor, 'blockquote') ? 'text-[var(--inscript-color-accent)] bg-[var(--inscript-color-active)]' : 'text-[var(--inscript-color-muted)]'}`}
                     title={t('quote', 'Quote')}
+                    active={isActiveCached(editor, 'blockquote')}
                 >
                     <Quote size={16} />
-                </button>
+                </MenuButton>
             )
         }
     };
@@ -191,7 +197,7 @@ function buildToolMap(editor, t, onAddAbbreviation) {
 
 export const TextBubbleMenu = ({ editor, isReadonly, bubbleMenuConfig, onAddAbbreviation, scrollContainer, menuContainer }) => {
     useInscriptEditorTranslations();
-    const { t } = useTranslation('inscript-editor');
+    const { t } = useInscriptT();
     // The tools' active states are read from the editor while rendering.
     useEditorTransaction(editor);
     // Stable identity: TipTap's BubbleMenu dispatches a transaction whenever this prop changes,

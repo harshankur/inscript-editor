@@ -4,7 +4,8 @@ export { useInscriptEditor } from './hooks/useInscriptEditor.js';
 export { InscriptEditor } from './InscriptEditor.jsx';
 
 export { Youtube, FontSize, CustomTable, CustomImage, Citation, HtmlComment, Embed } from './extensions/index.js';
-export { getTableNode, isHeaderRowActive, isHeaderColumnActive, setTableLayout } from './utils/tableHelpers.js';
+export { getTableNode, isHeaderRowActive, isHeaderColumnActive, setTableLayout, getColumnAlign, setColumnAlign } from './utils/tableHelpers.js';
+export { COLUMN_ALIGNMENTS } from './constants.js';
 export { extractHeadings } from './utils/headingExtraction.js';
 export { getTextContent } from './utils/getTextContent.js';
 export { extractYoutubeId } from './utils/youtubeUrl.js';

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useInscriptT } from '../../hooks/useInscriptT.js';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { BUBBLE_MENU_STYLE, bubbleMenuContainer, useBubbleMenuOptions } from './menuOptions.js';
 import { useEditorState } from '@tiptap/react';
@@ -16,7 +16,7 @@ import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTran
  */
 export const EmbedBubbleMenu = ({ editor, isReadonly, onOpenExternal, scrollContainer, menuContainer }) => {
     useInscriptEditorTranslations();
-    const { t } = useTranslation('inscript-editor');
+    const { t } = useInscriptT();
     // The host may own external-link opening (e.g. a desktop app where window.open is blocked); fall
     // back to window.open when no handler is supplied.
     const openExternal = (url) => (onOpenExternal ? onOpenExternal(url) : window.open(url, '_blank', 'noopener,noreferrer'));

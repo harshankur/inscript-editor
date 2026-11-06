@@ -204,5 +204,21 @@
   "toolbarPreset.full": "Full",
   "toolbarPreset.blogger": "Blogger",
   "toolbarPreset.technical": "Technical Writer",
-  "toolbarPreset.science": "Science / Academic"
+  "toolbarPreset.science": "Science / Academic",
+  "placeTableLeft": "Place table left",
+  "placeTableCenter": "Center table on the page",
+  "placeTableRight": "Place table right",
+  "placeImageLeft": "Place image left",
+  "placeImageCenter": "Center image",
+  "placeImageRight": "Place image right",
+  "placeVideoLeft": "Place video left",
+  "placeVideoCenter": "Center video",
+  "placeVideoRight": "Place video right",
+  "alignColumnLeft": "Align column left",
+  "alignColumnCenter": "Center column",
+  "alignColumnRight": "Align column right",
+  "clearColumnAlign": "Clear column alignment",
+  "fontSizeValue": "Font Size {{size}}",
+  "editLink": "Edit Link",
+  "colorValue": "{{name}}: {{color}}"
 }
