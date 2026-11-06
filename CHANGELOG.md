@@ -5,6 +5,63 @@ All notable changes to `inscript-editor` are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (pre-1.0: minor versions may
 carry small breaking changes, called out below).
 
+## [0.9.0] - 2026-11-06
+
+### Added
+- **A column can be aligned.** The table menu has a column group: align the column left, centre or
+  right, or clear its alignment. It sets the alignment on every cell of the columns the selection
+  covers, header included, and clears the alignment of the paragraphs inside them, so the column is
+  aligned for a reader of the HTML and for a Markdown writer (`---:`). A row added later (a button, or
+  Tab in the last cell) takes its column's alignment, so the column stays aligned (undo and redo
+  put rows back as they were), and a merged cell reaching into a column that is not selected is
+  left alone. The same is available as
+  `editor.commands.setColumnAlign(align)`, `setColumnAlign(editor, align)` and
+  `getColumnAlign(state)`, with `COLUMN_ALIGNMENTS`; a value other than those three or `null` is
+  refused. On an editor without this library's table extension the column buttons are disabled.
+- **The toolbar's and the menus' buttons tell assistive technology their name and state.** Every
+  icon-only button is named by the text of its tooltip; one showing text is named by that text. A toggle (bold, a list, an alignment, a
+  placement, a width) reports `aria-pressed`; a button that always inserts (Math, Mermaid) is not a
+  toggle, even when the cursor lights it. In a list of choices (alignment, admonition type, font
+  size, colour swatches) the current one is marked with `aria-current`; the default highlight swatch
+  reported `aria-pressed` before. A button that shows a popover (link, colour, font size,
+  the alignment and admonition choices, more tools) reports `aria-expanded` and carries its state in
+  its name: "Edit Link" over a link (its tooltip too), "Text Color: #dc2626", the font size it shows. The alignment
+  control shows the alignment of the selected paragraphs and headings (in a table cell, the cell's
+  alignment counts): Align Left for text with none of its own, and none in a code block, on an
+  image or across differently aligned paragraphs. The tags and Customize buttons say they open a
+  dialog. The customizer drawer is a named dialog that takes focus when it opens and gives it back
+  when it closes; covering the page, it is modal and keeps Tab inside. `ToolbarButton` takes
+  `expanded`, `hasPopup`, `toggle` and `ariaLabel` for this, and `ToolbarCustomizer` takes
+  `returnFocusRef`. The overflow panel no longer claims to be a menu (`aria-haspopup` is gone from its
+  button).
+
+### Changed
+- **Placement buttons say what they place.** The table, image and video menus named their placement
+  buttons "Align Left", "Align Center" and "Align Right", which read as aligning text. They are now
+  "Place table left", "Center table on the page", "Place table right" (and the same for an image and
+  a video), with keys of their own (`placeTableLeft`, `placeImageLeft`, `placeVideoLeft` and their
+  centre and right forms) and placement icons. A host that translated `alignLeft`, `alignCenter` or
+  `alignRight` for these menus translates the new keys instead; those three keys now name only the
+  text alignment buttons.
+- **Markdown: a column aligned paragraph by paragraph is a GFM column alignment.** A table whose
+  cells each hold one paragraph aligned the same way, as the toolbar's text alignment leaves it, is
+  written as a GFM table with that column alignment instead of as HTML. Loaded back, the alignment
+  sits on the cells, which looks the same. In a column, body cells left-aligned or unaligned look
+  alike, so the header decides between `:---` and `---` (with no header, `---` unless every cell
+  says left); centre or right needs every cell. A cell
+  aligned to `start` reads as left.
+
+### Fixed
+- **Text with a value in it showed its placeholder when the host had not initialized i18next**, for
+  example "Version {{n}}", "Go to {{target}}" or "Image width {{width}}": react-i18next returns the
+  English default unfilled until then. Every component now fills the values in itself, and text
+  built outside React (the slash menu's items, a video's placeholder and play button, a hidden
+  comment's label), which read "undefined" then, shows its English default. That text also follows
+  the i18next instance of the host's own React tree (an `I18nextProvider`), each editor its own, where
+  it used the default instance only. A
+  translated value with an apostrophe or ampersand was also HTML-escaped (`&#39;`) in labels and
+  tooltips, where React escapes text already; it no longer is.
+
 ## [0.8.0] - 2026-11-01
 
 ### Added
