@@ -5,6 +5,53 @@ All notable changes to `inscript-editor` are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (pre-1.0: minor versions may
 carry small breaking changes, called out below).
 
+## [0.10.0] - 2026-11-16
+
+### Added
+- **Keyboard input.** A `keyboardInput` node reads and writes `<kbd>`, drawn as a keycap, so
+  `<kbd>Ctrl</kbd>+<kbd>S</kbd>` survives an edit (it was saved as "Ctrl+S"). Each key is a token
+  holding its text, like a citation, so keys side by side always stay apart. The editor's Markdown
+  keeps it as `<kbd>…</kbd>` (inline code holding a key as HTML). A Keyboard Input button joins the toolbar's full and technical layouts
+  (selected text becomes a key, selected keys turn back into text) and the selection menu's
+  technical one (it shows for a selected key too), with `setKeyboardInput`, `unsetKeyboardInput` and `toggleKeyboardInput`.
+  `editorOptions.keyboardInput: false` turns it off, and its button is then left out (the
+  customizer no longer offers it, and keeps it in a saved layout, marked as not available).
+- **Disclosures.** A `details` node reads and writes `<details><summary>…</summary>…</details>`: a
+  summary, then any blocks. A toggle beside the summary opens and closes it, in the document
+  (`<details open>`) in an editable editor and for the reader only in a read-only one; a closed one
+  shows its body while the cursor is in it. Enter in the summary goes on into the body, Backspace at
+  its start unwraps it, and a block put in the summary (inserted, pasted) goes to the start of the
+  body, the summary staying one line. The editor's Markdown writes it as GitHub reads it (the tags and summary as
+  HTML, the body as Markdown between blank lines), and a `<details>` without a `<summary>` loads with
+  an empty one rather than losing its body. A Disclosure entry in the slash menu and a Disclosure
+  button in the toolbar's full and technical layouts, with `setDetails`, `unsetDetails`,
+  `toggleDetails` and `setDetailsOpen(open)`. `editorOptions.details: false` turns it off, and its
+  button and slash entry are then left out.
+
+### Changed
+- **A tool whose feature the host turned off is left out** of the toolbar and the selection menu
+  (with any divider it leaves stranded), where it used to show as a button that did nothing: Math,
+  Mermaid, Footnote, Citation, Definition List, Abbreviation, Task List and Admonitions, as well as the
+  new Keyboard Input and Disclosure. The customizer no longer offers them, to add or in a preset or the
+  default layout; one already in the host's layout stays there, marked as not available in this
+  editor, and is kept on save, for an editor that has it.
+
+### Fixed
+- **HTML is fitted to the editor's schema with source comments turned off too.** With
+  `editorOptions.htmlComment: false`, a list item opening with an image, a code block or a quote had
+  that block moved out of the list, and an image alone in its paragraph left an empty one behind:
+  the reshaping came with the comment node. It is always on now.
+- **The customizer's preset buttons say which one is in use** (`aria-pressed`), as the toolbar's do.
+- **A contained customizer drawer no longer gives its host something to scroll.** Scoped to a
+  `customizerContainer`, the drawer lay past the container's edge while it slid in or out, so a
+  container with `overflow: hidden` could be scrolled sideways (by script or by focus) and stayed
+  scrolled, the drawer sitting a drawer's width to the left. The drawer is now clipped by its own
+  backdrop, and moving focus inside it never scrolls anything.
+- **A `+` between two keys was saved escaped** (`<kbd>Ctrl</kbd>\+<kbd>S</kbd>`). Text that would
+  open a heading, list or quote at the start of a line (`#`, `+`, `-`, `1.`, `1)`, `>`, `=`) is no
+  longer escaped when it comes right after an element written on the same line (a key, inline code,
+  a link, bold); anywhere else it is escaped as before, which reads back the same.
+
 ## [0.9.0] - 2026-11-06
 
 ### Added
