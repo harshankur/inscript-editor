@@ -32,9 +32,23 @@ const NEWLINE_REFERENCE = '&#10;';
 const MARKDOWN_PUNCTUATION = /[\\`*_[\]~|!#+\-.()]/g;
 
 const escapeText = text => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const escapeAttribute = value => value
-    .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(LINE_BREAK, NEWLINE_REFERENCE).replace(/\t/g, '&#9;');
+// In a link's text, brackets, parentheses, backticks and backslashes as references too: a renderer
+// that scans a link's text without taking inline HTML as one piece (marked) would end the link at a
+// `]` in an attribute and read `](javascript:…)` after it as a link of its own. Elsewhere (a formula,
+// a diagram) they are written as they are, so the source stays readable.
+const escapeAttribute = (value, forLinkText = false) => {
+    const escaped = value
+        .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(LINE_BREAK, NEWLINE_REFERENCE).replace(/\t/g, '&#9;');
+    return forLinkText ? escaped.replace(/[[\]()`\\]/g, ch => `&#${ch.charCodeAt(0)};`) : escaped;
+};
+/** Whether a node sits in a link's text. */
+const inLinkText = node => {
+    for (let current = node?.parentNode; current; current = current.parentNode) {
+        if (current.nodeName === 'A') return true;
+    }
+    return false;
+};
 
 function encodeText(text, literal) {
     let encoded = escapeText(text).replace(LINE_BREAK, NEWLINE_REFERENCE);
@@ -44,7 +58,8 @@ function encodeText(text, literal) {
 
 /** `<tag attr="…">`, attributes escaped for a single line. */
 function openTag(node) {
-    const attrs = Array.from(node.attributes || []).map(a => ` ${a.name}="${escapeAttribute(a.value)}"`).join('');
+    const inLink = inLinkText(node);
+    const attrs = Array.from(node.attributes || []).map(a => ` ${a.name}="${escapeAttribute(a.value, inLink)}"`).join('');
     return `<${node.nodeName.toLowerCase()}${attrs}>`;
 }
 
@@ -207,7 +222,9 @@ function insideHeading(node) {
 function lineBreak(content, node, options) {
     const previous = previousMeaningfulSibling(node);
     const next = nextMeaningfulSibling(node);
-    if (insideHeading(node) || previous?.nodeName === 'BR' || next?.nodeName === 'BR' || !hasFollowingContent(node)) return '<br>';
+    // Nor at a line's start: a line that is only a kept inline tag's opening (`<mark>` and the break)
+    // would start a raw HTML block, where the escaped text after it is HTML again.
+    if (insideHeading(node) || previous?.nodeName === 'BR' || next?.nodeName === 'BR' || !hasFollowingContent(node) || startsLine(node)) return '<br>';
     return `${options.br}\n`;
 }
 
@@ -235,18 +252,67 @@ function bracketsAsReferences(markdown) {
     return out;
 }
 
+/**
+ * `text` without the line breaks at its ends (with `blankLines`, without its blank lines at either
+ * end, a line of spaces and tabs counting as blank). By index, not a pattern: a pattern anchored at
+ * the end (`\n+$`) tries again from every line break and takes quadratic time on many of them.
+ */
+function trimLineBreaks(text, blankLines = false) {
+    const blank = ch => ch === '\n' || (blankLines && (ch === ' ' || ch === '\t'));
+    let start = 0;
+    let end = text.length;
+    if (blankLines) {
+        // Whole blank lines only: a line's own indent before its text stays.
+        for (let i = 0; i < end && blank(text[i]); i++) if (text[i] === '\n') start = i + 1;
+        for (let i = end - 1; i >= start && blank(text[i]); i--) if (text[i] === '\n') end = i;
+    } else {
+        while (start < end && text[start] === '\n') start++;
+        while (end > start && text[end - 1] === '\n') end--;
+    }
+    return text.slice(start, end);
+}
+
+/**
+ * A link's or image's destination as Markdown reads it back whole: spaces, line breaks and other
+ * control characters, `<` and `>` percent-encoded (a space or a blank line would end the link, and
+ * the rest be read as raw HTML), and `(`, `)` and `\` escaped. An `&` that starts what reads as a
+ * character reference (`&#x6a;`, `&sect;`) is written as one (`&amp;`): a Markdown renderer decodes a
+ * reference, or writes it into the href for the browser to decode, and `&#x6a;avascript:` is a script
+ * link; `&amp;` reads back as the `&` it was. An `&` in a query string (`?a=1&b=2`) is left as it is.
+ */
+function markdownDestination(value) {
+    return String(value)
+        .replace(/[\u0000-\u0020\u007f<>]/g, ch => encodeURIComponent(ch))
+        .replace(/&(?=#?\w+;)/g, '&amp;')
+        .replace(/([()\\])/g, '\\$1');
+}
+
+/**
+ * A link's or image's title in double quotes as Markdown reads it back whole: one line, its
+ * backslashes and quotes escaped (a closing `\` would escape the closing quote, and the title's text
+ * be read as raw HTML).
+ */
+function markdownTitle(value) {
+    const title = String(value ?? '').replace(/[\r\n]+/g, ' ').trim();
+    // `<` escaped too: should the link not form after all, its title stays text, never HTML.
+    return title ? ` "${title.replace(/([\\"<])/g, '\\$1')}"` : '';
+}
+
 const isList = node => node?.nodeName === 'UL' || node?.nodeName === 'OL';
 
 /**
  * How many lists of the same kind come right before this one. CommonMark merges adjacent lists
  * that use the same marker, so every other one uses the alternate marker.
  */
+const adjacentLists = new WeakMap();
 function adjacentListsBefore(list) {
-    let count = 0;
-    for (let previous = previousMeaningfulSibling(list); isList(previous) && previous.nodeName === list.nodeName; previous = previousMeaningfulSibling(previous)) {
-        if (previous.nodeType !== ELEMENT_NODE) break;
-        count += 1;
-    }
+    // Kept per list (asked for every item), each counted from the one before: linear in the lists.
+    if (adjacentLists.has(list)) return adjacentLists.get(list);
+    const previous = previousMeaningfulSibling(list);
+    const count = isList(previous) && previous.nodeType === ELEMENT_NODE && previous.nodeName === list.nodeName
+        ? adjacentListsBefore(previous) + 1
+        : 0;
+    adjacentLists.set(list, count);
     return count;
 }
 
@@ -267,7 +333,7 @@ function listItemPrefix(node, options) {
 function listItem(content, node, options, marker = '') {
     const prefix = listItemPrefix(node, options);
     const isParagraph = /\n$/.test(content);
-    let body = content.replace(/^\n+|\n+$/g, '') + (isParagraph ? '\n' : '');
+    let body = trimLineBreaks(content) + (isParagraph ? '\n' : '');
     body = body.replace(/\n/gm, `\n${' '.repeat(prefix.length)}`);
     const lead = marker ? `${marker} ` : '';
     return `${prefix}${lead}${body}${node.nextSibling ? '\n' : ''}`;
@@ -366,8 +432,7 @@ const inGfmTable = node => {
 
 /** One GFM cell: inline content only, pipes escaped, line breaks as <br>. */
 function gfmCell(content, node) {
-    const text = content
-        .replace(/^\n+|\n+$/g, '')
+    const text = trimLineBreaks(content)
         .replace(/ {2}\n/g, '<br>')
         .replace(/\n+/g, ' ')
         .replace(/\|/g, '\\|')
@@ -548,10 +613,8 @@ export function applyInscriptEditorTurndownRules(turndownService) {
         filter: (node, options) => node.nodeName === 'A' && !!node.getAttribute('href')
             && !node.hasAttribute('data-wikilink') && (options?.linkStyle ?? 'inlined') === 'inlined',
         replacement: (content, node) => {
-            const href = node.getAttribute('href').replace(/([()])/g, '\\$1');
-            const rawTitle = node.getAttribute('title');
-            const title = rawTitle ? ` "${rawTitle.replace(/(\n+\s*)+/g, '\n').replace(/"/g, '\\"')}"` : '';
-            return `[${bracketsAsReferences(content)}](${href}${title})`;
+            const href = markdownDestination(node.getAttribute('href'));
+            return `[${bracketsAsReferences(content)}](${href}${markdownTitle(node.getAttribute('title'))})`;
         },
     });
     add('inscriptLineBreak', {
@@ -605,7 +668,12 @@ export function applyInscriptEditorTurndownRules(turndownService) {
         replacement: (content, node) => {
             const opensLine = startsLine(node);
             const followed = hasFollowingContent(node);
-            const alone = opensLine && !followed && !insideTableCell(node);
+            // Its line breaks only as a paragraph's only content, its whole Markdown line. Inside a
+            // heading, a link, bold or the like, after a task item's marker or a break written as
+            // <br>, the line starts with something else, and its text after a blank line would be live.
+            const parent = node.parentNode;
+            const alone = parent?.nodeName === 'P' && !previousMeaningfulSibling(node) && !nextMeaningfulSibling(node)
+                && !insideTableCell(node) && !parent.closest?.('li[data-type="taskItem"], li[data-checked]');
             const comment = `<!--${encodeCommentText(node.getAttribute('data-html-comment') || '', { keepLineBreaks: alone })}-->`;
             return opensLine && followed ? `<span>${comment}</span>` : comment;
         },
@@ -635,7 +703,7 @@ export function applyInscriptEditorTurndownRules(turndownService) {
             const open = node.hasAttribute('open') ? ' open' : '';
             const head = `<details${open}>\n${summary ? serializeHtml(summary, false, true) : '<summary></summary>'}`;
             // Without the blank lines at its edges (one a list leaves holds only its indent).
-            const body = content.replace(/^(?:[ \t]*\n)+|(?:\n[ \t]*)+$/g, '');
+            const body = trimLineBreaks(content, true);
             return body ? `\n\n${head}\n\n${body}\n\n</details>\n\n` : `\n\n${head}\n\n</details>\n\n`;
         },
     });
@@ -696,6 +764,41 @@ export function applyInscriptEditorTurndownRules(turndownService) {
         replacement: rawBlock,
     });
 
+    // A plain image as turndown writes it (7.2), its destination and title written so Markdown reads
+    // them back whole (see markdownDestination, markdownTitle). Below the layout rule, which wins.
+    add('inscriptImage', {
+        filter: 'img',
+        replacement: (content, node) => {
+            const src = node.getAttribute('src');
+            if (!src) return '';
+            // On one line: a line break and a `#`, `-` or `>` would keep the image from forming.
+            const alt = (node.getAttribute('alt') || '').replace(/\s+/g, ' ').trim();
+            const escape = typeof turndownService.escape === 'function' ? turndownService.escape.bind(turndownService) : text => text;
+            return `![${bracketsAsReferences(escape(alt))}](${markdownDestination(src)}${markdownTitle(node.getAttribute('title'))})`;
+        },
+    });
+
+    // Code blocks fenced as turndown fences them (7.2), with a fence no line of the code can close
+    // (CommonMark closes one indented by up to three spaces, which turndown does not count) and a
+    // language that cannot keep the fence from opening (a backtick in it would).
+    add('inscriptFencedCode', {
+        filter: (node, options) => (options?.codeBlockStyle ?? 'fenced') === 'fenced' && node.nodeName === 'PRE' && node.firstChild?.nodeName === 'CODE',
+        replacement: (content, node, options) => {
+            const code = node.firstChild.textContent;
+            const fenceChar = (options?.fence || '```').charAt(0) === '~' ? '~' : '`';
+            let longest = 0;
+            let run = 0;
+            for (const ch of code) {
+                run = ch === fenceChar ? run + 1 : 0;
+                longest = Math.max(longest, run);
+            }
+            const fence = fenceChar.repeat(Math.max(3, longest + 1));
+            const language = ((node.firstChild.getAttribute('class') || '').match(/language-(\S+)/) || [null, ''])[1]
+                .replace(fenceChar === '`' ? /`/g : /~/g, '');
+            return `\n\n${fence}${language}\n${code.replace(/\n$/, '')}\n${fence}\n\n`;
+        },
+    });
+
     // Images resized or aligned in the editor keep that layout as raw HTML; a plain image
     // (full width, centered) stays a Markdown image.
     add('inscriptLayoutImage', {
@@ -749,7 +852,7 @@ export function applyInscriptEditorTurndownRules(turndownService) {
     add('inscriptTable', {
         filter: ['table'],
         replacement: (content, node) => (isGfmTable(node)
-            ? `\n\n${content.replace(/^\n+|\n+$/g, '')}\n\n`
+            ? `\n\n${trimLineBreaks(content)}\n\n`
             : htmlBlock(node)),
     });
 

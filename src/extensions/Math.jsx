@@ -4,7 +4,7 @@ import { NODE } from '../constants.js';
 import { useEditorEditable } from '../hooks/useEditorEditable.js';
 import { inInlineCode, onlyTextBetween, sharedMarks, withoutEdgeSpaces } from '../utils/selectionText.js';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 
 // `katex` is an OPTIONAL peer dependency, imported dynamically so it never lands
 // in the library bundle and the editor loads fine when a consumer hasn't installed
@@ -34,11 +34,49 @@ function readMathCode(element) {
     return stripMathDelimiters(fromAttr || element.textContent || '');
 }
 
+/** Macro expansions a formula may make (KaTeX's own default, set so it never depends on the version). */
+const KATEX_MAX_EXPAND = 1000;
+/** The largest size (in em) a formula may give a rule or a box. */
+const KATEX_MAX_SIZE_EM = 50;
+
+// One ResizeObserver per window, shared by every inline formula in it (a document may hold hundreds).
+const sizeObservers = new WeakMap();
+
+/** Call `callback` whenever `element` changes size; returns what stops it. Nothing where sizes are not observed. */
+function observeSize(element, callback) {
+    const View = element.ownerDocument?.defaultView;
+    if (typeof View?.ResizeObserver !== 'function') return () => {};
+    let shared = sizeObservers.get(View);
+    if (!shared) {
+        const callbacks = new WeakMap();
+        shared = { callbacks, observer: new View.ResizeObserver(entries => entries.forEach(entry => callbacks.get(entry.target)?.())) };
+        sizeObservers.set(View, shared);
+    }
+    shared.callbacks.set(element, callback);
+    shared.observer.observe(element);
+    return () => {
+        shared.callbacks.delete(element);
+        shared.observer.unobserve(element);
+    };
+}
+
 const MathComponent = ({ node, editor, updateAttributes, selected, isInline }) => {
     const { code } = node.attrs;
     const editable = useEditorEditable(editor);
     const [html, setHtml] = useState('');
     const [error, setError] = useState(null);
+    // An inline formula wider than its line scrolls sideways (see .math-render-wide); one that fits
+    // sits on the text's baseline.
+    const renderRef = useRef(null);
+    const [wide, setWide] = useState(false);
+    useLayoutEffect(() => {
+        const element = renderRef.current;
+        if (!isInline || !element) return undefined;
+        // Measured when the observer first reports the element's size (and on every change after):
+        // never a layout forced here, once per formula.
+        const measure = () => setWide(element.scrollWidth > element.clientWidth + 1);
+        return observeSize(element, measure);
+    }, [html, error, isInline]);
 
     useEffect(() => {
         let cancelled = false;
@@ -59,6 +97,12 @@ const MathComponent = ({ node, editor, updateAttributes, selected, isInline }) =
                 const rendered = katex.renderToString(code, {
                     displayMode: !isInline,
                     throwOnError: false, // Prevents crashing on syntax errors, renders error in red
+                    // A document's formula is untrusted: no \href, \url, \html* or \includegraphics,
+                    // a bounded expansion of its macros, and bounded sizes (it is also clipped to its
+                    // own box: see .math-render in the stylesheet).
+                    trust: false,
+                    maxExpand: KATEX_MAX_EXPAND,
+                    maxSize: KATEX_MAX_SIZE_EM,
                 });
                 if (!cancelled) {
                     setHtml(rendered);
@@ -74,7 +118,7 @@ const MathComponent = ({ node, editor, updateAttributes, selected, isInline }) =
     const WrapperTag = isInline ? 'span' : 'div';
     // The source editor changes the document, so a read-only editor never offers it.
     const showSourceEditor = selected && editable;
-    const renderClass = `math-render ${selected ? 'ring-2 ring-[var(--inscript-color-accent)] rounded' : ''} ${error ? 'text-red-500' : ''}`;
+    const renderClass = `math-render ${wide ? 'math-render-wide' : ''} ${selected ? 'ring-2 ring-[var(--inscript-color-accent)] rounded' : ''} ${error ? 'text-red-500' : ''}`;
 
     return (
         <NodeViewWrapper
@@ -83,12 +127,12 @@ const MathComponent = ({ node, editor, updateAttributes, selected, isInline }) =
         >
             {error || !html ? (
                 // Text, never markup: on the error path this is the document's raw source.
-                <WrapperTag className={renderClass} title={error || undefined}>
+                <WrapperTag ref={renderRef} className={renderClass} title={error || undefined}>
                     {error ? code : (isInline ? 'Empty math' : 'Empty math block')}
                 </WrapperTag>
             ) : (
                 // KaTeX's own output (trust off, so no \href, \url or \html* commands).
-                <WrapperTag className={renderClass} dangerouslySetInnerHTML={{ __html: html }} />
+                <WrapperTag ref={renderRef} className={renderClass} dangerouslySetInnerHTML={{ __html: html }} />
             )}
             {showSourceEditor && (
                 <div

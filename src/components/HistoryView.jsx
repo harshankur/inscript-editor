@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useInscriptT } from '../hooks/useInscriptT.js';
 import * as Diff from 'diff';
 import { Redo } from 'lucide-react';
 import { getTextContent } from '../utils/getTextContent.js';
-import { inertPreviewHtml } from '../utils/previewHtml.js';
+import { inertPreviewNodes } from '../utils/previewHtml.js';
+import { clickedLink, openOutside } from '../extensions/HostBridge.js';
+import { urlScheme } from '../utils/url.js';
 import { useInscriptEditorTranslations } from '../hooks/useInscriptEditorTranslations.js';
 
 const BASELINE_KINDS = new Set(['opened', 'imported']);
@@ -18,6 +20,37 @@ function compareTexts(diff, before, after) {
     const parts = diff(before, after, { timeout: DIFF_TIMEOUT_MS });
     if (parts) return { parts, tooLarge: false };
     return { parts: [{ value: before, removed: true, plain: true }, { value: after, added: true, plain: true }], tooLarge: true };
+}
+
+// A preview is contained inline as well as in the stylesheet: nothing in a version covers the host's
+// page, even where the stylesheet is not loaded.
+/** Link schemes a click in a preview leaves to the browser: they open an app of the reader's, no page. */
+const LEFT_TO_BROWSER = Object.freeze(['mailto', 'tel']);
+const PREVIEW_CONTAINMENT = Object.freeze({ position: 'relative', overflow: 'auto', contain: 'paint' });
+
+/**
+ * A version's cleaned preview, its nodes put in as they are (see inertPreviewNodes): never its HTML
+ * parsed again, where markup the cleaning saw as text could come back live. A link clicked in it never
+ * takes the page anywhere: a web address (another site's or the page's own) opens outside (see
+ * openOutside), anything else (an anchor in the version) nowhere.
+ */
+function PreviewNodes({ nodes, which, editor }) {
+    const ref = useRef(null);
+    useLayoutEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        if (nodes) el.replaceChildren(el.ownerDocument.importNode(nodes, true));
+        else el.replaceChildren();
+    }, [nodes]);
+    const followLink = event => {
+        const anchor = clickedLink(event, event.currentTarget);
+        if (!anchor) return;
+        // A mail or phone link opens the reader's own app, never a page: left to the browser.
+        if (LEFT_TO_BROWSER.includes(urlScheme(anchor.getAttribute('href')))) return;
+        event.preventDefault();
+        openOutside(editor, anchor.getAttribute('href'), anchor.ownerDocument, { ownSite: true });
+    };
+    return <div ref={ref} onClick={followLink} className="ProseMirror inscript-history-preview" data-history-preview={which} style={PREVIEW_CONTAINMENT} />;
 }
 
 const RELATIVE_UNITS = [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60], ['second', 1]];
@@ -51,6 +84,7 @@ export const HistoryView = ({
     originalCategories: originalCategoriesProp,
     currentIndex = -1,
     onSelect,
+    editor = null,
 }) => {
     useInscriptEditorTranslations();
     const { t, i18n } = useInscriptT();
@@ -133,10 +167,10 @@ export const HistoryView = ({
     };
 
     const previewPlaceholder = (source) => t('historyEmbedPlaceholder', 'Embedded content: {{source}}', { source: source || '?' });
-    const refPreview = useMemo(() => (mode === 'visual' ? inertPreviewHtml(refHtml, previewPlaceholder) : ''),
+    const refPreview = useMemo(() => (mode === 'visual' ? inertPreviewNodes(refHtml, previewPlaceholder) : null),
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [refHtml, mode, i18n.language]);
-    const comparePreview = useMemo(() => (mode === 'visual' ? inertPreviewHtml(compareHtml, previewPlaceholder) : ''),
+    const comparePreview = useMemo(() => (mode === 'visual' ? inertPreviewNodes(compareHtml, previewPlaceholder) : null),
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [compareHtml, mode, i18n.language]);
 
@@ -155,15 +189,19 @@ export const HistoryView = ({
     const diffTitle = useMemo(() => {
         if (mode === 'visual') return null;
         const originalTitle = typeof refTitle === 'string' ? refTitle : '';
-        const compareTitle = selectedState.title || '';
-        return Diff.diffWords(originalTitle, compareTitle);
+        const compareTitle = typeof selectedState.title === 'string' ? selectedState.title : '';
+        // Bounded as the text comparison is: past it both titles are shown as they are.
+        return compareTexts(Diff.diffWords, originalTitle, compareTitle).parts;
     }, [refTitle, selectedState.title, mode]);
 
     // Helper for Array Diff
+    // By sets: linear in the tags, however many a version holds.
     const getArrayDiff = (oldArr = [], newArr = []) => {
-        const added = newArr.filter(x => !oldArr.includes(x));
-        const removed = oldArr.filter(x => !newArr.includes(x));
-        const unchanged = oldArr.filter(x => newArr.includes(x));
+        const before = new Set(oldArr);
+        const after = new Set(newArr);
+        const added = newArr.filter(x => !before.has(x));
+        const removed = oldArr.filter(x => !after.has(x));
+        const unchanged = oldArr.filter(x => after.has(x));
         return { added, removed, unchanged };
     };
 
@@ -302,7 +340,7 @@ export const HistoryView = ({
                                 <div className="text-lg @3xl:text-xl font-bold text-[var(--inscript-color-muted)] mb-4 @3xl:mb-6 break-words">{refTitle}</div>
                             ) : (
                                 <div className="text-lg @3xl:text-xl font-bold text-[var(--inscript-color-muted)] font-mono mb-4 @3xl:mb-6 break-words">
-                                    {diffTitle ? diffTitle.map((part, i) => !part.added && <span key={i} style={part.removed ? { backgroundColor: 'rgba(127,29,29,0.4)', textDecoration: 'line-through' } : {}}>{part.value}</span>) : refTitle}
+                                    {diffTitle ? diffTitle.map((part, i) => !part.added && <span key={i} style={part.removed && !part.plain ? { backgroundColor: 'rgba(127,29,29,0.4)', textDecoration: 'line-through' } : {}}>{part.value}</span>) : refTitle}
                                 </div>
                             )}
 
@@ -322,7 +360,7 @@ export const HistoryView = ({
                     )}
                     <div className="p-4 @3xl:p-6 @5xl:p-8">
                         {mode === 'visual' ? (
-                            <div className="ProseMirror inscript-history-preview" data-history-preview="reference" dangerouslySetInnerHTML={{ __html: refPreview }} />
+                            <PreviewNodes nodes={refPreview} which="reference" editor={editor} />
                         ) : (
                             <>
                                 {diffSource?.tooLarge && (
@@ -349,7 +387,7 @@ export const HistoryView = ({
                                 <div className="text-lg @3xl:text-xl font-bold text-[var(--inscript-color-text)] mb-4 @3xl:mb-6 break-words">{selectedState.title}</div>
                             ) : (
                                 <div className="text-lg @3xl:text-xl font-bold text-[var(--inscript-color-text)] font-mono mb-4 @3xl:mb-6 break-words">
-                                    {diffTitle ? diffTitle.map((part, i) => !part.removed && <span key={i} style={part.added ? { backgroundColor: 'rgba(6,78,59,0.4)' } : {}}>{part.value}</span>) : selectedState.title}
+                                    {diffTitle ? diffTitle.map((part, i) => !part.removed && <span key={i} style={part.added && !part.plain ? { backgroundColor: 'rgba(6,78,59,0.4)' } : {}}>{part.value}</span>) : selectedState.title}
                                 </div>
                             )}
 
@@ -369,7 +407,7 @@ export const HistoryView = ({
                     )}
                     <div className="p-4 @3xl:p-6 @5xl:p-8">
                         {mode === 'visual' ? (
-                            <div className="ProseMirror inscript-history-preview" data-history-preview="selected" dangerouslySetInnerHTML={{ __html: comparePreview }} />
+                            <PreviewNodes nodes={comparePreview} which="selected" editor={editor} />
                         ) : (
                             <pre className="font-mono text-xs text-[var(--inscript-color-text)] whitespace-pre-wrap">{diffSource && diffSource.parts.map((part, i) => !part.removed && <span key={i} style={part.added && !part.plain ? { backgroundColor: 'rgba(6,78,59,0.4)' } : {}}>{part.value}</span>)}</pre>
                         )}

@@ -4,22 +4,35 @@
 // trust list. A preview must never load third-party content or run anything. (The document's own
 // images are shown: the editor shows them too.)
 
-import { SCRIPT_SCHEMES, urlScheme, urlStart } from './url.js';
+import { SCRIPT_SCHEMES, isShareAddress, protocolRelativeAsWeb, urlScheme, urlStart } from './url.js';
+import { isHandlerAttribute } from './dom.js';
 
 /** Elements that fetch or run third-party content: replaced by a placeholder naming the source. */
-const EMBEDDING = 'iframe, frame, frameset, embed, object, portal, video, audio';
+const EMBEDDING = 'iframe, frame, frameset, embed, object, portal, video, audio, webview, fencedframe';
 /**
  * Elements with no place in a document preview: removed outright. SVG animation can set an
  * attribute to a script URL; an SVG image fetches from anywhere.
  */
-const REMOVED = 'script, style, link, meta, base, noscript, template, form, animate, set, animateMotion, animateTransform, image, feImage';
+const REMOVED = 'script, style, link, meta, base, noscript, template, form, animate, set, animateMotion, animateTransform, image, feImage, '
+    // Raw-text elements and foreign content (MathML, SVG), which parse differently once the cleaned
+    // HTML is parsed again: text in one can come back as live markup (mutation XSS). The editor's
+    // own HTML never holds them.
+    + 'xmp, noembed, noframes, plaintext, listing, math, svg';
 const URL_ATTRS = ['href', 'src', 'action', 'formaction', 'xlink:href', 'data'];
-/** Attributes that only ever fetch something extra: dropped. */
-const FETCHING_ATTRS = ['srcset', 'poster', 'background', 'lowsrc', 'dynsrc'];
+/**
+ * Attributes dropped: those that only ever fetch something extra or tell another site about this
+ * page (a link's ping, a referrer policy), and those that name an element on the host's page (an id
+ * or name shadows the page's own globals: DOM clobbering) or tie it to a form.
+ */
+const DROPPED_ATTRS = ['srcset', 'poster', 'background', 'lowsrc', 'dynsrc', 'ping', 'referrerpolicy', 'attributionsrc', 'id', 'name', 'form', 'target'];
 const DATA_RASTER_IMAGE = /^data:image\/(png|jpeg|gif|webp|avif|bmp)[;,]/;
 const DATA_IMAGE = /^data:image\//;
-const CSS_URL = /url\s*\([^)]*\)/gi;
-const SVG_NS = 'http://www.w3.org/2000/svg';
+/**
+ * A style that could load something (url(), image-set(), image(), cross-fade(), @import) or hide one
+ * in an escape (`u\\72l(`) or a comment: dropped whole, rather than rewritten. Stricter than a
+ * diagram's (FETCHING_CSS, which allows `url(#…)`): a version's styles need none of that.
+ */
+const FETCHING_STYLE = /\\|url\s*\(|image-set|image\s*\(|cross-fade|@import|expression|\/\*/i;
 
 /**
  * Is this URL attribute value unsafe in a preview? Read the way browsers read it (see url.js:
@@ -54,15 +67,18 @@ function sourceHost(src) {
 }
 
 /**
- * The HTML with every embed replaced by a placeholder, scripts/styles/forms removed, event
- * handler attributes and script URLs dropped, and form controls disabled. Parsed in an inert
- * <template>, so nothing loads or runs while it is cleaned. Returns '' where there is no DOM.
+ * The HTML as inert nodes: every embed replaced by a placeholder, scripts/styles/forms and
+ * foreign content removed, event handler attributes, script URLs and identities dropped, and form
+ * controls disabled. Parsed in an inert <template>, so nothing loads or runs while it is cleaned.
+ * Insert the nodes themselves (never their HTML parsed again, which can bring back what was cleaned).
+ * Null where there is no DOM or nothing to show.
  *
  * @param {string} html
  * @param {(source: string) => string} placeholderText - Label for an embed, given its host name.
+ * @returns {DocumentFragment | null}
  */
-export function inertPreviewHtml(html, placeholderText = source => source) {
-    if (!html || typeof document === 'undefined') return '';
+export function inertPreviewNodes(html, placeholderText = source => source) {
+    if (!html || typeof document === 'undefined') return null;
     const template = document.createElement('template');
     template.innerHTML = html;
     const root = template.content;
@@ -75,21 +91,18 @@ export function inertPreviewHtml(html, placeholderText = source => source) {
         el.replaceWith(placeholder);
     });
     root.querySelectorAll('*').forEach(el => {
-        for (const { name, value } of Array.from(el.attributes)) {
+        for (const attribute of Array.from(el.attributes)) {
+            const { name } = attribute;
             const lower = name.toLowerCase();
+            // A protocol-relative address as the web address it means, as the editor reads it.
+            const web = URL_ATTRS.includes(lower) ? protocolRelativeAsWeb(attribute.value) : attribute.value;
+            if (web !== attribute.value) el.setAttribute(name, web);
+            const { value } = attribute;
             const imageSource = el.tagName === 'IMG' && lower === 'src';
-            if (lower.startsWith('on') || FETCHING_ATTRS.includes(lower) || (URL_ATTRS.includes(lower) && isUnsafeUrl(value, imageSource))) {
+            if (isHandlerAttribute(attribute) || DROPPED_ATTRS.includes(lower)
+                || (URL_ATTRS.includes(lower) && (isUnsafeUrl(value, imageSource) || isShareAddress(value)))
+                || (lower === 'style' && FETCHING_STYLE.test(value))) {
                 el.removeAttribute(name);
-            } else if (lower === 'style' && CSS_URL.test(value)) {
-                // A background image (or any url()) would load from wherever it points.
-                el.setAttribute(name, value.replace(CSS_URL, 'none'));
-            }
-            CSS_URL.lastIndex = 0;
-        }
-        // An SVG <use> may pull in another file: only a reference inside the preview stays.
-        if (el.namespaceURI === SVG_NS && el.localName === 'use') {
-            for (const attr of ['href', 'xlink:href']) {
-                if (el.hasAttribute(attr) && !el.getAttribute(attr).trim().startsWith('#')) el.removeAttribute(attr);
             }
         }
         if (el.tagName === 'INPUT') el.removeAttribute('src');
@@ -108,5 +121,8 @@ export function inertPreviewHtml(html, placeholderText = source => source) {
         }
     }
     blank.forEach(node => node.remove());
-    return template.innerHTML;
+    // A version's diagrams are never Mermaid's to draw: a page's own Mermaid (mermaid.run, or its
+    // drawing on load) draws every `.mermaid` element, with the page's settings, looser maybe.
+    root.querySelectorAll('.mermaid').forEach(el => el.classList.remove('mermaid'));
+    return root;
 }

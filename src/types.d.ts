@@ -76,7 +76,11 @@ export type ImageFileHandler = (
 
 export interface WikilinkResolution {
     exists: boolean;
+    /** A page on your site (a relative path or an anchor) or an http(s) address. Anything else (an
+     *  app's own scheme, `data:`, `javascript:`, a share) is not followed: open such a page from
+     *  `onNavigate` instead. */
     href: string;
+    /** Called on a click instead of following `href` (your router, or your app's own navigation). */
     onNavigate?: ((page: string) => void) | null;
 }
 
@@ -96,9 +100,12 @@ export interface EditorBuildOptions {
     citation?: boolean;
     /** Keep `<!-- ... -->` source comments as hidden, deletable nodes (on by default). */
     htmlComment?: boolean;
-    /** Generic third-party embeds (on by default). `false` disables; an object configures trust. */
+    /** Generic third-party embeds (on by default). `false` disables; an object configures trust.
+     *  `isTrusted` is given the address as it will be loaded: absolute, https for a protocol-relative
+     *  one, normalized as a browser reads it (`https://maps.example.com/`). */
     embed?: boolean | { isTrusted?: (src: string) => boolean; trustedEmbedHosts?: string[] };
-    /** Host-supplied embed trust (alternative to the object form of `embed`). */
+    /** Host-supplied embed trust (alternative to the object form of `embed`), given the address as
+     *  `embed.isTrusted` is. */
     isEmbedTrusted?: (src: string) => boolean;
     trustedEmbedHosts?: string[];
     /** YouTube node options.
@@ -114,8 +121,9 @@ export interface EditorBuildOptions {
     /** Opt-in wikilinks. `resolver` runs when a link renders; when the host's pages change
      *  (a target gets created), call `editor.commands.refreshWikilinks()` to re-resolve them. */
     wikilink?: { enabled?: boolean; resolver?: (page: string) => WikilinkResolution | null };
-    /** Link behavior: turn typed/pasted URLs into links (both default true). */
-    link?: { autolink?: boolean; linkOnPaste?: boolean };
+    /** Link behavior: turn typed/pasted URLs into links (both default true). `HTMLAttributes` are
+     *  every link's own (`target`, `rel`, `class`): a document's are never kept. */
+    link?: { autolink?: boolean; linkOnPaste?: boolean; HTMLAttributes?: Record<string, string> };
     /** The "/" command menu. `false` disables it entirely. */
     slashCommand?: boolean;
     /** Custom slash-command registry entries (replaces the default set when provided). */
@@ -724,6 +732,9 @@ export const HistoryView: (props: {
     currentIndex: number;
     /** Restore clicked for a version other than the active one. */
     onSelect?: (index: number, entry: HistoryEntry) => void;
+    /** The editor the versions are of: a link clicked in a preview opens through its
+     *  `onOpenExternal` (else a new tab with no way back). Never in place of your page. */
+    editor?: Editor | null;
 }) => ReactNode;
 
 /** Shared by DocumentOutline and MiniMap for hosting them inside your own panel. */

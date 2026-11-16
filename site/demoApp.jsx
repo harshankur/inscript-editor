@@ -103,11 +103,11 @@ function DemoSidebar({ editor, theme, setTheme, showOutline = true, showMiniMap 
 
     // Default collapsed (rail only); ?tab=outline|minimap|theme opens one (used for screenshots).
     const [view, setView] = React.useState(() => {
-        try { const p = new URLSearchParams(location.search).get('tab'); return panels[p] ? p : null; }
+        try { const p = new URLSearchParams(location.search).get('tab'); return p && Object.hasOwn(panels, p) ? p : null; }
         catch { return null; }
     });
     const toggle = (v) => setView((cur) => (cur === v ? null : v));
-    const active = view && panels[view];
+    const active = view && Object.hasOwn(panels, view) && panels[view];
     const renderBody = () => {
         if (view === 'outline') return <DocumentOutline editor={editor} chrome={false} />;
         if (view === 'minimap') return <MiniMap editor={editor} chrome={false} />;

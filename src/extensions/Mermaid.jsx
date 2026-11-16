@@ -1,17 +1,59 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { cleanSvg } from '../utils/cleanSvg.js';
+import { useInscriptT } from '../hooks/useInscriptT.js';
 import { useEditorEditable } from '../hooks/useEditorEditable.js';
 
 // `mermaid` is an OPTIONAL peer dependency, imported dynamically so its (large)
 // bundle never lands in the library and the editor loads fine when a consumer
 // hasn't installed it. When mermaid is absent (or a render throws) we degrade to
-// the `error`/source path below rather than crashing. `initialize` runs once, the
-// first time a diagram actually renders.
-let mermaidInitialized = false;
+// the `error`/source path below rather than crashing.
+
+/** How a document's diagram is drawn: labels as text, no click handlers or links run. */
+const MERMAID_SECURITY_LEVEL = 'strict';
+/** How a document's diagram is drawn. */
+const EDITOR_CONFIG = Object.freeze({ startOnLoad: false, theme: 'default', look: 'classic', layout: 'dagre', securityLevel: MERMAID_SECURITY_LEVEL });
+/** Diagrams being drawn here, and the page's Mermaid configuration from before the first of them. */
+let drawing = 0;
+let pageConfig = null;
+/** The site configuration as the editor set it (to tell whether the page set its own since). */
+let drawnWith = null;
+const configSnapshot = mermaid => {
+    try { return JSON.stringify(mermaid.mermaidAPI?.getSiteConfig?.() ?? null); } catch { return null; }
+};
 
 /** How long typing in a diagram's source must pause before it is drawn again, in ms. */
 const MERMAID_REDRAW_DELAY_MS = 250;
+
+/**
+ * A drawn diagram's cleaned nodes, put in as they are (see cleanSvg), in a shadow root of their own:
+ * the diagram's styles and ids stay inside it, never reaching the host's page.
+ */
+function DiagramNodes({ svg }) {
+    const { t } = useInscriptT();
+    // The message read when needed: `t` may change on every render (no i18next), the drawing must not.
+    const message = useRef(t);
+    message.current = t;
+    const ref = useRef(null);
+    useLayoutEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const root = el.shadowRoot ?? el.attachShadow({ mode: 'open' });
+        const nodes = cleanSvg(svg, el.ownerDocument);
+        if (nodes) root.replaceChildren(nodes);
+        else root.replaceChildren(el.ownerDocument.createTextNode(message.current('mermaidUnavailable', 'This diagram could not be shown.')));
+    }, [svg]);
+    // The shadow's host inside a box of its own, contained: the diagram can style its host (`:host`),
+    // never this box, so nothing in it (a fixed position) reaches past it.
+    return (
+        <div style={DIAGRAM_CONTAINMENT}>
+            <div ref={ref} />
+        </div>
+    );
+}
+
+const DIAGRAM_CONTAINMENT = Object.freeze({ position: 'relative', overflowX: 'auto', overflowY: 'hidden', contain: 'paint', maxWidth: '100%' });
 
 const MermaidComponent = (props) => {
     const { node, editor, updateAttributes, selected } = props;
@@ -39,14 +81,29 @@ const MermaidComponent = (props) => {
                 if (isMounted) setError('Mermaid diagrams require the optional "mermaid" package to be installed.');
                 return;
             }
+            // Mermaid's configuration is the page's: a host may set its own (a `loose` security level
+            // for its own diagrams), even while a diagram here waits its turn in Mermaid's queue. So
+            // what Mermaid draws is cleaned here anyway (see cleanSvg), and asked strict as well; the
+            // page's configuration is put back once no diagram here is being drawn.
+            // look/layout pinned to Mermaid 11's defaults: Mermaid 12 switched its defaults to the
+            // "neo" look and the ELK layout, so the same document would otherwise draw differently
+            // depending on the host's Mermaid. A diagram can still opt in through its own frontmatter
+            // config (never to a looser security level: Mermaid keeps that one from diagrams).
+            // The site configuration (the page's own), not the current one, which holds the last drawn
+            // diagram's own directives (it would make them the page's).
+            let counted = false;
             try {
-                if (!mermaidInitialized) {
-                    // look/layout pinned to Mermaid 11's defaults: Mermaid 12 switched its defaults
-                    // to the "neo" look and the ELK layout, so the same document would otherwise
-                    // draw differently depending on the host's Mermaid. A diagram can still opt in
-                    // through its own frontmatter config.
-                    mermaid.initialize({ startOnLoad: false, theme: 'default', look: 'classic', layout: 'dagre' });
-                    mermaidInitialized = true;
+                // Before the first diagram, or when the page has set its own since the last one began.
+                // (The snapshot is taken only while another diagram here draws.)
+                const changed = drawing === 0 || configSnapshot(mermaid) !== drawnWith;
+                if (changed) pageConfig = mermaid.mermaidAPI?.getSiteConfig?.() ?? mermaid.mermaidAPI?.getConfig?.() ?? null;
+                drawing += 1;
+                counted = true;
+                // Mermaid's own defaults with these (never the page's theme colours, which would carry
+                // over to a theme they were not made for); already so while another diagram here draws.
+                if (changed) {
+                    mermaid.initialize(EDITOR_CONFIG);
+                    drawnWith = configSnapshot(mermaid);
                 }
                 const { svg: renderedSvg } = await mermaid.render(idRef.current, code);
                 if (isMounted) {
@@ -56,6 +113,15 @@ const MermaidComponent = (props) => {
             } catch (err) {
                 if (isMounted) {
                     setError(err.message || 'Syntax Error in Mermaid graph');
+                }
+            } finally {
+                if (counted) drawing -= 1;
+                // Put back only if the page has not set its own meanwhile (that one stays). A history
+                // preview holds no `.mermaid` element for the page's Mermaid to draw (see previewHtml).
+                if (counted && drawing === 0 && pageConfig) {
+                    if (configSnapshot(mermaid) === drawnWith) mermaid.initialize(pageConfig);
+                    pageConfig = null;
+                    drawnWith = null;
                 }
             }
         };
@@ -88,7 +154,7 @@ const MermaidComponent = (props) => {
                 {error ? (
                     <div className="text-red-500 text-sm font-mono whitespace-pre-wrap">{error}</div>
                 ) : svg ? (
-                    <div dangerouslySetInnerHTML={{ __html: svg }} />
+                    <DiagramNodes svg={svg} />
                 ) : (
                     <div className="text-[var(--inscript-color-muted)] italic">Empty Mermaid diagram</div>
                 )}

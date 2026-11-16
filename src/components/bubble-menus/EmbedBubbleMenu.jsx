@@ -6,7 +6,7 @@ import { useEditorState } from '@tiptap/react';
 import { ExternalLink, Trash2, Globe, Type } from 'lucide-react';
 import { ToolbarButton } from '../ToolbarButton.jsx';
 import { SourceField } from './SourceField.jsx';
-import { isWebUrl } from '../../utils/url.js';
+import { webHref } from '../../utils/url.js';
 import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTranslations.js';
 
 /**
@@ -48,8 +48,12 @@ export const EmbedBubbleMenu = ({ editor, isReadonly, onOpenExternal, scrollCont
                     label={t('embedUrl', 'Embed URL')}
                     placeholder={t('embedUrl', 'Embed URL')}
                     value={attrs.src}
-                    validate={isWebUrl}
-                    onApply={(v) => editor.chain().focus().updateAttributes('embed', { src: v.trim() }).run()}
+                    validate={value => !!webHref(value)}
+                    // Kept as the address checked (a protocol-relative one as https, see webHref).
+                    onApply={(v) => {
+                        const src = webHref(v);
+                        if (src) editor.chain().focus().updateAttributes('embed', { src }).run();
+                    }}
                     inputClassName="w-52"
                 />
                 <SourceField
@@ -64,9 +68,10 @@ export const EmbedBubbleMenu = ({ editor, isReadonly, onOpenExternal, scrollCont
                 <div className="flex items-center gap-0.5 bg-[var(--inscript-color-surface-raised)] p-0.5 rounded border border-[var(--inscript-color-border)]">
                     <ToolbarButton
                         onClick={() => {
-                            // The source comes from the document: only a web address is opened.
-                            const src = editor.getAttributes('embed').src;
-                            if (isWebUrl(src)) openExternal(src.trim());
+                            // The source comes from the document: only an absolute web address is opened,
+                            // as the browser reads it (never a path or a share a native opener would follow).
+                            const href = webHref(editor.getAttributes('embed').src);
+                            if (href) openExternal(href);
                         }}
                         title={t('openEmbed', 'Open in new tab')}
                     >

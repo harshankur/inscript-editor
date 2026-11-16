@@ -3,7 +3,7 @@ import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
 import React, { useState } from 'react';
 import { useInscriptT } from '../hooks/useInscriptT.js';
 import { Globe, Play } from 'lucide-react';
-import { isWebUrl } from '../utils/url.js';
+import { webHref } from '../utils/url.js';
 
 // Generic third-party embed (maps, tweets, gists, CodePen, …). Separate from the
 // Youtube node. Fixes the silent-drop of non-YouTube iframes AND shows untrusted
@@ -15,9 +15,11 @@ function hostOf(src) {
     catch { return src; }
 }
 
+/** Whether the host trusts an embed's source, given as webHref made it (an absolute web address, or null). */
 function isTrustedSrc(src, options) {
-    // Trust is about web hosts: any other scheme (`javascript://trusted.host/…`) never is.
-    if (!isWebUrl(src)) return false;
+    // Trust is about web hosts: any other scheme (`javascript://trusted.host/…`), or an address
+    // relative to the host's own page, never is (webHref gave null for it).
+    if (!src) return false;
     if (typeof options.isTrusted === 'function') {
         try { if (options.isTrusted(src)) return true; } catch { /* host callback threw — treat as untrusted */ }
     }
@@ -31,14 +33,17 @@ function isTrustedSrc(src, options) {
 
 const EmbedComponent = ({ node, extension }) => {
     const { t } = useInscriptT();
-    const { src, label } = node.attrs;
+    const { src: written, label } = node.attrs;
+    // Only an absolute web address is framed (or shown as the source to load): a relative one would
+    // load the host's own page, with the reader's cookies, behind a card naming no one.
+    const src = webHref(written);
     // Auto-load only for host-trusted sources; otherwise wait for an explicit click. The click is
     // consent for that source only: a node view reused for another source asks again.
     const [consentedSrc, setConsentedSrc] = useState(null);
     const loaded = isTrustedSrc(src, extension.options) || (consentedSrc !== null && consentedSrc === src);
 
     let inner;
-    if (!src || !isWebUrl(src)) {
+    if (!src) {
         inner = (
             <div className="rounded-lg border border-[var(--inscript-color-border)] bg-[var(--inscript-color-surface-raised)] p-6 text-center text-xs text-[var(--inscript-color-muted)]">
                 {t('embedUnavailable', 'Embed unavailable')}

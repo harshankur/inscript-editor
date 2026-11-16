@@ -1,9 +1,10 @@
-// inertPreviewHtml (src/utils/previewHtml.js) output is set as innerHTML by HistoryView. Its
+// inertPreviewNodes (src/utils/previewHtml.js) output is inserted as nodes by HistoryView, and
+// inertPreviewHtml is the same as HTML (what these tests read). Its
 // stated contract: nothing in a preview loads third-party content or runs anything. Every value
 // used here is inert (`javascript:void(0)`, `onclick="void 0"`); a test fails when such a value
 // survives in a place a browser would act on it.
 import { describe, it, expect } from 'vitest';
-import { inertPreviewHtml } from './previewHtml.js';
+import { inertPreviewHtml } from '../../tests/helpers/inertPreviewHtml.js';
 
 /** How a browser's URL parser reads the start of an attribute URL: leading C0 controls and
  *  spaces are stripped, and ASCII tab/LF/CR anywhere are removed. */

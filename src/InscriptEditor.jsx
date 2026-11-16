@@ -189,6 +189,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                         originalCategories={original.categories ?? []}
                         currentIndex={historyIndex}
                         onSelect={handleHistorySelect}
+                        editor={editor}
                     />
                 ) : (
                     <div 

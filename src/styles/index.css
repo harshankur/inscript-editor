@@ -262,6 +262,44 @@ img.ProseMirror-separator {
   border-radius: var(--inscript-radius, 0.5rem);
 }
 
+/* A formula stays within its own box: a document's formula could otherwise move boxes and text far
+   outside it (\kern, \raisebox, \rule), over the host's page. A displayed one scrolls sideways. */
+.ProseMirror .math-node-wrapper span.math-render {
+  /* At most the line's width, and painted near its own box only (a formula cannot reach over the page):
+     a little past it, for what a formula draws past its box on purpose (\rlap, \smash). The overflow
+     is left visible and only the painting clipped: a scrolling box would take its baseline from its
+     bottom edge, off the text's baseline by the formula's depth (a `y`, a fraction). */
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: baseline;
+  clip-path: inset(-1em -2em);
+}
+/* Its wrapper is at most its line's width too (less its side margins, mx-1): sized by the formula
+   alone, the formula's own width cap would have nothing to be a share of. */
+.ProseMirror span.math-node-wrapper {
+  max-width: calc(100% - 0.5rem);
+}
+/* One wider than its line scrolls sideways (the Math node view marks it). A scrolling box takes its
+   baseline from its bottom edge: aligned with the text's bottom, it sits near its line. */
+.ProseMirror .math-node-wrapper span.math-render.math-render-wide {
+  overflow-x: auto;
+  overflow-y: hidden;
+  vertical-align: text-bottom;
+}
+.ProseMirror .math-node-wrapper div.math-render {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* A table as wide as a document makes it scrolls within its own box, never across the page. */
+.ProseMirror .tableWrapper {
+  overflow-x: auto;
+  /* Room for the column-resize handle, which reaches 2px past the table: without it, hovering a
+     border would make the box scroll. */
+  padding-right: 2px;
+  padding-bottom: 2px;
+}
+
 /* Where a dropped or pasted image goes in while the host's handler reads the file. */
 .ProseMirror .inscript-image-placeholder {
   display: inline-block;
@@ -574,6 +612,11 @@ img.ProseMirror-separator {
 .ProseMirror.inscript-history-preview {
   min-height: 0;
   padding: 0;
+  /* A version's content stays inside the preview: nothing in it (a fixed position) can cover the
+     host's page. Wide content (a table) scrolls within it. */
+  position: relative;
+  overflow: auto;
+  contain: paint;
 }
 /* An embed in a preview is never loaded; this placeholder names its source instead. */
 .ProseMirror .inscript-preview-embed {

@@ -1,6 +1,7 @@
 import { TaskList } from '@tiptap/extension-task-list';
 import { TaskItem } from '@tiptap/extension-task-item';
 import { Fragment } from '@tiptap/pm/model';
+import { parseRound } from '../utils/parseRound.js';
 
 // Checklists also parse from the HTML that Markdown renderers produce for GFM task lists
 // (`- [x] Book`), which is what the turndown rules write back. marked, markdown-it and GitHub
@@ -77,10 +78,23 @@ const isDeclaredTaskList = list => list?.nodeName === 'UL' && list.getAttribute(
 
 const isChecked = checkbox => checkbox.hasAttribute('checked') || checkbox.checked === true;
 
-/** A list is a GFM task list when every item opens with a checkbox (the editor can't mix). */
+// An answer is kept for the parse it was found in only (see parseRound), never for a later one that
+// may read the same list changed.
+const taskListAnswers = new WeakMap();
+
+/**
+ * A list is a GFM task list when every item opens with a checkbox (the editor can't mix). Asked for
+ * the list and again for each of its items: the answer is kept per list within a parse, so a long
+ * list is walked once, not once per item.
+ */
 function isGfmTaskList(list) {
+    const round = parseRound();
+    const kept = taskListAnswers.get(list);
+    if (kept && kept.round === round && kept.children === list.children.length) return kept.answer;
     const items = Array.from(list.children).filter(child => child.nodeName === 'LI');
-    return items.length > 0 && items.every(opensWithTaskMarker);
+    const answer = items.length > 0 && items.every(opensWithTaskMarker);
+    taskListAnswers.set(list, { round, children: list.children.length, answer });
+    return answer;
 }
 
 export const InscriptTaskList = TaskList.extend({

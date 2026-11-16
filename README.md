@@ -261,6 +261,55 @@ Two things about the HTML the editor saves:
 - The highlight picker's first swatch is the default highlight: a plain `<mark>` drawn from the
   `markBg` / `markText` theme tokens. Any other swatch writes its colour onto the mark.
 
+## What a document cannot do
+
+Documents, pasted content, dropped files and saved history are treated as untrusted. Content
+given as JSON (`content`, `setContent`, `insertContent`, commands) is held to the same rules as
+HTML, so `getJSON()` never keeps what the editor refuses. In short:
+
+- **Links** take their `target`, `rel` and `class` from your `editorOptions.link.HTMLAttributes` only,
+  never from a document. Only the addresses TipTap allows are linked, as typed, pasted or loaded. In a
+  read-only editor, a click on a link to another site opens through `onOpenExternal`, or else in a
+  new tab with `noopener`, never in place of your app. A link on your own site is left to your page
+  (your router), and on a page opened from a file (a desktop app), a relative link is kept from
+  replacing it.
+- **Images** never keep a script URL, a `data:` URL that is not an image's, or a share on another
+  machine (`\\host\share`, `file://host/…`): an image with such a source is left out. Their width,
+  height and font sizes are capped.
+- **Protocol-relative addresses** (`//host/x`) in images and links are read as the https address
+  they mean (`https://host/x`), whatever page the editor is drawn in. On a page opened from a file,
+  `//host/x` would name a share on another machine.
+- **Embeds** are framed (after consent) only from an absolute `http(s)` address, in a sandbox, and
+  "Open in new tab" passes only such an address to `onOpenExternal`.
+- **Formulas** are drawn by KaTeX with `trust` off, bounded expansion and sizes, and clipped to their
+  own box. **Diagrams** are drawn by Mermaid at the `strict` security level, whatever your page's
+  Mermaid configuration says. That configuration is restored afterwards, and the history panel
+  holds no `.mermaid` element for your page's Mermaid to draw. Loading Mermaid (the editor does so
+  the first time it draws a diagram) arms Mermaid's own drawing of every `.mermaid` element when
+  the page loads, as on any page that loads it: call `mermaid.initialize({ startOnLoad: false })`
+  if your page shows the editor's saved HTML before it has loaded. Mermaid keeps one
+  configuration for the whole page, so a diagram your own page draws while the editor is drawing
+  one is drawn with the editor's settings too.
+- **Size limits:** a table squared up gains the cells its spans claim and the cells padded onto
+  short rows. All of a document's tables together may gain at most 20,000 such cells, however they
+  came: opened, pasted or made by edits, so a document made in the editor always opens again as it
+  was. Past that, the tables brought in that gain the most are read as their cells' contents. A
+  table that is already rectangular is never touched, however large. Pasting into a table never
+  grows it by more than 20,000 cells, and column widths are at most 4,000 pixels. Code highlighting is limited to 5,000 characters per block (2,000 when the language is
+  guessed), and anything longer shows as plain text. A document with a lot of code is highlighted a
+  little at a time, so the page never waits on it.
+- **Pasting** an 11-letter word never makes a video: only a YouTube URL does, and never in code.
+  **SVG files** are never handed to `onImageFile`.
+- **The history panel** shows a version's cleaned nodes as they are, never re-parsed. It drops
+  scripts, handlers, foreign content (MathML, SVG), ids, names and link targets, and any style that
+  could load something, and it is contained, so nothing in a version can cover your page. A web
+  link clicked in a version opens outside your page (through `onOpenExternal` when you pass the
+  `editor` to `HistoryView`, else a new tab), never in place of it; an anchor within the version
+  goes nowhere.
+- **The saved Markdown** keeps document text as text when a Markdown renderer reads it back. Code
+  fences, link addresses and titles, hard breaks and source comments are all written so they cannot
+  turn into raw HTML.
+
 ## Internationalization
 
 The editor's own strings (toolbar tooltips, modal copy, etc.) ship in **English**, under a dedicated `inscript-editor` i18next namespace separate from your app's own translations. English is the single source of truth (it is also the built-in `defaultValue` on every string), so adding a feature never means translating it into a dozen languages. Bring any other language yourself, from your own app.

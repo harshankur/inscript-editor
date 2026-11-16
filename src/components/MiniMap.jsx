@@ -3,6 +3,7 @@ import { ChevronRight, Map as MapIcon } from 'lucide-react';
 import { useInscriptT } from '../hooks/useInscriptT.js';
 import { hasView, viewDom } from '../utils/editorView.js';
 import { DETAILS_NODE } from '../constants.js';
+import { documentImageSrc } from '../utils/url.js';
 
 // ── What this is ────────────────────────────────────────────────────────────
 // A "spatial outline", not a photo of the text. Prose has weak silhouette (most
@@ -154,7 +155,8 @@ function measureBlocks(editor) {
         if (type === 'heading') b.text = node.textContent;
         if (type === 'paragraph' || type === 'heading') b.textLen = node.textContent.length;
         if (type === 'paragraph') b.runs = inlineRuns(node);
-        if (type === 'image' || type === 'customImage') b.src = node.attrs?.src || '';
+        // Only an image the editor itself would show (see documentImageSrc).
+        if (type === 'image' || type === 'customImage') b.src = documentImageSrc(node.attrs?.src) ?? '';
         if (type === 'bulletList' || type === 'orderedList' || type === 'taskList') b.itemCount = node.childCount;
         if (type === 'table' || type === 'customTable') { b.rows = node.childCount; b.cols = node.firstChild ? node.firstChild.childCount : 0; }
         if (type === 'codeBlock') b.codeLines = (node.textContent.match(/\n/g) || []).length + 1;

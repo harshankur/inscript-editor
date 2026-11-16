@@ -18,7 +18,10 @@ export const BibliographyPanel = ({ editor }) => {
         const map = new Map();
         editor.state.doc.descendants((node, pos) => {
             if (node.type.name === 'citation') {
-                const { key, label, title } = node.attrs;
+                // As text: a document given as JSON can hold any value here.
+                const key = node.attrs.key == null ? '' : String(node.attrs.key);
+                const label = node.attrs.label == null ? '' : String(node.attrs.label);
+                const title = node.attrs.title == null ? '' : String(node.attrs.title);
                 if (key) {
                     if (!map.has(key)) {
                         map.set(key, { key, label, title, positions: [] });

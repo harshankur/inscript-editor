@@ -3,6 +3,9 @@ import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
 import { useInscriptT } from '../hooks/useInscriptT.js';
+import { pageHref } from '../utils/url.js';
+import { openOutside } from './HostBridge.js';
+import { useEditorEditable } from '../hooks/useEditorEditable.js';
 
 // Bumping this plugin's revision gives every wikilink a new (empty) node decoration, which is
 // how ProseMirror tells a node view to update without touching the document or the undo stack.
@@ -20,6 +23,11 @@ const WikilinkComponent = (props) => {
     if (resolver) {
         try { resolved = resolver(target) || resolved; } catch { /* host resolver threw: treat as missing */ }
     }
+    // The resolver's href is shown as a link: only a page on the host's site, or a web address (a
+    // target is the document's, and a resolver may build the href from it). Another is followed
+    // nowhere (an app's own pages open through onNavigate).
+    const followed = pageHref(resolved.href);
+    const href = followed ?? '#';
 
     const display = alias || target;
     // Existing links use the (themeable) link tokens; missing ones are muted and dashed.
@@ -27,17 +35,31 @@ const WikilinkComponent = (props) => {
         ? 'text-[var(--inscript-color-link)] hover:text-[var(--inscript-color-link-hover)] hover:underline'
         : 'text-[var(--inscript-color-muted)] opacity-80 decoration-dashed underline'} cursor-pointer transition-colors`;
     
+    // The host's own navigation when it gives one. Else the page opens outside the editor's page (see
+    // openOutside): in a read-only editor on a click, and while editing on a Cmd/Ctrl click only (a
+    // plain click selects the link, as any other text).
+    const editable = useEditorEditable(props.editor);
     const handleClick = (e) => {
-        if (resolved.onNavigate) {
+        if (typeof resolved.onNavigate === 'function') {
             e.preventDefault();
             e.stopPropagation();
             resolved.onNavigate(target);
+            return;
+        }
+        if (editable && !(e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            return;
+        }
+        // No page at all (`#`, a missing resolver's) is followed nowhere either: it would move the page.
+        if (followed === null || followed === '#' || openOutside(props.editor, href, e.currentTarget.ownerDocument)) {
+            e.preventDefault();
+            e.stopPropagation();
         }
     };
     
     return (
         <NodeViewWrapper as="span" className="inline-flex items-center">
-            <a href={resolved.href} onClick={handleClick} className={className} data-wikilink="true" data-target={target} title={resolved.exists ? t('wikilinkGoTo', 'Go to {{target}}', { target }) : t('wikilinkCreate', 'Create {{target}}', { target })}>
+            <a href={href} onClick={handleClick} className={className} data-wikilink="true" data-target={target} title={resolved.exists ? t('wikilinkGoTo', 'Go to {{target}}', { target }) : t('wikilinkCreate', 'Create {{target}}', { target })}>
                 {display}
             </a>
         </NodeViewWrapper>

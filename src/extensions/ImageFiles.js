@@ -7,7 +7,7 @@ import { Plugin, PluginKey, Selection, TextSelection } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { NODE } from '../constants.js';
 import { editorT, onEditorLanguageChanged } from '../utils/editorT.js';
-import { isImageSrc } from '../utils/url.js';
+import { documentImageSrc } from '../utils/url.js';
 import { followEditable, getHostHandlers } from './HostBridge.js';
 import { deleteKeepingDisclosures } from './Details.js';
 
@@ -26,7 +26,9 @@ const PLAIN_PASTE_WINDOW_MS = 1000;
 // A file the browser gave no type, or only "some bytes" (a format the system does not know, such as
 // HEIC on some systems), by its name.
 const UNKNOWN_TYPE = 'application/octet-stream';
-const IMAGE_NAME = /\.(?:apng|avif|bmp|gif|heic|heif|ico|jfif|jpe?g|jxl|png|svg|tiff?|webp)$/i;
+const SVG_TYPE = /^image\/svg/i;
+const SVG_NAME = /\.svgz?$/i;
+const IMAGE_NAME = /\.(?:apng|avif|bmp|gif|heic|heif|ico|jfif|jpe?g|jxl|png|tiff?|webp)$/i;
 const PLACEHOLDER_CLASS = 'inscript-image-placeholder';
 
 export const imageFilesKey = new PluginKey(IMAGE_FILES_EXTENSION);
@@ -78,7 +80,12 @@ function htmlIsOnlyImages(html, page) {
 
 /** The image files among a list of files (a drop's or a paste's), in their order. */
 export function imageFilesOf(files) {
-    return Array.from(files ?? []).filter(file => (file?.type && file.type !== UNKNOWN_TYPE ? IMAGE_TYPE.test(file.type) : IMAGE_NAME.test(file?.name ?? '')));
+    return Array.from(files ?? []).filter(file => {
+        // Never an SVG: it is a document that can hold script, which runs on the host's own site
+        // once the host stores the file there and it is opened by its address.
+        if (SVG_TYPE.test(file?.type ?? '') || SVG_NAME.test(file?.name ?? '')) return false;
+        return file?.type && file.type !== UNKNOWN_TYPE ? IMAGE_TYPE.test(file.type) : IMAGE_NAME.test(file?.name ?? '');
+    });
 }
 
 /**
@@ -103,9 +110,14 @@ const takesImageFiles = (editor, handle) => typeof handle === 'function' && !!ed
  * `alt`, `title`); null for anything else (the file is then not taken).
  */
 function imageAttrsOf(result) {
-    if (typeof result === 'string') return isImageSrc(result) ? { src: result } : null;
-    if (!result || typeof result !== 'object' || !isImageSrc(result.src)) return null;
-    const attrs = { src: result.src };
+    if (typeof result === 'string') {
+        const src = documentImageSrc(result);
+        return src ? { src } : null;
+    }
+    if (!result || typeof result !== 'object') return null;
+    const src = documentImageSrc(result.src);
+    if (!src) return null;
+    const attrs = { src };
     if (typeof result.alt === 'string') attrs.alt = result.alt;
     if (typeof result.title === 'string') attrs.title = result.title;
     return attrs;

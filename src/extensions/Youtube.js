@@ -1,7 +1,7 @@
 import { Node } from '@tiptap/core';
 import { Plugin } from '@tiptap/pm/state';
 import { getExternalOpener } from './HostBridge.js';
-import { extractYoutubeId, isYoutubeId, youtubeEmbedUrl } from '../utils/youtubeUrl.js';
+import { extractYoutubeIdFromUrl, isYoutubeId, youtubeEmbedUrl } from '../utils/youtubeUrl.js';
 import { DEFAULT_LAYOUT_ALIGN, DEFAULT_LAYOUT_WIDTH, cssLength, layoutAlign } from '../utils/layout.js';
 import { buildYoutubeConsent, buildYoutubeIcon, YOUTUBE_CONSENT_DEFAULTS } from '../utils/youtubeConsent.js';
 import { editorT, onEditorLanguageChanged } from '../utils/editorT.js';
@@ -147,14 +147,16 @@ export const Youtube = Node.create({
             },
             {
                 // Any standard YouTube embed (youtube.com, youtube-nocookie.com,
-                // youtu.be — embed/, watch?v=, shorts/, …). extractYoutubeId knows
+                // youtu.be: embed/, watch?v=, shorts/, …). extractYoutubeIdFromUrl knows
                 // every URL shape and validates the 11-char id. Higher priority than
                 // the generic Embed node (40) so YouTube iframes are claimed here;
                 // non-YouTube iframes fall through (getAttrs false) to Embed.
                 tag: 'iframe[src]',
                 priority: 60,
+                // A YouTube address only: never a bare 11-letter word (`<iframe src="development">`, a
+                // relative embed), which would load YouTube's player for a frame that is no video.
                 getAttrs: node => {
-                    const id = extractYoutubeId(node.getAttribute('src'));
+                    const id = extractYoutubeIdFromUrl(node.getAttribute('src'));
                     return id ? { 'data-youtube-video': id } : false;
                 },
             },
@@ -386,8 +388,10 @@ export const Youtube = Node.create({
         };
     },
 
-    // E.3 — paste a bare YouTube URL (its own token) → a Youtube node. handlePaste
-    // runs before Link's linkOnPaste, so it wins and the URL doesn't become a link.
+    // E.3: paste a YouTube video URL (its own token) and it becomes a Youtube node. handlePaste runs
+    // before Link's linkOnPaste, so it wins and the URL doesn't become a link. Only a URL: a bare ID
+    // is any 11-letter word ("development"), which would load a player, and contact YouTube, for
+    // text. Not in code, where a URL is text.
     addProseMirrorPlugins() {
         const editor = this.editor;
         return [
@@ -396,7 +400,9 @@ export const Youtube = Node.create({
                     handlePaste: (view, event) => {
                         const text = event.clipboardData?.getData('text/plain')?.trim();
                         if (!text || /\s/.test(text)) return false; // must be a single URL token
-                        const id = extractYoutubeId(text);
+                        const { $from } = view.state.selection;
+                        if ($from.parent.type.spec.code || $from.marks().some(mark => mark.type.spec.code)) return false;
+                        const id = extractYoutubeIdFromUrl(text);
                         if (!id) return false;
                         editor.chain().focus().setYoutubeVideo({ 'data-youtube-video': id }).run();
                         return true;

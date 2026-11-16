@@ -8,7 +8,7 @@ import { ToolbarButton } from '../ToolbarButton.jsx';
 import { PlacementButtons } from './PlacementButtons.jsx';
 import { PLACEMENT } from '../../constants.js';
 import { SourceField } from './SourceField.jsx';
-import { isTypedImageSrc } from '../../utils/url.js';
+import { documentImageSrc, isTypedImageSrc } from '../../utils/url.js';
 import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTranslations.js';
 
 export const ImageBubbleMenu = ({ editor, isReadonly, scrollContainer, menuContainer }) => {
@@ -44,7 +44,10 @@ export const ImageBubbleMenu = ({ editor, isReadonly, scrollContainer, menuConta
                     placeholder={t('imageUrl', 'Image URL')}
                     value={attrs.src}
                     validate={v => isTypedImageSrc(v, attrs.src)}
-                    onApply={(v) => editor.chain().focus().updateAttributes('image', { src: v.trim() }).run()}
+                    onApply={(v) => {
+                        const src = documentImageSrc(v.trim());
+                        if (src) editor.chain().focus().updateAttributes('image', { src }).run();
+                    }}
                     inputClassName="w-44"
                 />
                 <SourceField

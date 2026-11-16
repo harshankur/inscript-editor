@@ -27,6 +27,21 @@ export function extractYoutubeId(input) {
     const value = input.trim();
     if (!value || value.length > MAX_INPUT_LENGTH) return null;
     if (isYoutubeId(value)) return value;
+    return idFromYoutubeUrl(value);
+}
+
+/**
+ * The video ID of a YouTube video URL (the shapes extractYoutubeId knows), or null; never a bare ID.
+ * For text that is only a link when it says so: any 11-letter word ("development") is a valid ID.
+ */
+export function extractYoutubeIdFromUrl(input) {
+    if (!input || typeof input !== 'string') return null;
+    const value = input.trim();
+    if (!value || value.length > MAX_INPUT_LENGTH || isYoutubeId(value)) return null;
+    return idFromYoutubeUrl(value);
+}
+
+function idFromYoutubeUrl(value) {
 
     let url;
     try {

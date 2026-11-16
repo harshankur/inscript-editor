@@ -1,17 +1,97 @@
 import { Node, mergeAttributes } from '@tiptap/core';
-import { TextSelection } from '@tiptap/pm/state';
+import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
+import { touchesNodes } from '../utils/transactions.js';
+import { lowerBound } from '../utils/lowerBound.js';
 import { ReactNodeViewRenderer, NodeViewWrapper, NodeViewContent } from '@tiptap/react';
 
-const FootnoteReferenceComponent = ({ node, editor, getPos }) => {
-    // Calculate index dynamically based on document order
-    let index = 1;
-    if (editor && editor.state) {
-        editor.state.doc.descendants((n, pos) => {
-            if (n.type.name === 'footnoteReference' && pos < getPos()) {
-                index++;
-            }
+/**
+ * The footnote references of a document, found once per document (not once per reference, which
+ * was quadratic in the footnotes, and worse): their positions in order, and each id's number (that
+ * of the last reference with it).
+ */
+const footnoteNumbers = new WeakMap();
+function footnotesOf(doc) {
+    let found = footnoteNumbers.get(doc);
+    if (!found) {
+        const positions = [];
+        const numberById = new Map();
+        // Every footnote node, references and definitions, in order (for their decorations).
+        const nodes = [];
+        doc.descendants((n, pos) => {
+            if (n.type.name === 'footnoteDefinition') nodes.push({ node: n, pos });
+            if (n.type.name !== 'footnoteReference') return true;
+            positions.push(pos);
+            nodes.push({ node: n, pos });
+            numberById.set(n.attrs.id, positions.length);
+            return false;
         });
+        found = { positions, numberById, nodes };
+        footnoteNumbers.set(doc, found);
     }
+    return found;
+}
+
+/** The number of the reference at `pos`: one more than the references before it. */
+function referenceNumber(doc, pos) {
+    return lowerBound(footnotesOf(doc).positions, pos) + 1;
+}
+
+const REFERENCE = 'footnoteReference';
+const DEFINITION = 'footnoteDefinition';
+const isFootnote = node => node.type.name === REFERENCE || node.type.name === DEFINITION;
+const footnoteNumbersKey = new PluginKey('inscriptFootnoteNumbers');
+
+/**
+ * Each footnote reference and definition carries its number as a node decoration. ProseMirror keeps a
+ * node view whose node and decorations are unchanged, so without this a reference added before others
+ * left theirs showing their old numbers: a changed number is a changed decoration, and redraws them.
+ * Worked out again only when a change touches a footnote (see touchesNodes).
+ */
+function footnoteDecorations(doc) {
+    const { numberById, nodes } = footnotesOf(doc);
+    let references = 0;
+    const found = nodes.map(({ node, pos }) => {
+        const number = node.type.name === REFERENCE ? (references += 1) : (numberById.get(node.attrs.id) ?? 0);
+        return Decoration.node(pos, pos + node.nodeSize, {}, { footnoteNumber: number });
+    });
+    return DecorationSet.create(doc, found);
+}
+
+/** The number a footnote's decorations carry (see footnoteDecorations), or null. */
+const numberOf = decorations => decorations?.find?.(decoration => decoration.spec?.footnoteNumber !== undefined)?.spec.footnoteNumber ?? null;
+
+/**
+ * A footnote's node view, redrawn when its node or its number changes: TipTap redraws a React node
+ * view only when its node changes, and a footnote whose number moved keeps its node.
+ */
+const footnoteNodeView = Component => ReactNodeViewRenderer(Component, {
+    update: ({ oldNode, newNode, oldDecorations, newDecorations, updateProps }) => {
+        if (oldNode.type !== newNode.type) return false;
+        if (oldNode !== newNode || numberOf(oldDecorations) !== numberOf(newDecorations)) updateProps();
+        return true;
+    },
+});
+
+function footnoteNumbersPlugin() {
+    return new Plugin({
+        key: footnoteNumbersKey,
+        state: {
+            init: (_config, { doc }) => footnoteDecorations(doc),
+            apply: (tr, set) => {
+                if (!tr.docChanged) return set;
+                // Only a footnote put in, taken out or changed whole moves a number (not text typed in one).
+                return touchesNodes(tr, isFootnote, { inline: true, whole: true }) ? footnoteDecorations(tr.doc) : set.map(tr.mapping, tr.doc);
+            },
+        },
+        props: { decorations: state => footnoteNumbersKey.getState(state) },
+    });
+}
+
+const FootnoteReferenceComponent = ({ node, editor, getPos, decorations }) => {
+    // Its number by document order, as its decoration carries it (see footnoteDecorations).
+    const pos = typeof getPos === 'function' ? getPos() : null;
+    const index = numberOf(decorations) ?? (editor?.state && typeof pos === 'number' ? referenceNumber(editor.state.doc, pos) : 1);
 
     const handleClick = () => {
         // Find corresponding definition and scroll to it
@@ -73,31 +153,18 @@ export const FootnoteReference = Node.create({
     },
 
     addNodeView() {
-        return ReactNodeViewRenderer(FootnoteReferenceComponent);
+        return footnoteNodeView(FootnoteReferenceComponent);
+    },
+
+    // Numbers kept current on every reference and definition (see footnoteNumbersPlugin).
+    addProseMirrorPlugins() {
+        return [footnoteNumbersPlugin()];
     },
 });
 
-const FootnoteDefinitionComponent = ({ node, editor, getPos }) => {
-    let index = 1;
-    // The definition's index should match the reference's index.
-    // We find the reference with the same id to get its index.
-    if (editor && editor.state) {
-        const id = node.attrs.id;
-        let refPos = null;
-        editor.state.doc.descendants((n, pos) => {
-            if (n.type.name === 'footnoteReference' && n.attrs.id === id) {
-                refPos = pos;
-            }
-        });
-
-        if (refPos !== null) {
-            editor.state.doc.descendants((n, pos) => {
-                if (n.type.name === 'footnoteReference' && pos < refPos) {
-                    index++;
-                }
-            });
-        }
-    }
+const FootnoteDefinitionComponent = ({ node, editor, decorations }) => {
+    // The definition's number is its reference's (the last one with its id), as its decoration carries it.
+    const index = numberOf(decorations) || (editor?.state && footnotesOf(editor.state.doc).numberById.get(node.attrs.id)) || 1;
 
     return (
         <NodeViewWrapper className="flex gap-2 items-start text-sm text-[var(--inscript-color-muted)] my-1" data-footnote-id={node.attrs.id}>
@@ -134,7 +201,7 @@ export const FootnoteDefinition = Node.create({
     },
 
     addNodeView() {
-        return ReactNodeViewRenderer(FootnoteDefinitionComponent);
+        return footnoteNodeView(FootnoteDefinitionComponent);
     },
 });
 

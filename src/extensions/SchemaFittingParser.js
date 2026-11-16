@@ -1,6 +1,7 @@
 import { Extension } from '@tiptap/core';
 import { DOMParser as ProseMirrorDOMParser } from '@tiptap/pm/model';
 import { normalizeForParse } from '../utils/parseDom.js';
+import { beginParse } from '../utils/parseRound.js';
 
 /**
  * ProseMirror's DOMParser, reading the DOM as normalizeForParse reshapes it: real comment nodes
@@ -10,10 +11,12 @@ import { normalizeForParse } from '../utils/parseDom.js';
  */
 export class SchemaFittingDOMParser extends ProseMirrorDOMParser {
     parse(dom, options) {
+        beginParse();
         return super.parse(normalizeForParse(dom, this.schema), options);
     }
 
     parseSlice(dom, options) {
+        beginParse();
         return super.parseSlice(normalizeForParse(dom, this.schema), options);
     }
 }

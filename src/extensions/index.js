@@ -13,6 +13,7 @@ import { Subscript } from '@tiptap/extension-subscript';
 import { Superscript } from '@tiptap/extension-superscript';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { InscriptLink } from './InscriptLink.js';
+import { DocumentValues } from './DocumentValues.js';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
@@ -24,6 +25,9 @@ import { InscriptTaskList, InscriptTaskItem } from './TaskLists.js';
 import { Code, CodeBlock } from './Code.js';
 import { Divider } from './Divider.js';
 import { createLowlight, common } from 'lowlight';
+import { boundedLowlight } from '../utils/boundedLowlight.js';
+import { htmlSpan } from '../utils/parseDom.js';
+import { COLSPAN_LIMIT, ROWSPAN_LIMIT, boundedColwidth } from '../utils/tableSize.js';
 import { SlashCommand } from './SlashCommand.js';
 import { HostBridge, hostHandlersOf } from './HostBridge.js';
 import { ImageFiles } from './ImageFiles.js';
@@ -44,7 +48,8 @@ import { Embed } from './Embed.jsx';
 import { getDefaultSlashItems } from './slashCommandItems.js';
 import { editorT } from '../utils/editorT.js';
 
-const lowlight = createLowlight(common);
+// Bounded: see boundedLowlight (a document's code blocks cannot freeze the page).
+const lowlight = boundedLowlight(createLowlight(common));
 
 export { Youtube } from './Youtube.js';
 export { FontSize } from './FontSize.js';
@@ -53,6 +58,35 @@ export { CustomImage } from './CustomImage.js';
 export { Citation } from './Citation.js';
 export { HtmlComment } from './HtmlComment.js';
 export { Embed } from './Embed.jsx';
+
+
+/**
+ * A table cell's spans read as a browser reads them (`1e5` is 1, not 100000), within HTML's own
+ * limits, and its column widths bounded: TipTap's own read a span with a number parser, and a cell
+ * that claims 100000 columns makes the table that wide, padding every row.
+ */
+const boundedSpans = cell => cell.extend({
+    addAttributes() {
+        const parent = this.parent?.() ?? {};
+        return {
+            ...parent,
+            // From JSON, spans and widths are bounded as HTML reads them (boundedCellAttrs: DocumentValues
+            // for a new editor's content, the table size plugin for a change), and an oversized table
+            // is read as its cells' contents: never refused, so no document is lost over a value in it.
+            colspan: { ...parent.colspan, default: 1, parseHTML: element => htmlSpan(element.getAttribute('colspan'), COLSPAN_LIMIT) },
+            rowspan: { ...parent.rowspan, default: 1, parseHTML: element => htmlSpan(element.getAttribute('rowspan'), ROWSPAN_LIMIT) },
+            colwidth: {
+                ...parent.colwidth,
+                parseHTML: element => {
+                    const widths = parent.colwidth?.parseHTML?.(element) ?? null;
+                    return Array.isArray(widths) ? boundedColwidth(widths) : widths;
+                },
+            },
+        };
+    },
+});
+const BoundedTableCell = boundedSpans(TableCell);
+const BoundedTableHeader = boundedSpans(TableHeader);
 
 /**
  * The full TipTap extension set used by useInscriptEditor. Shared with tests
@@ -68,6 +102,9 @@ export function buildExtensions(options = {}) {
         // HTML read fitted to the schema (a Markdown renderer's images and list items), whichever
         // features are on.
         SchemaFittingParser,
+        // Values a document may not keep (a refused image source or link address, a link's target),
+        // cleaned from JSON content as HTML is read without them (see DocumentValues.js).
+        DocumentValues,
         // Image files dropped or pasted in, through the host's onImageFile (see ImageFiles.js).
         ImageFiles,
         FocusModeBlock,
@@ -104,8 +141,8 @@ export function buildExtensions(options = {}) {
         }),
         CustomTable.configure({ resizable: true }),
         TableRow,
-        TableHeader,
-        TableCell,
+        BoundedTableHeader,
+        BoundedTableCell,
         InscriptLink.configure({
             openOnClick: false,
             linkOnPaste: options.link?.linkOnPaste ?? true,

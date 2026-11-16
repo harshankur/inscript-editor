@@ -1,5 +1,6 @@
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { followedHref } from '../utils/url.js';
 import { editorI18n } from '../utils/editorT.js';
 
 /**
@@ -157,6 +158,72 @@ export function getExternalOpener(editor) {
     if (typeof fromProp === 'function') return fromProp;
     const fromOptions = getHostHandlers(editor).onOpenExternal;
     return typeof fromOptions === 'function' ? fromOptions : null;
+}
+
+/**
+ * The link (`<a href>`) a click landed on within `container`, or null. Realm-safe: an editor in a frame
+ * or a popup has elements of its own window's classes, so the target is read by its node type.
+ * @param {Event} event
+ * @param {Element} container
+ * @returns {Element | null}
+ */
+export function clickedLink(event, container) {
+    // A click may land on the link's text (a text node) rather than an element.
+    const target = event.target?.nodeType === 1 ? event.target : event.target?.parentElement;
+    const anchor = target ? target.closest('a[href]') : null;
+    return anchor && container.contains(anchor) ? anchor : null;
+}
+
+/**
+ * Open a link the reader clicked to another site outside the editor's page, never in its place (a
+ * desktop app's page would be replaced): through the host's opener, else a new tab with no way back
+ * to this page. Only a web address on another site (resolved as the browser would follow it); one on
+ * the page's own site (the host's router, or its own page), an anchor in the page or another scheme
+ * is left to the browser.
+ * @param {import('@tiptap/core').Editor} editor
+ * @param {string | null | undefined} href
+ * @param {Document} page - The page the link is on.
+ * @param {{ ownSite?: boolean }} [options] - `ownSite`: a web address on the page's own site opens
+ *   outside too (a version's link in the history panel, which is no page of the host's to route).
+ * @returns {boolean} Whether the click is the editor's (opened outside, or kept from replacing an app's page).
+ */
+export function openOutside(editor, href, page, { ownSite = false } = {}) {
+    const base = page?.baseURI ?? '';
+    const address = followedHref(href, base);
+    if (!address) return staysInApp(href, base);
+    try {
+        if (!ownSite && new URL(address).origin === new URL(base).origin) return false;
+    } catch { /* no page address to compare: opened outside */ }
+    // The click is the editor's whatever the opener does: one that throws must not let the browser
+    // follow the link in place of the page.
+    try {
+        const open = getExternalOpener(editor);
+        if (open) open(address);
+        else page?.defaultView?.open(address, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+        console.error('[inscript-editor] Opening a link failed:', error);
+    }
+    return true;
+}
+
+/**
+ * Whether a link that is no web address would take an app's own page away: on a page not served over
+ * http(s) (a desktop app's `file:` or `app:` page), a link to that page's own scheme (a relative one)
+ * would replace the app, so it is followed nowhere (the click is the editor's). So is a link with an
+ * empty address (one whose address was refused), which on any page would load the page again. A mail
+ * link, an anchor in the page, or a link on a web page is left to the browser.
+ */
+function staysInApp(href, base) {
+    if (typeof href !== 'string') return false;
+    if (!href.trim()) return true;
+    if (href.trim().startsWith('#')) return false;
+    try {
+        const pageUrl = new URL(base);
+        if (pageUrl.protocol === 'http:' || pageUrl.protocol === 'https:') return false;
+        return new URL(href, base).protocol === pageUrl.protocol;
+    } catch {
+        return false;
+    }
 }
 
 /**
