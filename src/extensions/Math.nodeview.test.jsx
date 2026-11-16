@@ -54,6 +54,24 @@ describe('Math node view', () => {
         expect(container.querySelector('.math-node-wrapper input')).not.toBeNull();
     });
 
+    it('takes the source editor away from a selected formula when the editor is made read-only', async () => {
+        const container = mount('<p>a <span class="math-inline" data-math="x"></span></p>');
+        await act(async () => { editor.commands.setNodeSelection(nodePos('mathInline')); });
+        expect(container.querySelector('.math-node-wrapper input')).not.toBeNull();
+        await act(async () => { editor.setEditable(false, false); });
+        expect(container.querySelector('.math-node-wrapper input')).toBeNull();
+    });
+
+    it('takes the Mermaid source editor away from a selected diagram when the editor is made read-only', async () => {
+        const container = mount('<div class="mermaid">graph TD; A--&gt;B</div>');
+        const pos = nodePos('mermaid');
+        expect(pos).not.toBeNull();
+        await act(async () => { editor.commands.setNodeSelection(pos); });
+        expect(container.querySelector('textarea')).not.toBeNull();
+        await act(async () => { editor.setEditable(false, false); });
+        expect(container.querySelector('textarea')).toBeNull();
+    });
+
     it('offers no source editor in a read-only editor, even when the formula is selected', async () => {
         const container = mount('<div class="math-block" data-math="x^2"></div>', { editable: false });
         await act(async () => { editor.commands.setNodeSelection(nodePos('mathBlock')); });

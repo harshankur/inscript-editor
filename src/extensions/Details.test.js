@@ -718,6 +718,18 @@ describe('Details: the toggle', () => {
         expect(view().hasAttribute('data-open')).toBe(false);
     });
 
+    it('a reader\'s own open state is cleared on becoming editable in an editor built without the host bridge too', async () => {
+        const { Editor } = await import('@tiptap/core');
+        const { buildExtensions } = await import('./index.js');
+        element = document.createElement('div');
+        document.body.appendChild(element);
+        editor = new Editor({ element, extensions: buildExtensions().filter(e => e.name !== 'hostBridge'), content: '<details><summary>S</summary><p>x</p></details>', editable: false });
+        toggle().click();
+        expect(view().hasAttribute('data-open')).toBe(true);
+        editor.setEditable(true);
+        expect(view().hasAttribute('data-open')).toBe(false);
+    });
+
     it('on a closed body the cursor shows, the toggle says Hide and hides it', () => {
         mount('<details><summary>S</summary><p>body</p></details>');
         editor.commands.setTextSelection(textPos('body') + 1);

@@ -40,6 +40,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     hasMetadata = false,
     showMetadataActive = false,
     onShowMediaLibrary,
+    onImageFile,
     onAddYoutube,
     onAddCitation,
     onAddWikilink,
@@ -108,9 +109,9 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     // The slash menu (built with the editor) honours the insert-handler props too: published on the
     // editor, where it reads them when it opens.
     useEffect(() => {
-        setHostHandlerProps(editor, { onAddCitation, onAddYoutube, onShowMediaLibrary, onAddWikilink, onAddAbbreviation });
+        setHostHandlerProps(editor, { onAddCitation, onAddYoutube, onShowMediaLibrary, onImageFile, onAddWikilink, onAddAbbreviation });
         return () => setHostHandlerProps(editor, {});
-    }, [editor, onAddCitation, onAddYoutube, onShowMediaLibrary, onAddWikilink, onAddAbbreviation]);
+    }, [editor, onAddCitation, onAddYoutube, onShowMediaLibrary, onImageFile, onAddWikilink, onAddAbbreviation]);
 
     // Node views (a YouTube video's privacy link) open external links through this prop too.
     useEffect(() => {
@@ -136,6 +137,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     // call. So a host can pass each handler once, in editorOptions.
     const bridge = getHostHandlers(editor);
     const resolvedOnShowMediaLibrary = onShowMediaLibrary ?? bridge.onShowMediaLibrary;
+    const resolvedOnImageFile = onImageFile ?? bridge.onImageFile;
     const resolvedOnAddYoutube = onAddYoutube ?? bridge.onAddYoutube;
     const resolvedOnAddCitation = onAddCitation ?? bridge.onAddCitation;
     const resolvedOnAddWikilink = onAddWikilink ?? bridge.onAddWikilink;
@@ -159,6 +161,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                     hasMetadata={hasMetadata}
                     showMetadataActive={showMetadataActive}
                     onShowMediaLibrary={resolvedOnShowMediaLibrary}
+                    onImageFile={resolvedOnImageFile}
                     onAddYoutube={resolvedOnAddYoutube}
                     onAddCitation={resolvedOnAddCitation}
                     onAddWikilink={resolvedOnAddWikilink}

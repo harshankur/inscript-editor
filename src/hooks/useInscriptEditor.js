@@ -1,7 +1,7 @@
 import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useEditor } from '@tiptap/react';
 import { I18nContext, getI18n } from 'react-i18next';
-import { setEditorI18n } from '../extensions/HostBridge.js';
+import { hostHandlersOf, setEditorI18n } from '../extensions/HostBridge.js';
 import { createDocument, getHTMLFromFragment } from '@tiptap/core';
 import { buildExtensions } from '../extensions/index.js';
 import { hasView, viewDom } from '../utils/editorView.js';
@@ -152,7 +152,7 @@ export function useInscriptEditor({
     const limitsRef = useRef({ maxHistory, maxHistoryBytes });
     limitsRef.current = { maxHistory, maxHistoryBytes };
 
-    // Host-owned insert handlers (onAddCitation/onAddYoutube/onShowMediaLibrary/
+    // Host-owned insert handlers (onAddCitation/onAddYoutube/onShowMediaLibrary/onImageFile/
     // onAddWikilink/onAddAbbreviation), passed once via editorOptions and shared with both
     // the slash menu (built at editor construction) and the toolbar/bubble (read at render
     // via the HostBridge extension), so callback identity never recreates the editor.
@@ -165,14 +165,7 @@ export function useInscriptEditor({
     // produce this render's own output, only by the child during its render and by handlers
     // on user interaction).
     const hostHandlersRef = useRef({});
-    hostHandlersRef.current = {
-        onAddCitation: editorOptions.onAddCitation,
-        onAddYoutube: editorOptions.onAddYoutube,
-        onShowMediaLibrary: editorOptions.onShowMediaLibrary,
-        onAddWikilink: editorOptions.onAddWikilink,
-        onAddAbbreviation: editorOptions.onAddAbbreviation,
-        onOpenExternal: editorOptions.onOpenExternal,
-    };
+    hostHandlersRef.current = hostHandlersOf(editorOptions);
     // The other function-valued options (wikilink resolver, embed trust, custom slash items) are
     // read live through this ref too, so a new function identity never needs a new editor.
     const liveOptionsRef = useRef(editorOptions);

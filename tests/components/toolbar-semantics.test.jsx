@@ -226,6 +226,93 @@ describe('keyboard input', () => {
     });
 });
 
+describe('inline math', () => {
+    it('the Inline Math button puts math within the line, and is off in a code block', async () => {
+        const { editor } = await setup('<p>ab</p><pre><code>c</code></pre>');
+        act(() => { editor.commands.setTextSelection(2); });
+        await act(async () => { fireEvent.click(screen.getByTitle('Inline Math')); });
+        const paragraph = editor.state.doc.firstChild;
+        expect(paragraph.child(1).type.name).toBe('mathInline');
+        expect(paragraph.textContent).toBe('ab');
+        act(() => { editor.commands.setTextSelection(editor.state.doc.content.size - 2); });
+        expect(screen.getByTitle('Inline Math').disabled).toBe(true);
+    });
+
+    it('is off in a read-only editor', async () => {
+        const { editor } = await setup('<p>ab</p>');
+        act(() => { editor.commands.setTextSelection(2); });
+        expect(screen.getByTitle('Inline Math').disabled).toBe(false);
+        act(() => { editor.setEditable(false, false); });
+        expect(screen.getByTitle('Inline Math').disabled).toBe(true);
+    });
+
+    it('is left out when the host turned math off', async () => {
+        await setup('<p>x</p>', { editorOptions: { math: false } });
+        expect(screen.queryByTitle('Inline Math')).toBeNull();
+        expect(screen.queryByTitle('Math Block')).toBeNull();
+    });
+});
+
+describe('image files', () => {
+    const pickWith = files => vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(function click() {
+        Object.defineProperty(this, 'files', { value: files });
+        this.dispatchEvent(new Event('change'));
+    });
+
+    it('with only an image-file handler, the Image button opens the file picker and the chosen image goes in', async () => {
+        const onImageFile = vi.fn(() => 'assets/a.png');
+        const { editor } = await setup('<p>ab</p>', { editorOptions: { onImageFile } });
+        pickWith([new File(['x'], 'a.png', { type: 'image/png' })]);
+        act(() => { editor.commands.setTextSelection(3); });
+        expect(screen.getByTitle('Insert Image').disabled).toBe(false);
+        await act(async () => { fireEvent.click(screen.getByTitle('Insert Image')); });
+        await flush();
+        expect(onImageFile.mock.calls[0][1].source).toBe('pick');
+        expect(editor.getHTML()).toContain('<img src="assets/a.png"');
+    });
+
+    it('an <InscriptEditor onImageFile> prop serves the Image button too', async () => {
+        const onImageFile = vi.fn(() => 'assets/prop.png');
+        const { editor } = await setup('<p>ab</p>', {}, { onImageFile });
+        pickWith([new File(['x'], 'a.png', { type: 'image/png' })]);
+        await act(async () => { fireEvent.click(screen.getByTitle('Insert Image')); });
+        await flush();
+        expect(onImageFile).toHaveBeenCalledTimes(1);
+        expect(editor.getHTML()).toContain('assets/prop.png');
+    });
+
+    it('the Image button follows the editor becoming editable, which comes without a transaction', async () => {
+        const { editor } = await setup('<p>ab</p>', { editorOptions: { onImageFile: () => 'assets/a.png' } });
+        expect(screen.getByTitle('Insert Image').disabled).toBe(false);
+        act(() => { editor.setEditable(false); });
+        expect(screen.getByTitle('Insert Image').disabled).toBe(true);
+        act(() => { editor.setEditable(true); });
+        expect(screen.getByTitle('Insert Image').disabled).toBe(false);
+        // Without an update event too.
+        act(() => { editor.setEditable(false, false); });
+        expect(screen.getByTitle('Insert Image').disabled).toBe(true);
+        act(() => { editor.setEditable(true, false); });
+        expect(screen.getByTitle('Insert Image').disabled).toBe(false);
+    });
+
+    it('the Image button is off in a read-only editor, a media library given or not', async () => {
+        const { editor } = await setup('<p>ab</p>', { editorOptions: { onShowMediaLibrary: vi.fn() } });
+        expect(screen.getByTitle('Insert Image').disabled).toBe(false);
+        act(() => { editor.setEditable(false, false); });
+        expect(screen.getByTitle('Insert Image').disabled).toBe(true);
+    });
+
+    it('a media library, when given, is what the Image button opens', async () => {
+        const onShowMediaLibrary = vi.fn();
+        const onImageFile = vi.fn();
+        const click = pickWith([]);
+        await setup('<p>ab</p>', { editorOptions: { onShowMediaLibrary, onImageFile } });
+        await act(async () => { fireEvent.click(screen.getByTitle('Insert Image')); });
+        expect(onShowMediaLibrary).toHaveBeenCalledTimes(1);
+        expect(click).not.toHaveBeenCalled();
+    });
+});
+
 describe('disclosure', () => {
     it('the Disclosure button wraps, lights up inside, and in a list wraps the list', async () => {
         const { editor } = await setup('<p>Body</p><ul><li><p>item</p></li></ul>');

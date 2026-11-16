@@ -1,6 +1,7 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
 import React, { useState, useEffect, useRef } from 'react';
+import { useEditorEditable } from '../hooks/useEditorEditable.js';
 
 // `mermaid` is an OPTIONAL peer dependency, imported dynamically so its (large)
 // bundle never lands in the library and the editor loads fine when a consumer
@@ -15,6 +16,8 @@ const MERMAID_REDRAW_DELAY_MS = 250;
 const MermaidComponent = (props) => {
     const { node, editor, updateAttributes, selected } = props;
     const { code } = node.attrs;
+    // The source editor changes the document: only while the editor can be edited, followed as it changes.
+    const editable = useEditorEditable(editor);
     const [svg, setSvg] = useState('');
     const [error, setError] = useState(null);
     const idRef = useRef(`mermaid-${Math.random().toString(36).substr(2, 9)}`);
@@ -64,7 +67,7 @@ const MermaidComponent = (props) => {
 
     return (
         <NodeViewWrapper className="mermaid-node my-4 p-4 border border-[var(--inscript-color-border)] rounded-md bg-[var(--inscript-color-surface-raised)]">
-            {selected && editor?.isEditable !== false && (
+            {selected && editable && (
                 <div className="mb-4">
                     <textarea
                         className="w-full p-2 border border-[var(--inscript-color-border-strong)] rounded font-mono text-sm text-[var(--inscript-color-text)] outline-none focus:ring-2 focus:ring-[var(--inscript-color-accent)]"

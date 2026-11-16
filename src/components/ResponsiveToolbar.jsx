@@ -8,7 +8,7 @@ import {
     Subscript as SubscriptIcon, Superscript as SuperscriptIcon,
     Tag, Underline as UnderlineIcon, Undo,
     SquarePlay as YoutubeIcon, Table as TableIcon,
-    SquareCheck, BookType, MessageSquareQuote, Link2, Workflow, Sigma, BookOpen,
+    SquareCheck, BookType, MessageSquareQuote, Link2, Workflow, Sigma, Radical, BookOpen,
     Info, Lightbulb, CircleAlert, TriangleAlert, OctagonAlert, TextSelect,
     SlidersHorizontal,
 } from 'lucide-react';
@@ -18,7 +18,8 @@ import { ToolbarCustomizer } from './ToolbarCustomizer.jsx';
 import { ColorSelector } from './ColorSelector.jsx';
 import { HighlightSelector } from './HighlightSelector.jsx';
 import { useEditorTransaction } from '../hooks/useEditorTransaction.js';
-import { DETAILS_NODE, TEXT_COLOR_PRESETS } from '../constants.js';
+import { useEditorEditable } from '../hooks/useEditorEditable.js';
+import { DETAILS_NODE, NODE, TEXT_COLOR_PRESETS } from '../constants.js';
 import { FontSizeSelector } from './FontSizeSelector.jsx';
 import { LinkSelector } from './LinkSelector.jsx';
 import { useInscriptEditorTranslations } from '../hooks/useInscriptEditorTranslations.js';
@@ -28,6 +29,7 @@ import { TOOLBAR_PRESETS } from '../toolbar/presets.js';
 import { abbreviationTool } from '../toolbar/abbreviationTool.js';
 import { keyboardInputTool } from '../toolbar/keyboardInputTool.js';
 import { detailsActive } from '../extensions/Details.js';
+import { imageTool } from '../toolbar/imageTool.js';
 import { cachedPerState, isActiveCached } from '../utils/editorView.js';
 import { selectionTextAlign } from '../utils/selectionTextAlign.js';
 
@@ -38,7 +40,7 @@ const DROPDOWN_WIDTH = TOOLBAR_SIZES.BUTTON + 14 + 1;
  * Builds the full map of tool ID → tool slot descriptor.
  * This needs the editor instance + callbacks, so it's a function not a constant.
  */
-function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t, shownTools }) {
+function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onImageFile, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t, shownTools }) {
     // In a code block marks and inline nodes cannot apply: those tools are off there (a mark set
     // for typing would otherwise light up its button without ever applying).
     const inCode = !!editor.state.selection.$from.parent.type.spec.code;
@@ -191,11 +193,13 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
 
         // Advanced blocks
         math:    { id: 'math',    icon: Sigma,    action: () => editor.chain().focus().insertContent({ type: 'mathBlock' }).run(), active: isActiveCached(editor, 'mathBlock'), toggle: false, title: t('slash.math', 'Math Block') },
+        mathInline: { id: 'mathInline', icon: Radical, action: () => editor.chain().focus().insertMathInline().run(), ...ifShown('mathInline', () => ({ active: isActiveCached(editor, NODE.MATH_INLINE), disabled: !editor.isEditable || !cachedPerState(editor.state, 'canInsertMathInline', () => editor.can().insertMathInline()) })), toggle: false, title: t('slash.mathInline', 'Inline Math') },
         mermaid: { id: 'mermaid', icon: Workflow, action: () => editor.chain().focus().insertContent({ type: 'mermaid' }).run(),   active: isActiveCached(editor, 'mermaid'),   toggle: false, title: t('slash.mermaid', 'Mermaid Diagram') },
 
         // Media & metadata
-        // These open the host's own picker: without one there is nothing to do, so they are off.
-        image: { id: 'image', icon: ImageIcon,  action: onShowMediaLibrary, disabled: typeof onShowMediaLibrary !== 'function', title: t('insertImage', 'Insert Image') },
+        // These open the host's own picker: without one there is nothing to do, so they are off. Image
+        // without a media library opens the browser's file picker when the host takes image files.
+        image: { id: 'image', icon: ImageIcon, ...imageTool(editor, onShowMediaLibrary, onImageFile), title: t('insertImage', 'Insert Image') },
         youtube: { id: 'youtube', icon: YoutubeIcon, action: onAddYoutube, disabled: typeof onAddYoutube !== 'function', title: t('embedYoutube', 'Embed YouTube Video') },
         table: { id: 'table', icon: TableIcon, action: () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), title: t('insertTable', 'Insert Table') },
         tags: {
@@ -233,7 +237,7 @@ function configToSlots(config, toolMap, editor) {
  *                            Called with the new config array when the user saves.
  *                            The CONSUMER is responsible for persisting and passing back the config.
  */
-export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, toolbarConfig, onToolbarConfigChange, bubbleMenuConfig, onBubbleMenuConfigChange, toolbarPresets, bubbleMenuPresets, toolbarPresetLabels, presetsMode, customizerContainer }) => {
+export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onImageFile, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, toolbarConfig, onToolbarConfigChange, bubbleMenuConfig, onBubbleMenuConfigChange, toolbarPresets, bubbleMenuPresets, toolbarPresetLabels, presetsMode, customizerContainer }) => {
     useInscriptEditorTranslations();
     const { t } = useInscriptT();
     const containerRef = useRef(null);
@@ -269,17 +273,20 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
     // The tools read the editor (active marks, colours, what can be undone), so they are rebuilt
     // on every transaction, not only when a prop changes.
     const editorVersion = useEditorTransaction(editor);
+    // Editability, which changes without a transaction: the tools are built again on it (the Image
+    // tool, with the file picker, follows it).
+    const editable = useEditorEditable(editor);
     const tools = useMemo(() => {
         if (!editor) return [];
         const toolMap = buildToolMap(editor, {
             onHistoryUndo, onHistoryRedo, canUndo, canRedo,
             onShowMetadataModal, hasMetadata, showMetadataActive,
-            onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t,
+            onShowMediaLibrary, onImageFile, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t,
             // What the toolbar shows: tools that read the whole selection are read only then.
             shownTools: new Set(activeConfig),
         });
         return configToSlots(activeConfig, toolMap, editor);
-    }, [editor, editorVersion, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t, activeConfig]);
+    }, [editor, editorVersion, editable, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onImageFile, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t, activeConfig]);
 
     // Mirror `tools` into a ref so the resize handler always reads the latest list.
     const toolsRef = useRef(tools);

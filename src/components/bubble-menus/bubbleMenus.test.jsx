@@ -174,6 +174,26 @@ describe('bubble menus', () => {
             expect(input.getAttribute('aria-invalid')).toBe('true');
         });
 
+        it('takes a src of the scheme the image already has (a host\'s own), and refuses another such scheme', () => {
+            act(() => { editor.commands.updateAttributes('image', { src: 'asset://localhost/a.png' }); });
+            render(<ImageBubbleMenu editor={editor} />);
+            const input = screen.getByLabelText('Image URL');
+            fireEvent.change(input, { target: { value: 'asset://localhost/b.png' } });
+            fireEvent.keyDown(input, { key: 'Enter' });
+            expect(editor.getAttributes('image').src).toBe('asset://localhost/b.png');
+            fireEvent.change(input, { target: { value: 'file:///tmp/c.png' } });
+            fireEvent.keyDown(input, { key: 'Enter' });
+            expect(editor.getAttributes('image').src).toBe('asset://localhost/b.png');
+            // A file on the reader's machine, never, even with the image's own src a file one.
+            act(() => { editor.commands.updateAttributes('image', { src: 'file:///pictures/a.png' }); });
+            fireEvent.change(input, { target: { value: 'file:///pictures/e.png' } });
+            fireEvent.keyDown(input, { key: 'Enter' });
+            expect(editor.getAttributes('image').src).toBe('file:///pictures/a.png');
+            fireEvent.change(input, { target: { value: 'uploads/d.png' } });
+            fireEvent.keyDown(input, { key: 'Enter' });
+            expect(editor.getAttributes('image').src).toBe('uploads/d.png');
+        });
+
         it('Escape reverts the typed source and does not apply it', () => {
             render(<ImageBubbleMenu editor={editor} />);
             const input = screen.getByLabelText('Image URL');

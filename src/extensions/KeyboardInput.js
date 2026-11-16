@@ -2,6 +2,7 @@ import { Node, mergeAttributes } from '@tiptap/core';
 import { NodeSelection, TextSelection } from '@tiptap/pm/state';
 import { KEYBOARD_INPUT_NODE } from '../constants.js';
 import { runSpacesTogether } from '../utils/spaces.js';
+import { inInlineCode, onlyTextBetween, sharedMarks, withoutEdgeSpaces } from '../utils/selectionText.js';
 
 /** The text a key shows. */
 const keyText = node => String(node.attrs.text ?? '');
@@ -72,27 +73,17 @@ export const KeyboardInput = Node.create({
             if (empty || !$from.sameParent($to) || !$from.parent.inlineContent) return null;
             if (!$from.parent.canReplaceWith($from.index(), $to.indexAfter(), type())) return null;
             // Only text, and none of it inline code (a key in code would be written as its tag's text).
-            let onlyText = true;
-            state.doc.nodesBetween(from, to, node => {
-                if (node.isInline && (!node.isText || node.marks.some(mark => mark.type.spec.code))) onlyText = false;
-            });
-            const selected = state.doc.textBetween(from, to);
+            if (!onlyTextBetween(state.doc, from, to, () => false) || inInlineCode(state.doc, from, to)) return null;
             // A key needs something to show (a key of only spaces would not survive Markdown), and
-            // spaces around the selected text stay outside it (a double-click often takes one along).
-            const trimmed = selected.trim();
-            if (!onlyText || !trimmed) return null;
-            const start = from + (selected.length - selected.trimStart().length);
-            const end = start + trimmed.length;
+            // spaces around the selected text stay outside it.
+            const { from: start, to: end } = withoutEdgeSpaces(state.doc, from, to, () => '');
+            const trimmed = state.doc.textBetween(start, end);
+            if (!trimmed) return null;
             // Its text as a <kbd> is read back: spaces inside run together.
             const text = runSpacesTogether(trimmed);
             // The key keeps the formatting all of its text shares (a bold word stays a bold key, a
             // linked one a linked key); formatting on only part of it is left off.
-            let shared = null;
-            state.doc.nodesBetween(start, end, node => {
-                if (!node.isText) return;
-                shared = shared === null ? node.marks : shared.filter(mark => mark.isInSet(node.marks));
-            });
-            return { key: type().create({ text }, null, shared ?? $from.marks()), from: start, to: end };
+            return { key: type().create({ text }, null, sharedMarks(state.doc, start, end) ?? $from.marks()), from: start, to: end };
         };
         // The keys the selection holds: a selected key, or those in a selected range, by position.
         const selectedKeys = state => {

@@ -4,6 +4,8 @@
 // trust list. A preview must never load third-party content or run anything. (The document's own
 // images are shown: the editor shows them too.)
 
+import { SCRIPT_SCHEMES, urlScheme, urlStart } from './url.js';
+
 /** Elements that fetch or run third-party content: replaced by a placeholder naming the source. */
 const EMBEDDING = 'iframe, frame, frameset, embed, object, portal, video, audio';
 /**
@@ -14,21 +16,23 @@ const REMOVED = 'script, style, link, meta, base, noscript, template, form, anim
 const URL_ATTRS = ['href', 'src', 'action', 'formaction', 'xlink:href', 'data'];
 /** Attributes that only ever fetch something extra: dropped. */
 const FETCHING_ATTRS = ['srcset', 'poster', 'background', 'lowsrc', 'dynsrc'];
-const SCRIPT_SCHEME = /^(javascript|vbscript):/;
-const DATA_SCHEME = /^data:/;
 const DATA_RASTER_IMAGE = /^data:image\/(png|jpeg|gif|webp|avif|bmp)[;,]/;
+const DATA_IMAGE = /^data:image\//;
 const CSS_URL = /url\s*\([^)]*\)/gi;
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 /**
- * Is this URL attribute value unsafe in a preview? Read the way browsers read it: leading
- * spaces and control characters dropped, tabs and line breaks removed anywhere (`java\tscript:`
- * is `javascript:`). Script URLs never pass; a data URL only as a raster image.
+ * Is this URL attribute value unsafe in a preview? Read the way browsers read it (see url.js:
+ * `java\tscript:` is `javascript:`). Script URLs never pass; a data URL only as a raster image, or
+ * any image as an <img>'s src (an image runs nothing in it; a link to one could).
  */
-function isUnsafeUrl(value) {
-    const url = String(value).replace(/^[\u0000-\u0020]+/, '').replace(/[\t\n\r]/g, '').toLowerCase();
-    if (SCRIPT_SCHEME.test(url)) return true;
-    return DATA_SCHEME.test(url) && !DATA_RASTER_IMAGE.test(url);
+function isUnsafeUrl(value, imageSource = false) {
+    const scheme = urlScheme(String(value));
+    if (SCRIPT_SCHEMES.includes(scheme)) return true;
+    if (scheme !== 'data') return false;
+    const start = urlStart(String(value)).toLowerCase();
+    // An image's own src: any image, SVG too (an <img> runs nothing in it), as the editor shows it.
+    return !(imageSource ? DATA_IMAGE.test(start) : DATA_RASTER_IMAGE.test(start));
 }
 /** Block-level tags: whitespace-only text between two of them is layout noise (the content
  *  rules use white-space: pre-wrap, so it would render as blank lines). */
@@ -73,7 +77,8 @@ export function inertPreviewHtml(html, placeholderText = source => source) {
     root.querySelectorAll('*').forEach(el => {
         for (const { name, value } of Array.from(el.attributes)) {
             const lower = name.toLowerCase();
-            if (lower.startsWith('on') || FETCHING_ATTRS.includes(lower) || (URL_ATTRS.includes(lower) && isUnsafeUrl(value))) {
+            const imageSource = el.tagName === 'IMG' && lower === 'src';
+            if (lower.startsWith('on') || FETCHING_ATTRS.includes(lower) || (URL_ATTRS.includes(lower) && isUnsafeUrl(value, imageSource))) {
                 el.removeAttribute(name);
             } else if (lower === 'style' && CSS_URL.test(value)) {
                 // A background image (or any url()) would load from wherever it points.

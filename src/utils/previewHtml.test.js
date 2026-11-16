@@ -149,3 +149,15 @@ describe('inertPreviewHtml: seeded wrapper fuzz', () => {
         expect(failures).toEqual([]);
     }, FUZZ_TIMEOUT_MS);
 });
+
+describe('inertPreviewHtml: data URLs', () => {
+    it('keeps an image\'s data URL as its src, SVG too, as the editor shows it; never one as a link', () => {
+        const svg = 'data:image/svg+xml;base64,PHN2Zy8+';
+        const png = 'data:image/png;base64,AA==';
+        const out = sanitize(`<p><img src="${svg}"><img src="${png}"><a href="${svg}">x</a><a href="data:text/html,x">y</a></p>`);
+        expect(out).toContain(`<img src="${svg}">`);
+        expect(out).toContain(`<img src="${png}">`);
+        expect(out).not.toContain(`href="${svg}"`);
+        expect(out).not.toContain('data:text/html');
+    });
+});

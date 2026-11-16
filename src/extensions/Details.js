@@ -6,6 +6,7 @@ import { Fragment, NodeRange, Slice } from '@tiptap/pm/model';
 import { ReplaceAroundStep, canSplit } from '@tiptap/pm/transform';
 import { editorT, onEditorLanguageChanged } from '../utils/editorT.js';
 import { isOwnSummary, summaryChild } from '../utils/summaryChild.js';
+import { followEditable } from './HostBridge.js';
 import { DETAILS_NODE as DETAILS, DETAILS_SUMMARY_NODE as SUMMARY } from '../constants.js';
 const revealKey = new PluginKey('detailsReveal');
 /** The decoration that shows a closed disclosure's body (data-reveal), marked in its spec. */
@@ -259,6 +260,20 @@ function deleteApart(tr, range) {
 }
 
 /**
+ * Delete a range as Backspace would: one from a summary into its own body as its two parts (the
+ * summary keeps what is before it, the body what is after it), any other as it is. For a change
+ * of its own that replaces a range (an image put in place of a selection).
+ * @param {import('@tiptap/pm/state').Transaction} tr
+ * @param {number} from
+ * @param {number} to
+ */
+export function deleteKeepingDisclosures(tr, from, to) {
+    const apart = rangeFromSummaryIntoBody(tr.doc, from, to);
+    if (apart) deleteApart(tr, apart);
+    else tr.delete(from, to);
+}
+
+/**
  * A change that only deleted a range from a summary into its own body (Backspace, cut, a command),
  * redone apart (see rangeFromSummaryIntoBody): the disclosure as it should be, to put in its place,
  * whatever the step ProseMirror made. Only a change of that one step (nothing else to carry over).
@@ -448,14 +463,24 @@ export const Details = Node.create({
     },
 
     addStorage() {
-        // The node views' redraws, and whether the editor was editable at the last update.
-        return { views: new Set(), wasEditable: null };
+        // The node views' redraws, and what stops following editability.
+        return { views: new Set(), stopFollowing: null };
+    },
+
+    // Read-only turned on or off, however it is done (setEditable with or without an update event):
+    // every disclosure is redrawn.
+    onBeforeCreate() {
+        const { storage } = this;
+        storage.stopFollowing = followEditable(this.editor, () => { for (const show of storage.views) show(); });
+    },
+
+    onDestroy() {
+        this.storage.stopFollowing?.();
     },
 
     addNodeView() {
         const { editor } = this;
         const { views } = this.storage;
-        this.storage.wasEditable = editor.isEditable;
         return ({ node, getPos, decorations }) => {
             let current = node;
             const hasReveal = decos => (decos ?? []).some(deco => deco.spec?.reveal === true);
@@ -760,19 +785,10 @@ export const Details = Node.create({
     },
 
     addProseMirrorPlugins() {
-        const { editor, storage } = this;
+        const { editor } = this;
         return [
             new Plugin({
                 key: revealKey,
-                // Read-only turned on or off, however it is done (setEditable with or without an
-                // update event), reaches the plugin views: every disclosure is redrawn then.
-                view: () => ({
-                    update: () => {
-                        if (storage.wasEditable === editor.isEditable) return;
-                        storage.wasEditable = editor.isEditable;
-                        for (const show of storage.views) show();
-                    },
-                }),
                 // A block put in a summary (inserted, pasted, dropped, by any command) goes to the
                 // start of the body: a disclosure ProseMirror split in two to fit it is joined again.
                 // A range from the summary into the body, deleted, leaves the summary one line: what

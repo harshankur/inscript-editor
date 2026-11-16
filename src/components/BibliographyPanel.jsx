@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useInscriptT } from '../hooks/useInscriptT.js';
+import { useEditorEditable } from '../hooks/useEditorEditable.js';
 import { BookOpen, Edit2, Check, X, Search } from 'lucide-react';
 
 export const BibliographyPanel = ({ editor }) => {
@@ -9,7 +10,7 @@ export const BibliographyPanel = ({ editor }) => {
     const [editLabel, setEditLabel] = useState('');
     const [editTitle, setEditTitle] = useState('');
     // Whether the document may be edited: a read-only editor shows its citations, nothing more.
-    const [editable, setEditable] = useState(() => editor?.isEditable !== false);
+    const editable = useEditorEditable(editor);
 
     // Extract unique citation entries from editor doc
     const extractCitations = () => {
@@ -36,17 +37,10 @@ export const BibliographyPanel = ({ editor }) => {
         // Any doc change, not only 'update': TipTap skips 'update' for content set with
         // emitUpdate: false (a quiet load, a version restore), and those change the citations too.
         const onTransaction = ({ transaction }) => { if (transaction.docChanged) extractCitations(); };
-        // TipTap reports a change of editability (setEditable) as an update without a transaction.
-        const onUpdate = () => setEditable(editor.isEditable);
         editor.on('transaction', onTransaction);
-        editor.on('update', onUpdate);
         extractCitations();
-        setEditable(editor.isEditable);
 
-        return () => {
-            editor.off('transaction', onTransaction);
-            editor.off('update', onUpdate);
-        };
+        return () => editor.off('transaction', onTransaction);
     }, [editor]);
 
     // Go to first occurrence in the document

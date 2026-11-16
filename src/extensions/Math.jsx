@@ -1,4 +1,8 @@
 import { Node, mergeAttributes } from '@tiptap/core';
+import { NodeSelection } from '@tiptap/pm/state';
+import { NODE } from '../constants.js';
+import { useEditorEditable } from '../hooks/useEditorEditable.js';
+import { inInlineCode, onlyTextBetween, sharedMarks, withoutEdgeSpaces } from '../utils/selectionText.js';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
 import React, { useState, useEffect } from 'react';
 
@@ -32,6 +36,7 @@ function readMathCode(element) {
 
 const MathComponent = ({ node, editor, updateAttributes, selected, isInline }) => {
     const { code } = node.attrs;
+    const editable = useEditorEditable(editor);
     const [html, setHtml] = useState('');
     const [error, setError] = useState(null);
 
@@ -68,7 +73,7 @@ const MathComponent = ({ node, editor, updateAttributes, selected, isInline }) =
 
     const WrapperTag = isInline ? 'span' : 'div';
     // The source editor changes the document, so a read-only editor never offers it.
-    const showSourceEditor = selected && editor?.isEditable !== false;
+    const showSourceEditor = selected && editable;
     const renderClass = `math-render ${selected ? 'ring-2 ring-[var(--inscript-color-accent)] rounded' : ''} ${error ? 'text-red-500' : ''}`;
 
     return (
@@ -113,6 +118,44 @@ const MathComponent = ({ node, editor, updateAttributes, selected, isInline }) =
     );
 };
 
+/**
+ * Where inline math goes for a selection, and its source: only where text with inline nodes goes, in
+ * place of text selected within one block, which becomes its source (a key or formula in it as its
+ * text, a line break as a space; the spaces at its edges stay round it). Not in inline code or a
+ * code block (which it would split), between blocks, or over selected cells, blocks, the whole
+ * document, text running across blocks, or text holding anything else inline (a footnote, a
+ * citation: not text to put in a formula, and not deleted for one). A selected inline node (a
+ * formula, a key) stays: the new formula goes after it. Null where it cannot go.
+ * @param {Pick<import('@tiptap/pm/state').EditorState, 'schema' | 'doc' | 'selection' | 'storedMarks'>} state
+ * @returns {{ from: number, to: number, code: string, marks: readonly import('@tiptap/pm/model').Mark[] } | null}
+ */
+export function inlineMathPlan(state) {
+    const { selection } = state;
+    const type = state.schema.nodes[NODE.MATH_INLINE];
+    if (!type) return null;
+    // Never inline code's formatting (a formula is not code, even after a key or code text).
+    const notCode = marks => marks.filter(mark => !mark.type.spec.code);
+    if (selection instanceof NodeSelection && selection.node.isInline) {
+        const $after = state.doc.resolve(selection.to);
+        return $after.parent.canReplaceWith($after.index(), $after.index(), type) ? { from: selection.to, to: selection.to, code: '', marks: notCode(selection.node.marks) } : null;
+    }
+    const { $from, $to } = selection;
+    if (!$from.sameParent($to) || !$from.parent.canReplaceWith($from.index(), selection.empty ? $from.index() : $to.indexAfter(), type)) return null;
+    if (inInlineCode(state.doc, selection.from, selection.to)) return null;
+    const textOf = node => node.type.spec.leafText?.(node)
+        ?? (typeof node.attrs?.code === 'string' ? node.attrs.code : node.type.name === NODE.HARD_BREAK ? ' ' : null);
+    if (!onlyTextBetween(state.doc, selection.from, selection.to, node => textOf(node) !== null)) return null;
+    const leafText = node => textOf(node) ?? '';
+    const { from, to } = withoutEdgeSpaces(state.doc, selection.from, selection.to, leafText);
+    // It keeps the formatting all of its text shares (a linked word stays linked, as a key does);
+    // with no text (a cursor, only spaces), the formatting where it goes, as for text typed there
+    // (turned on or off there: stored marks).
+    const shared = sharedMarks(state.doc, from, to);
+    const marks = notCode(shared ?? state.storedMarks ?? state.doc.resolve(from).marks());
+    // Only spaces selected (or none): the formula goes after them, the spaces kept.
+    return { from, to, code: state.doc.textBetween(from, to, ' ', leafText), marks };
+}
+
 export const MathInline = Node.create({
     name: 'mathInline',
     group: 'inline',
@@ -149,10 +192,16 @@ export const MathInline = Node.create({
 
     addCommands() {
         return {
-            insertMathInline: () => ({ commands }) => {
-                return commands.insertContent({
+            // See inlineMathPlan.
+            insertMathInline: () => ({ state, commands }) => {
+                const plan = inlineMathPlan(state);
+                if (!plan) return false;
+                const node = {
                     type: this.name,
-                });
+                    ...(plan.code ? { attrs: { code: plan.code } } : {}),
+                    ...(plan.marks.length ? { marks: plan.marks.map(mark => mark.toJSON()) } : {}),
+                };
+                return commands.insertContentAt(plan.from === plan.to ? plan.from : { from: plan.from, to: plan.to }, node);
             },
         };
     },

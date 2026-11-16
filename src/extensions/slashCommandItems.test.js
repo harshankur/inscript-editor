@@ -65,3 +65,57 @@ describe('slash item labels', () => {
         expect(h1.subtitle).toBe('Big section heading');
     });
 });
+
+describe('slash command: inline math', () => {
+    let editor;
+    afterEach(() => { editor?.destroy(); });
+    const item = () => getDefaultSlashItems(t, {}).find((i) => i.id === 'mathInline');
+
+    it('replaces the typed query with inline math', () => {
+        editor = createEditor({ content: '<p>a /inl</p>' });
+        editor.commands.setTextSelection(7);
+        item().command({ editor, range: { from: 3, to: 7 } });
+        const paragraph = editor.state.doc.firstChild;
+        expect(paragraph.textContent).toBe('a ');
+        expect(paragraph.lastChild.type.name).toBe('mathInline');
+    });
+
+    it('leaves the typed query between two inline code spans, where inline math cannot go once it is gone', () => {
+        editor = createEditor({ content: '<p><code>ab</code>/inl<code>cd</code></p>' });
+        editor.commands.setTextSelection(7);
+        const before = editor.getHTML();
+        item().command({ editor, range: { from: 3, to: 7 } });
+        expect(editor.getHTML()).toBe(before);
+    });
+
+    it('leaves the typed query where inline math cannot go, rather than removing it for nothing', () => {
+        editor = createEditor({ content: '<pre><code>/inl</code></pre>' });
+        editor.commands.setTextSelection(5);
+        const before = editor.getHTML();
+        item().command({ editor, range: { from: 1, to: 5 } });
+        expect(editor.getHTML()).toBe(before);
+        expect(editor.state.doc.firstChild.textContent).toBe('/inl');
+    });
+});
+
+describe('slash command: image', () => {
+    let editor;
+    afterEach(() => { editor?.destroy(); vi.restoreAllMocks(); });
+
+    it('is offered for an image-file handler in the slash options themselves', () => {
+        editor = createEditor({ content: '<p>/im</p>' });
+        const image = getDefaultSlashItems(t, { onImageFile: () => 'assets/a.png' }).find((i) => i.id === 'image');
+        expect(image.isAvailable({ editor })).toBe(true);
+    });
+
+    it('is offered for, and picks through, an image-file handler the editor was built with', () => {
+        const onImageFile = vi.fn(() => 'assets/a.png');
+        editor = createEditor({ content: '<p>/im</p>' }, { onImageFile });
+        const image = getDefaultSlashItems(t, {}).find((i) => i.id === 'image');
+        expect(image.isAvailable({ editor })).toBe(true);
+        const click = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {});
+        image.command({ editor, range: { from: 1, to: 4 } });
+        expect(click).toHaveBeenCalledTimes(1);
+        document.querySelector('input[type=file]')?.remove();
+    });
+});

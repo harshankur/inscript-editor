@@ -47,7 +47,7 @@ const PRESS = {
     bullet: ['Bullet List'], ordered: ['Numbered List'], task: ['Task List'], definition: ['Definition List'],
     align: ['Text Alignment', 'Align Center'],
     code: ['Code Block'], quote: ['Quote'], admonitions: ['Admonitions', 'Tip'], details: ['Disclosure'], hr: ['Divider'],
-    math: ['Math Block'], mermaid: ['Mermaid Diagram'],
+    math: ['Math Block'], mathInline: ['Inline Math'], mermaid: ['Mermaid Diagram'],
     image: ['Insert Image'], youtube: ['Embed YouTube Video'], table: ['Insert Table'], tags: ['Manage Tags & Categories'],
 };
 

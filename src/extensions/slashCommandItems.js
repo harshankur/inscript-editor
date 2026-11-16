@@ -1,11 +1,18 @@
 import { getHostHandlers } from './HostBridge.js';
 import { editorT } from '../utils/editorT.js';
 import { detailsWrapRange } from './Details.js';
+import { TextSelection } from '@tiptap/pm/state';
+import { IMAGE_FILE_HANDLER, imageAction } from './ImageFiles.js';
+import { inlineMathPlan } from './Math.jsx';
 
 // Read a host handler live: <InscriptEditor>'s prop or the editorOptions one through the editor's
 // host bridge (options.hostHandlersRef is refreshed every render by useInscriptEditor), falling
 // back to a plain editorOptions value. The slash menu, the toolbar and the selection menu share it.
 const handler = (options, name, editor) => getHostHandlers(editor)[name] ?? options.hostHandlersRef?.current?.[name] ?? options[name];
+
+// The Image item's action (the media library, else the file picker; see imageAction), from the
+// handlers as the other items read them.
+const slashImageAction = (options, editor) => imageAction(editor, handler(options, 'onShowMediaLibrary', editor), handler(options, IMAGE_FILE_HANDLER, editor));
 
 /** Marks a built-in item, with the keys and defaults its text is translated from (not copied by a spread). */
 const BUILT_IN_TEXT = Symbol('inscript-editor.slashItemText');
@@ -230,6 +237,23 @@ export const getDefaultSlashItems = (t, options = {}) => [
             command: ({ editor, range }) => {
                 editor.chain().focus().deleteRange(range).insertContent({ type: 'mathBlock' }).run();
             }
+        },
+        {
+            id: 'mathInline',
+            titleKey: 'slash.mathInline', titleDefault: 'Inline Math',
+            subtitleKey: 'slash.mathInlineDesc', subtitleDefault: 'Insert LaTeX math within the line',
+            keywords: ['math', 'latex', 'formula', 'inline', 'equation'],
+            group: 'text',
+            isAvailable: ({ editor }) => !!inlineMathPlan(editor.state),
+            // Only where it can go once the query is gone (the cursor where it was): otherwise the
+            // typed query stays, rather than going for nothing.
+            command: ({ editor, range }) => {
+                // On the document without the query (TipTap's can() does not apply deleteRange, so a dry
+                // run of the chain would check the document with it).
+                const { doc } = editor.state.tr.delete(range.from, range.to);
+                if (!inlineMathPlan({ schema: editor.schema, doc, selection: TextSelection.create(doc, range.from), storedMarks: null })) return;
+                editor.chain().focus().deleteRange(range).insertMathInline().run();
+            }
         }
     ] : []),
     {
@@ -263,16 +287,18 @@ export const getDefaultSlashItems = (t, options = {}) => [
         }
     },
     // Offered only while a host handler exists (read when the menu opens: a prop given later counts).
+    // Without a media library, a host that takes image files gets the browser's file picker.
     {
         id: 'image',
         titleKey: 'insertImage', titleDefault: 'Image',
         subtitleKey: 'imageSubtitle', subtitleDefault: 'Upload or select an image',
         keywords: ['image', 'picture', 'photo'],
         group: 'media',
-        isAvailable: ({ editor }) => typeof handler(options, 'onShowMediaLibrary', editor) === 'function',
+        isAvailable: ({ editor }) => !!slashImageAction(options, editor),
         command: ({ editor, range }) => {
+            const action = slashImageAction(options, editor);
             editor.chain().focus().deleteRange(range).run();
-            handler(options, 'onShowMediaLibrary', editor)();
+            action?.();
         }
     },
     {

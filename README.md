@@ -9,7 +9,7 @@ A standalone, TipTap-based rich text editor for React. Extracted from [Inscript]
 ## Features
 
 - **Rich text editing** built on [TipTap v3](https://tiptap.dev): bold/italic/underline/strike, headings, lists, blockquotes, code blocks, sub/superscript, keyboard input (`<kbd>`), disclosures (`<details>` that open and close), text alignment, font size, text/highlight color, and links.
-- **Images** with inline resizing, alignment, and a media-library modal (bring your own upload/list backend).
+- **Images** with inline resizing, alignment, and a media-library modal (bring your own upload/list backend); image files dropped or pasted in go through your own handler ([Image files](#image-files)).
 - **Tables** with per-cell/row/column controls, header row/column toggles, column alignment (a Markdown `---:` column), and placement on the page.
 - **YouTube embeds** by URL or search, with strict ID validation, a placeholder for legacy/corrupt content instead of a broken embed, and an optional consent placeholder that contacts YouTube only once the visitor agrees ([YouTube options](#youtube-options)).
 - **Version history**: append-only versions with undo, redo and one-click restore, compared in a visual/text/source diff that fits whatever width the editor has.
@@ -89,6 +89,7 @@ function PostEditor({ post }) {
         title: post.title,
         editorOptions: {
             onShowMediaLibrary: () => {/* open your <ImageSelectorModal> */},
+            onImageFile: (file) => uploadImage(file), // a dropped or pasted image: its src (or a Promise of it)
             onAddYoutube: () => {/* open your <YoutubeEmbedModal> */},
         },
         onContentChange: (entry, { reason }) => {
@@ -246,6 +247,12 @@ a key is written to Markdown as HTML (Markdown code cannot hold a tag). The comm
 `unsetKeyboardInput` (the selected keys become text again, to edit them) and `toggleKeyboardInput`. Both can be turned off with `editorOptions` (`details: false`, `keyboardInput: false`); their buttons
 are then left out of the toolbar and the selection menu, with any divider they leave stranded.
 
+Math comes as a block and inline: the toolbar's Math Block and
+Inline Math buttons and the slash menu's items of the same names insert one (`insertMathBlock`,
+`insertMathInline`), and selecting it opens its LaTeX source. Inline math takes text selected within
+a line as its source (not text holding a footnote, citation or other inline element, which it
+would delete), and goes only where text does, so its button is off in a code block. `editorOptions.math: false` turns both off.
+
 Two things about the HTML the editor saves:
 
 - A table nobody placed is a bare `<table>`. Only a table set left or right carries `data-align` and
@@ -302,7 +309,7 @@ i18n.addResourceBundle('en', 'inscript-editor', { insertImage: 'Add Image' }, tr
 | `categories` | `string[]` | `[]` | Live categories, same live-ref treatment as `title`. |
 | `isReadonly` | `boolean` | `false` | Disables editing without recreating the editor. |
 | `onContentChange` | `(entry, { reason }) => void` | `null` | Called for every change the user causes: an edit (~1s after typing settles), an undo, a redo or a restore, with the now-active entry and `reason` (`'edit'`, `'undo'`, `'redo'`, `'restore'`). Never called for a load. |
-| `editorOptions` | `EditorBuildOptions` | `{}` | Per-editor feature toggles plus the host handlers `onAddCitation` / `onAddWikilink` / `onAddAbbreviation` / `onShowMediaLibrary` / `onAddYoutube` / `onOpenExternal`. Pass each host handler **once** here and it drives both the slash menu and the toolbar/bubble buttons (the matching `<InscriptEditor>` props are optional overrides, and win everywhere, the slash menu included). Options apply at construction: changing their serializable part recreates the editor (keeping the document); functions are read live, so a new function identity never recreates it. |
+| `editorOptions` | `EditorBuildOptions` | `{}` | Per-editor feature toggles plus the host handlers `onAddCitation` / `onAddWikilink` / `onAddAbbreviation` / `onShowMediaLibrary` / `onImageFile` / `onAddYoutube` / `onOpenExternal`. Pass each host handler **once** here and it drives both the slash menu and the toolbar/bubble buttons (the matching `<InscriptEditor>` props are optional overrides, and win everywhere, the slash menu included). Options apply at construction: changing their serializable part recreates the editor (keeping the document); functions are read live, so a new function identity never recreates it. |
 | `maxHistory` | `number` | `200` | Most versions kept. |
 | `maxHistoryBytes` | `number` | ~20 MB | Most HTML kept across versions (in characters). |
 
@@ -347,7 +354,8 @@ The privacy link opens through `onOpenExternal` when you give one (in `editorOpt
 | `canUndo`, `canRedo` | `boolean` | Drive the toolbar's undo/redo buttons. |
 | `onHistoryUndo`, `onHistoryRedo` | `() => void` | Undo/redo handlers. Default to the hook's `undo` / `redo` when you spread its result in. |
 | `onShowMetadataModal`, `hasMetadata`, `showMetadataActive` | | Tags/categories entry point — bring your own modal. |
-| `onShowMediaLibrary` | `() => void` | Opens your `<ImageSelectorModal>`. Without it (here or in `editorOptions`) the Image button is disabled and the slash menu has no Image item. |
+| `onShowMediaLibrary` | `() => void` | Opens your `<ImageSelectorModal>`. Without it (here or in `editorOptions`), the Image button and the slash menu's Image item open the browser's file picker when there is an `onImageFile`, and are otherwise disabled or left out. |
+| `onImageFile` | `(file, { editor, source, signal }) => src \| { src, alt?, title? } \| null` (or a Promise of one) | Takes image files: dropped or pasted into the editor (`source` `'drop'` or `'paste'`), or picked with the Image button when there is no media library (`'pick'`). Return the src to show: a data URL, or where you stored the file. See [Image files](#image-files). Overrides `editorOptions.onImageFile`. |
 | `onAddYoutube` | `() => void` | Opens your `<YoutubeEmbedModal>`. Without it the YouTube button is disabled and the slash menu has no YouTube item. |
 | `onAddCitation`, `onAddWikilink`, `onAddAbbreviation` | `() => void` | Optional **per-call overrides** of the matching `editorOptions` handlers for the Citation / Wikilink / Abbreviation toolbar/bubble buttons. Prefer supplying each handler **once** via `useInscriptEditor({ editorOptions })` (see the `editorOptions` row above) so it also drives the slash menu; a prop here wins when both are set. When neither is given, a built-in native prompt is used. |
 | `onHistorySelect` | `(index, entry) => void` | Called when a version is chosen for restore in `<HistoryView>`. Defaults to `restoreVersion(index, { reason: 'restore' })`. |
@@ -360,6 +368,24 @@ The privacy link opens through `onOpenExternal` when you give one (in `editorOpt
 The history panel's previews are inert: embeds show a placeholder naming their source instead of loading (the YouTube node serializes a live iframe), and nothing in a version can run.
 
 The editor can sit inside your own `<form>`: none of its buttons submit it, it nests no forms of its own, and Enter in one of its fields stays there (it applies a link, runs a video search, inserts a valid video or saves a citation label).
+
+#### Image files
+
+With an `onImageFile` handler (in `editorOptions`, or as an `<InscriptEditor>` prop), image files dropped or pasted into the editor go in as images. Each file goes through your handler, which gives the image's `src` (or `{ src, alt, title }`), at once or as a Promise. While the files are read, a "Loading image…" placeholder marks the spot (translatable as `imageLoading`), and each image goes in there as soon as its file is read, in the files' order, however the document changed meanwhile. A selection pasted over is replaced only once an image comes, and only as it was: text typed beside it meanwhile stays, and a selection typed in or over is kept (the image goes in beside it). Your handler is also given `{ editor, source, signal }`: `source` is `'drop'`, `'paste'` or `'pick'`, and `signal` aborts when the image will not go in (its spot was deleted, or the editor was closed or made read-only, before the files were read), so you can stop the upload or remove a file you stored. A file your handler gives nothing for (`null`) or fails on is left out: say why to the reader yourself, since your handler knows. So is a src that would run script (`javascript:`), or a `data:` URL that is not an image's. If the spot was deleted meanwhile, nothing goes in. A copied image, whose HTML is only its picture, goes through your handler as a file; a drop or paste whose HTML is more than that (a web page's text, office cells with a picture of them) is read as HTML, as before. An image dropped or pasted into a code block goes after it, the code kept whole.
+
+```jsx
+const toDataUrl = file => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+});
+useInscriptEditor({ editorOptions: { onImageFile: toDataUrl } });
+```
+
+A data URL puts the whole image in the document, and in every version of its history (which counts towards `maxHistoryBytes`): fine for small images or an offline app, but for photos, store the file and return its URL.
+
+Without a handler, image files are not taken.
 
 ### Extensions
 

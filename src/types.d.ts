@@ -51,6 +51,29 @@ export interface RestoreVersionOptions {
     reason?: 'undo' | 'redo' | 'restore';
 }
 
+/** Where an image file came from: dropped, pasted, or picked through the Image button. */
+export type ImageFileSource = 'drop' | 'paste' | 'pick';
+
+/** What `onImageFile` gives for a file: its src, or the image's attributes; nothing leaves it out. */
+export type ImageFileResult = string | { src: string; alt?: string; title?: string } | null | undefined;
+
+/**
+ * Takes an image file into the editor. The images go in, in order, where they were dropped or
+ * pasted (in place of a selection pasted over), once each file's result is in (a placeholder shows
+ * meanwhile). A rejection, or no result, leaves that file out: say why to the reader yourself,
+ * since your handler knows.
+ */
+export type ImageFileHandler = (
+    file: File,
+    info: {
+        editor: Editor;
+        source: ImageFileSource;
+        /** Aborted when the image will not go in: its spot was deleted, or the editor was closed or
+         *  made read-only, before the files were read. Stop the upload, or remove a file stored. */
+        signal: AbortSignal;
+    },
+) => ImageFileResult | Promise<ImageFileResult>;
+
 export interface WikilinkResolution {
     exists: boolean;
     href: string;
@@ -105,6 +128,10 @@ export interface EditorBuildOptions {
      *  own modal instead of the built-in prompt. The matching `<InscriptEditor>` props are
      *  optional per-call overrides. */
     onShowMediaLibrary?: () => void;
+    /** Takes an image file dropped or pasted into the editor (or, without `onShowMediaLibrary`,
+     *  picked through the Image button's file picker) and gives the src to show: a data URL, or
+     *  where you stored the file. Without it, image files are not taken. */
+    onImageFile?: ImageFileHandler;
     onAddYoutube?: () => void;
     onAddCitation?: () => void;
     onAddWikilink?: () => void;
@@ -308,6 +335,9 @@ export interface InscriptEditorProps {
     /** Optional per-call override of `editorOptions.onShowMediaLibrary`. Prefer editorOptions
      *  (it also drives the slash Image entry); this prop wins when both are set. */
     onShowMediaLibrary?: () => void;
+    /** Optional per-call override of `editorOptions.onImageFile` (image files dropped, pasted or
+     *  picked); this prop wins when both are set. */
+    onImageFile?: ImageFileHandler;
     /** Optional per-call override of `editorOptions.onAddYoutube`. Prefer editorOptions
      *  (it also drives the slash YouTube entry); this prop wins when both are set. */
     onAddYoutube?: () => void;
@@ -474,6 +504,14 @@ export function setColumnAlign(editor: Editor, align: ColumnAlign | null): boole
 
 declare module '@tiptap/core' {
     interface Commands<ReturnType> {
+        mathInline: {
+            /** Inserts inline math at the selection; false where text cannot go (code, between blocks). */
+            insertMathInline: () => ReturnType;
+        };
+        mathBlock: {
+            /** Inserts a math block at the selection. */
+            insertMathBlock: () => ReturnType;
+        };
         keyboardInput: {
             /** Makes the selected text (within one block) a key. */
             setKeyboardInput: () => ReturnType;
@@ -584,6 +622,8 @@ export interface ResponsiveToolbarProps {
     hasMetadata?: boolean;
     showMetadataActive?: boolean;
     onShowMediaLibrary?: () => void;
+    /** Image files picked through the Image button when there is no `onShowMediaLibrary`. */
+    onImageFile?: ImageFileHandler;
     onAddYoutube?: () => void;
     onAddCitation?: () => void;
     onAddWikilink?: () => void;

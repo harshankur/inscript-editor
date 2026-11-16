@@ -102,6 +102,41 @@ describe('slash menu', () => {
         expect(b.editor.getHTML()).toBe('<p></p>');
     });
 
+    it('with only an image-file handler, the image item opens the file picker and takes the chosen image', async () => {
+        const onImageFile = vi.fn(() => 'assets/a.png');
+        const { container, editor } = await setup({ editorOptions: { onImageFile } });
+        vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(function click() {
+            Object.defineProperty(this, 'files', { value: [new File(['x'], 'a.png', { type: 'image/png' })] });
+            this.dispatchEvent(new Event('change'));
+        });
+        await type(editor, '/');
+        expect(items(container)).toContain('Insert Image');
+        await type(editor, 'image');
+        await key(editor, 'Enter');
+        await flush();
+        expect(onImageFile).toHaveBeenCalledTimes(1);
+        expect(onImageFile.mock.calls[0][1].source).toBe('pick');
+        expect(editor.getHTML()).toContain('<img src="assets/a.png"');
+        expect(editor.getHTML()).not.toContain('/image');
+    });
+
+    it('the inline math item puts math within the line', async () => {
+        const { editor } = await setup({}, {}, '<p>x</p>');
+        await type(editor, ' /inline');
+        await key(editor, 'Enter');
+        const paragraph = editor.state.doc.firstChild;
+        expect(paragraph.type.name).toBe('paragraph');
+        expect(paragraph.childCount).toBe(2);
+        expect(paragraph.lastChild.type.name).toBe('mathInline');
+        expect(paragraph.textContent).toBe('x ');
+    });
+
+    it('has no inline math item when math is off', async () => {
+        const { container, editor } = await setup({ editorOptions: { math: false } });
+        await type(editor, '/math');
+        expect(menu(container)).toBeNull();
+    });
+
     it('the image item follows an <InscriptEditor onShowMediaLibrary> prop too (the toolbar button does)', async () => {
         const onShowMediaLibrary = vi.fn();
         const { container, editor } = await setup({}, { onShowMediaLibrary });

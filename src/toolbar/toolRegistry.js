@@ -18,7 +18,7 @@ import {
     AlignLeft,
     Code, Keyboard, SquareCode, Quote, Minus, RemoveFormatting, ListCollapse,
     Info,
-    Sigma, Workflow,
+    Sigma, Radical, Workflow,
     Image as ImageIcon, SquarePlay as YoutubeIcon, Table as TableIcon, Tag,
 } from 'lucide-react';
 import { ABBREVIATION_MARK, DETAILS_NODE, KEYBOARD_INPUT_NODE, NODE } from '../constants.js';
@@ -84,6 +84,7 @@ export const TOOL_REGISTRY = {
 
     // Advanced
     math:        { id: 'math',        label: 'Math Block', labelKey: 'slash.math',        icon: Sigma,            group: 'advanced', requires: { node: NODE.MATH_BLOCK } },
+    mathInline:  { id: 'mathInline',  label: 'Inline Math', labelKey: 'slash.mathInline', icon: Radical,          group: 'advanced', requires: { node: NODE.MATH_INLINE } },
     mermaid:     { id: 'mermaid',     label: 'Mermaid Diagram', labelKey: 'slash.mermaid',   icon: Workflow,         group: 'advanced', requires: { node: NODE.MERMAID } },
 
     // Media & meta

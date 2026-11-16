@@ -1,9 +1,42 @@
 import { Extension } from '@tiptap/core';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { editorI18n } from '../utils/editorT.js';
 
 /**
+ * The editor event for a change of editability, however it was made: TipTap's setEditable emits
+ * `update` only when asked to, but the view is always told, and so this.
+ */
+export const EDITABLE_EVENT = 'inscript:editable';
+
+/** The plugin that emits EDITABLE_EVENT: an editor with it says when its editability changes. */
+export const editableWatchKey = new PluginKey('inscriptEditableWatch');
+
+/**
+ * Run `listener` whenever the editor's editability changes: on EDITABLE_EVENT (the host bridge), or
+ * on an update (setEditable's default) for an editor without it, the change checked (an update comes
+ * with every edit too). Usable before the editor has a view.
+ * @param {import('@tiptap/core').Editor} editor
+ * @param {(editable: boolean) => void} listener
+ * @returns {() => void} Stops it.
+ */
+export function followEditable(editor, listener) {
+    let editable = editor.isEditable;
+    const check = () => {
+        if (editable === editor.isEditable) return;
+        editable = editor.isEditable;
+        listener(editable);
+    };
+    editor.on(EDITABLE_EVENT, check);
+    editor.on('update', check);
+    return () => {
+        editor.off(EDITABLE_EVENT, check);
+        editor.off('update', check);
+    };
+}
+
+/**
  * Carries a live ref of host handlers (onAddCitation, onAddYoutube,
- * onShowMediaLibrary, onAddWikilink, onAddAbbreviation) on the editor so both
+ * onShowMediaLibrary, onImageFile, onAddWikilink, onAddAbbreviation) on the editor so both
  * consumers can read the SAME handlers:
  *   - the slash-command items, built once at editor construction, and
  *   - <InscriptEditor>, read at render for the toolbar / bubble menu.
@@ -19,6 +52,23 @@ import { editorI18n } from '../utils/editorT.js';
  */
 export const HostBridge = Extension.create({
     name: 'hostBridge',
+
+    addProseMirrorPlugins() {
+        const { editor } = this;
+        let editable = editor.isEditable;
+        return [
+            new Plugin({
+                key: editableWatchKey,
+                view: () => ({
+                    update: () => {
+                        if (editable === editor.isEditable) return;
+                        editable = editor.isEditable;
+                        editor.emit(EDITABLE_EVENT, { editor, editable });
+                    },
+                }),
+            }),
+        ];
+    },
 
     addOptions() {
         return { handlersRef: null };
@@ -40,7 +90,7 @@ export const HostBridge = Extension.create({
 /**
  * Read the live host-handlers object off the editor (or {} when absent).
  * @param {import('@tiptap/core').Editor | null | undefined} editor
- * @returns {Record<string, (() => void) | undefined>}
+ * @returns {Record<string, ((...args: any[]) => unknown) | undefined>}
  */
 export function getHostHandlers(editor) {
     const ext = editor?.extensionManager?.extensions?.find((e) => e.name === 'hostBridge');
@@ -54,7 +104,26 @@ export function getHostHandlers(editor) {
 }
 
 /** The insert handlers a host can give: <InscriptEditor> props and editorOptions alike. */
-export const HOST_HANDLER_NAMES = Object.freeze(['onAddCitation', 'onAddYoutube', 'onShowMediaLibrary', 'onAddWikilink', 'onAddAbbreviation']);
+export const HOST_HANDLER_NAMES = Object.freeze(['onAddCitation', 'onAddYoutube', 'onShowMediaLibrary', 'onImageFile', 'onAddWikilink', 'onAddAbbreviation']);
+
+/**
+ * The host handlers among build options (the insert handlers and `onOpenExternal`), for an editor
+ * built without useInscriptEditor's live ref.
+ * @param {Record<string, unknown>} options
+ * @returns {Record<string, (...args: any[]) => unknown>}
+ */
+export function hostHandlersOf(options) {
+    return functionsAmong(options, [...HOST_HANDLER_NAMES, 'onOpenExternal']);
+}
+
+/** The named values of `source` that are functions. */
+function functionsAmong(source, names) {
+    const found = {};
+    for (const name of names) {
+        if (typeof source?.[name] === 'function') found[name] = source[name];
+    }
+    return found;
+}
 
 /**
  * Publish <InscriptEditor>'s insert-handler props on the editor (an empty object clears them).
@@ -64,11 +133,7 @@ export const HOST_HANDLER_NAMES = Object.freeze(['onAddCitation', 'onAddYoutube'
 export function setHostHandlerProps(editor, handlers) {
     const storage = editor?.storage?.hostBridge;
     if (!storage) return;
-    const props = {};
-    for (const name of HOST_HANDLER_NAMES) {
-        if (typeof handlers?.[name] === 'function') props[name] = handlers[name];
-    }
-    storage.handlerProps = props;
+    storage.handlerProps = functionsAmong(handlers, HOST_HANDLER_NAMES);
 }
 
 /**

@@ -262,6 +262,17 @@ img.ProseMirror-separator {
   border-radius: var(--inscript-radius, 0.5rem);
 }
 
+/* Where a dropped or pasted image goes in while the host's handler reads the file. */
+.ProseMirror .inscript-image-placeholder {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border: 1px dashed var(--inscript-color-border-strong, #d4d4d8);
+  border-radius: var(--inscript-radius-sm, 0.25rem);
+  color: var(--inscript-color-muted, #71717a);
+  font-size: 0.875em;
+  user-select: none;
+}
+
 .ProseMirror code {
   @apply px-1.5 py-0.5 text-sm;
   background-color: var(--inscript-color-code-bg, #f4f4f5);

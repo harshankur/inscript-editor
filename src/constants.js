@@ -57,6 +57,7 @@ export const NODE = Object.freeze({
     DEFINITION_LIST: 'definitionList',
     MERMAID: 'mermaid',
     MATH_BLOCK: 'mathBlock',
+    MATH_INLINE: 'mathInline',
     CITATION: 'citation',
     IMAGE: 'image',
     CODE_BLOCK: 'codeBlock',
@@ -66,5 +67,6 @@ export const NODE = Object.freeze({
     ORDERED_LIST: 'orderedList',
     HEADING: 'heading',
     HORIZONTAL_RULE: 'horizontalRule',
+    HARD_BREAK: 'hardBreak',
 });
 export const ABBREVIATION_MARK = 'abbreviation';

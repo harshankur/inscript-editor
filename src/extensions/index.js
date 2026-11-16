@@ -25,7 +25,8 @@ import { Code, CodeBlock } from './Code.js';
 import { Divider } from './Divider.js';
 import { createLowlight, common } from 'lowlight';
 import { SlashCommand } from './SlashCommand.js';
-import { HostBridge } from './HostBridge.js';
+import { HostBridge, hostHandlersOf } from './HostBridge.js';
+import { ImageFiles } from './ImageFiles.js';
 import { FocusModeBlock } from './FocusMode.js';
 import { Admonition } from './Admonition.jsx';
 import { FootnoteReference, FootnoteDefinition, FootnotesSection } from './Footnote.jsx';
@@ -67,6 +68,8 @@ export function buildExtensions(options = {}) {
         // HTML read fitted to the schema (a Markdown renderer's images and list items), whichever
         // features are on.
         SchemaFittingParser,
+        // Image files dropped or pasted in, through the host's onImageFile (see ImageFiles.js).
+        ImageFiles,
         FocusModeBlock,
         StarterKit.configure({
             // Keystroke undo (Cmd/Ctrl+Z) is StarterKit's UndoRedo, left on: it undoes typing
@@ -207,7 +210,8 @@ export function buildExtensions(options = {}) {
 
     // Always present: carries the host handler ref (in its options) so <InscriptEditor>
     // (toolbar/bubble) can read the same handlers the slash items do. See HostBridge.js.
-    extensions.push(HostBridge.configure({ handlersRef: options.hostHandlersRef }));
+    // Built without useInscriptEditor (no live ref), the handlers given in these options.
+    extensions.push(HostBridge.configure({ handlersRef: options.hostHandlersRef ?? { current: hostHandlersOf(options) } }));
 
     return extensions;
 }

@@ -25,7 +25,7 @@ export const TOOLBAR_PRESETS = {
         'bullet', 'ordered', 'task', 'definition', D,
         'align', D,
         'code', 'quote', 'admonitions', 'details', 'hr', D,
-        'math', 'mermaid', D,
+        'math', 'mathInline', 'mermaid', D,
         'image', 'youtube', 'table', 'tags',
     ],
 
@@ -73,7 +73,7 @@ export const TOOLBAR_PRESETS = {
         'bullet', 'ordered', 'task', D,
         'align', D,
         'code', 'quote', 'hr', D,
-        'math', 'mermaid', D,
+        'math', 'mathInline', 'mermaid', D,
         'image', 'table',
     ],
 };
