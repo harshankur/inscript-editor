@@ -5,6 +5,94 @@ All notable changes to `inscript-editor` are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (pre-1.0: minor versions may
 carry small breaking changes, called out below).
 
+## [0.12.0] - 2026-11-17
+
+A release that hardens the editor against hostile documents, pastes, files and history. Documents,
+pasted content, dropped files and saved versions are treated as untrusted throughout, and the
+README has a new section, "What a document cannot do", listing what that means. Some of the changes
+below alter behaviour a host may notice: they are called out under **Changed**.
+
+### Added
+- **`HistoryView` takes the `editor`** (`<InscriptEditor>` passes it). A web link clicked in a
+  version's preview then opens through `onOpenExternal`, else in a new tab with `noopener`, and never
+  in place of your page. An anchor within the version goes nowhere; a `mailto:` or `tel:` link is
+  left to the browser.
+- **Table commands that would go past the size limit are not offered.** `mergeCells`,
+  `mergeOrSplit`, `addColumnBefore`, `addColumnAfter`, `addRowBefore` and `addRowAfter` return false
+  (and `can()` says so, so the table menu's buttons are disabled) when the change would take the
+  document's tables past the limit below, or a span past what HTML reads back.
+- **An inline formula wider than its line scrolls sideways** within the line, instead of running
+  past it.
+- **An image's height in percent stays a percentage** (`height="50%"`), as a browser reads it.
+- **`editorOptions.link.HTMLAttributes` is typed** in `EditorBuildOptions` (it was read already).
+
+### Changed
+- **Links take their `target`, `rel` and `class` from `editorOptions.link.HTMLAttributes` only**,
+  never from a document: a document's would lay an invisible link over the page, send the top window
+  away (`target="_top"`) or hand the opened page this one (`rel="opener"`).
+- **In a read-only editor, a click on a link to another site opens outside your page**: through
+  `onOpenExternal`, else a new tab with `noopener`. A link on your own site is still left to your page
+  (your router). On a page opened from a file (a desktop app), a relative link, or one with no
+  address, is kept from replacing the app.
+- **A wikilink to another site opens outside your page.** In a read-only editor a click opens it;
+  while editing, a plain click selects it and Cmd/Ctrl-click opens it. A resolver's `href` is
+  followed only when it is a page on your site or an http(s) address: open an app's own pages from
+  `onNavigate`. A wikilink with no page (`#`) goes nowhere.
+- **Protocol-relative addresses** (`//host/x`) in images and links are read and saved as the https
+  address they mean (`https://host/x`), on every page: on a page opened from a file, `//host/x`
+  names a share on another machine.
+- **An embed's `isTrusted` (or `isEmbedTrusted`) is given the address as it will be loaded**:
+  absolute, https for a protocol-relative one, normalized as a browser reads it
+  (`https://maps.example.com/`), rather than the text the document stores.
+- **Content given as JSON is held to the same rules as HTML** (`content`, `setContent`,
+  `insertContent`, commands), so `getJSON()` never keeps what the editor refuses: an image whose
+  source is refused is left out, a link whose address is refused is its text, and image and video
+  sizes, video ids, code languages, text alignment, font sizes, table spans and column widths are
+  kept as HTML would read them. A ProseMirror node given as content is held to them too.
+- **Tables are bounded however they come.** A table squared up gains the cells its spans claim and
+  the cells padded onto short rows; all of a document's tables together may gain at most 20,000, when
+  opened, pasted or made by edits, so a document made in the editor opens again as it was. Past that,
+  the tables brought in that gain the most are read as their cells' contents (a rectangular table is
+  never touched, however large). Pasting into a table never grows it by more than 20,000 cells. Spans
+  are read as a browser reads them (`1e5` is 1, `rowspan="0"` reaches the end of its row group) and
+  kept within HTML's own limits (1,000 columns, 65,534 rows), and a column is at most 4,000 pixels
+  wide, a dragged one too.
+- **Code highlighting is bounded.** A block of more than 5,000 characters (2,000 when its language is
+  guessed) shows as plain text, and highlighting gets 50 ms per turn of the page across all editors:
+  what does not fit is finished in later turns. A code block's language is only ever a name.
+- **Diagrams are drawn at Mermaid's `strict` level** whatever your page's Mermaid configuration says
+  (which is restored afterwards), and what Mermaid draws is cleaned and shown in a shadow root of
+  its own. A diagram that cannot be shown says so.
+- **Formulas are drawn by KaTeX with `trust` off**, bounded macro expansion and sizes, and painted
+  near their own box only. The `katex` peer dependency now starts at 0.16.10.
+- **Widths, heights and font sizes from a document are capped** (an image or video at most the
+  line's width or 4,000 pixels, an image's height at most 10,000 pixels, text at most about 200
+  pixels).
+
+### Fixed
+- **Nothing in a saved version can run in the history panel.** A version's preview is made of the
+  cleaned nodes themselves, never HTML parsed again (where text the cleaning saw as text could come
+  back as markup), without scripts, handlers, foreign content (MathML, SVG), ids, names, link targets
+  or any style that could load something, and it is contained, so nothing in it can cover your page.
+  It holds no `.mermaid` element for your page's Mermaid to draw.
+- **A diagram keeps nothing that runs, loads or navigates**: scripts, handlers (on any element, a
+  `<style>` too), links, foreign frames and images, and CSS that could load something or reach past
+  the diagram (escapes included), whatever Mermaid's own settings were.
+- **The saved Markdown keeps document text as text** when a Markdown renderer reads it back: link
+  addresses and titles (including an address that reads as a character reference, such as
+  `&#x6a;avascript:`), image text, code fences, hard breaks, source comments and HTML kept in a link's
+  text are written so they cannot turn into raw HTML or a script link.
+- **A share on another machine is never fetched** (`\\host\share`, `file://host/…`, and `//host` on a
+  page opened from a file), from an image, a link, the minimap, a history preview or a host's
+  `onImageFile` result: such a page would send the reader's credentials to it.
+- **A crafted document cannot stop the page**: tables of millions of cells from a few bytes of HTML
+  or JSON, highlighting a crafted code block on every change, deeply nested JSON, content given by a
+  host that holds itself, or a document many footnotes long.
+- **Footnote numbers follow the document.** A reference added before others left theirs, and their
+  definitions, showing their old numbers.
+- **A frame whose address is a bare 11-letter word** (`<iframe src="development">`) is no longer
+  taken as a YouTube video and loaded from YouTube.
+
 ## [0.11.0] - 2026-11-16
 
 ### Added
