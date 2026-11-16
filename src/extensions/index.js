@@ -30,12 +30,15 @@ import { FocusModeBlock } from './FocusMode.js';
 import { Admonition } from './Admonition.jsx';
 import { FootnoteReference, FootnoteDefinition, FootnotesSection } from './Footnote.jsx';
 import { Abbreviation } from './Abbreviation.js';
+import { KeyboardInput } from './KeyboardInput.js';
+import { Details, DetailsSummary } from './Details.js';
 import { DefinitionList, DefinitionTerm, DefinitionDescription } from './DefinitionList.js';
 import { Wikilink } from './Wikilink.jsx';
 import { Mermaid } from './Mermaid.jsx';
 import { MathInline, MathBlock } from './Math.jsx';
 import { Citation } from './Citation.js';
 import { HtmlComment } from './HtmlComment.js';
+import { SchemaFittingParser } from './SchemaFittingParser.js';
 import { Embed } from './Embed.jsx';
 import { getDefaultSlashItems } from './slashCommandItems.js';
 import { editorT } from '../utils/editorT.js';
@@ -61,6 +64,9 @@ export function buildExtensions(options = {}) {
     // recreates the editor nor leaves the editor calling a stale one.
     const live = options.liveOptionsRef || null;
     const extensions = [
+        // HTML read fitted to the schema (a Markdown renderer's images and list items), whichever
+        // features are on.
+        SchemaFittingParser,
         FocusModeBlock,
         StarterKit.configure({
             // Keystroke undo (Cmd/Ctrl+Z) is StarterKit's UndoRedo, left on: it undoes typing
@@ -131,6 +137,14 @@ export function buildExtensions(options = {}) {
 
     if (options.abbreviation !== false) {
         extensions.push(Abbreviation);
+    }
+
+    if (options.keyboardInput !== false) {
+        extensions.push(KeyboardInput);
+    }
+
+    if (options.details !== false) {
+        extensions.push(Details, DetailsSummary);
     }
 
     if (options.wikilink?.enabled) {

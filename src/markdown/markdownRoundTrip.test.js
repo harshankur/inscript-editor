@@ -56,6 +56,14 @@ describe('Markdown round trip: nodes come back as they were', () => {
         ['a math block with a LaTeX comment line', '<div class="math-block" data-math="a + b % note\n+ c"></div>'],
         ['inline math with backslashes and Markdown characters', '<p>x <span class="math-inline" data-math="\\{x \\mid x > 0\\} a\\,b \\\\ c x\\_1 a*b*c `q`"></span> y</p>'],
         ['an abbreviation whose text has Markdown characters', '<p><abbr title="t">A\\_B*c*</abbr></p>'],
+        ['a disclosure with two paragraphs and a list', '<details><summary>Why <strong>this</strong>?</summary><p>One.</p><p>Two.</p><ul><li><p>a</p></li><li><p>b</p></li></ul></details>'],
+        ['an open disclosure', '<details open><summary>Open</summary><p>Body</p></details>'],
+        ['a disclosure in a disclosure, and one in a list', '<details><summary>Outer</summary><details><summary>Inner</summary><p>x</p></details></details><ul><li><p>item</p><details><summary>S</summary><p>in list</p></details></li></ul>'],
+        ['a disclosure with an empty summary and body', '<details><summary></summary><p></p></details>'],
+        ['an empty paragraph between blocks in a disclosure', '<details><summary>S</summary><p>a</p><p></p><p>b</p></details>'],
+        ['an empty last paragraph in a disclosure', '<details><summary>S</summary><p>x</p><p></p></details>'],
+        ['a key inside inline code', '<p><code><kbd>Ctrl</kbd>+c</code> copies</p>'],
+        ['keys pressed together', '<p>Press <kbd>Ctrl</kbd>+<kbd>S</kbd>, then <kbd>*</kbd> and <strong><kbd>Esc</kbd></strong>.</p>'],
         ['a wikilink whose target has Markdown characters', '<p><a data-wikilink="" data-target="C *draft*">C *draft*</a></p>'],
         ['a comment alone in its paragraph', '<p><span data-html-comment=" keep me "></span></p><p>Text.</p>'],
         ['a comment alone in a list item', '<ul><li><p><span data-html-comment=" c "></span></p></li><li><p>b</p></li></ul>'],
@@ -208,3 +216,154 @@ describe('loading Markdown renderer output', () => {
         expect(json.content[0].content[0].text).toBe('const x = 1;');
     });
 });
+
+describe('Markdown in, the same Markdown out', () => {
+    it.each([
+        ['a line holding two keys', 'Press <kbd>Ctrl</kbd>+<kbd>S</kbd> to save.'],
+        ['three keys', '<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> opens the palette.'],
+        ['a line that is only a plus, still escaped', 'a\n\n\\+\n\nb'],
+        ['a plus after a hard break, still escaped', 'a  \n\\+'],
+    ])('%s', (label, md) => {
+        expect(toMarkdown(normalize(fromMarkdown(md)))).toBe(md);
+    });
+});
+
+describe('a disclosure in Markdown', () => {
+    it('is written as GitHub reads it: the tags and summary as HTML, the body as Markdown between blank lines', () => {
+        const md = toMarkdown(normalize('<details><summary>Why <em>this</em>?</summary><p>One <strong>bold</strong>.</p><p>Two.</p></details>'));
+        expect(md).toBe('<details>\n<summary>Why <em>this</em>?</summary>\n\nOne **bold**.\n\nTwo.\n\n</details>');
+    });
+
+    it('a summary\'s text cannot close the disclosure or open HTML', () => {
+        const md = toMarkdown(normalize(`<details><summary>a &lt;/details&gt; ${esc(PROBE)}</summary><p>x</p></details>`));
+        expect(leaks(md)).toEqual([]);
+        expect(load(fromMarkdown(md)).getJSON().content[0].content[0].content[0].text).toBe(`a </details> ${PROBE}`);
+    });
+
+    it('GitHub-style Markdown opens as a disclosure holding its two paragraphs and list, and saves unchanged', () => {
+        const md = '<details>\n<summary>Why</summary>\n\nOne.\n\nTwo.\n\n- a\n- b\n\n</details>';
+        const json = load(fromMarkdown(md)).getJSON();
+        expect(types(json)[0]).toBe('details');
+        expect(json.content[0].content.map(node => node.type)).toEqual(['detailsSummary', 'paragraph', 'paragraph', 'bulletList']);
+        const once = normalize(fromMarkdown(md));
+        expect(normalize(fromMarkdown(toMarkdown(once)))).toBe(once);
+    });
+});
+
+describe('text that would open something only where a line starts', () => {
+    it.each([
+        ['a heading that is only #', '<h1>#</h1>'],
+        ['a heading that is only ##', '<h2>##</h2>'],
+        ['a comment alone in its paragraph holding lines like +, 1. and #', '<p><span data-html-comment=" a\n+\n1.\n# "></span></p>'],
+        ['a list item that is only +', '<ul><li><p>+</p></li></ul>'],
+        ['a plus between two keys, and after inline code', '<p><kbd>Ctrl</kbd>+<kbd>S</kbd> and <code>a</code>+</p>'],
+        ['a summary, then a body paragraph that is only 1.', '<details><summary>S</summary><p>1.</p><p>2)</p></details>'],
+        ['a plus after a key at the end of one paragraph, then a paragraph that is only +', '<p>a <kbd>X</kbd></p><p>+</p>'],
+        ['a nested list item that is only +', '<ul><li><p>a</p><ul><li><p>+</p></li></ul></li></ul>'],
+        ['keys joined by - and followed by 1. , > and =', '<p><kbd>Ctrl</kbd>-<kbd>C</kbd> <kbd>A</kbd>1. x <kbd>B</kbd>&gt; y <kbd>C</kbd>== z</p>'],
+        ['a disclosure whose summary starts with a no-break space', '<details><summary>&nbsp;S</summary><p>x</p></details><p>b</p>'],
+    ])('%s comes back as it was', (label, html) => {
+        const { before, after } = roundTrip(html);
+        expect(after).toBe(before);
+    });
+
+    it('a conversion starts with no mid-line mark left by one cut short', () => {
+        const td = new TurndownService({ headingStyle: 'atx' });
+        applyInscriptEditorTurndownRules(td);
+        const p = document.createElement('p');
+        p.innerHTML = '<kbd>K</kbd>+';
+        // A key's rule run, as a conversion does, and the conversion stopped there.
+        const key = p.firstChild;
+        td.rules.forNode(key).replacement('K', key, td.options);
+        // Text with no element before it (nothing else clears the mark first).
+        expect(td.turndown('+')).toBe('\\+');
+    });
+
+    it('text right after a key is not escaped where it cannot start a line (turndown\'s own escapes too)', () => {
+        expect(toMarkdown('<p><kbd>Ctrl</kbd>-<kbd>C</kbd> <kbd>A</kbd>1. x <kbd>B</kbd>&gt; y</p>')).toBe('<kbd>Ctrl</kbd>-<kbd>C</kbd> <kbd>A</kbd>1. x <kbd>B</kbd>> y');
+    });
+
+    it('a no-break space line ending a disclosure stays in it (an empty line, as anywhere), save after save', () => {
+        const { after, md } = roundTrip('<p>a</p><details><summary>S</summary><p>x</p><p>&nbsp;</p></details><p>b</p>');
+        expect(after).toBe(normalize('<p>a</p><details><summary>S</summary><p>x</p><p></p></details><p>b</p>'));
+        expect(toMarkdown(after)).toBe(md);
+    });
+});
+
+describe('two services', () => {
+    it('each escapes as if it were the only one', () => {
+        const make = () => { const td = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' }); td.use(gfm); applyInscriptEditorTurndownRules(td); return td; };
+        const a = make();
+        const b = make();
+        for (const td of [a, b, a]) {
+            expect(td.turndown('<p>a <kbd>X</kbd>+</p><p>+</p><p>1.</p>')).toBe('a <kbd>X</kbd>+\n\n\\+\n\n1\\.');
+        }
+    });
+});
+
+describe('mid-line text after any inline element', () => {
+    it.each([
+        ['inline code', '<p><code>a</code>+</p>', '`a`+'],
+        ['strikethrough', '<p><s>a</s>+</p>', '~a~+'],
+        ['a key, twice applied', '<p><kbd>Ctrl</kbd>+<kbd>S</kbd></p>', '<kbd>Ctrl</kbd>+<kbd>S</kbd>'],
+    ])('after %s is written as it is', (label, html, md) => {
+        const td = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+        td.use(gfm);
+        applyInscriptEditorTurndownRules(td);
+        applyInscriptEditorTurndownRules(td);
+        expect(td.turndown(normalize(html))).toBe(md);
+    });
+});
+
+describe('applying the rules again', () => {
+    it('puts them back on top of a plugin used since, escaping once', () => {
+        const td = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+        applyInscriptEditorTurndownRules(td);
+        td.use(gfm);
+        applyInscriptEditorTurndownRules(td);
+        expect(td.turndown(normalize('<ul data-type="taskList"><li data-type="taskItem" data-checked="true"><p>done &lt;b&gt;</p></li></ul>'))).toBe('*   [x] done \\<b>');
+        expect(td.turndown('<p><kbd>Ctrl</kbd>+<kbd>S</kbd> &lt;b&gt;</p>')).toBe('<kbd>Ctrl</kbd>+<kbd>S</kbd> \\<b>');
+    });
+});
+
+describe('a service with referenced links', () => {
+    it('writes each save\'s link definitions, save after save', () => {
+        const td = new TurndownService({ headingStyle: 'atx', linkStyle: 'referenced' });
+        td.use(gfm);
+        applyInscriptEditorTurndownRules(td);
+        expect(td.turndown('<p><a href="https://a.example">A</a></p>')).toMatch(/\[A\]\[1\][\s\S]*\[1\]: https:\/\/a\.example/);
+        expect(td.turndown('<p><a href="https://b.example">B</a></p>')).toMatch(/\[B\]\[\d+\][\s\S]*\]: https:\/\/b\.example/);
+    });
+
+    it('a summary is written whether the input is HTML or a DOM node, and the rest as before', () => {
+        const td = new TurndownService({ headingStyle: 'atx' });
+        applyInscriptEditorTurndownRules(td);
+        const root = document.createElement('div');
+        root.innerHTML = '<details><summary><em>S</em></summary><p>b</p></details>';
+        expect(td.turndown(root)).toBe('<details>\n<summary><em>S</em></summary>\n\nb\n\n</details>');
+        expect(td.turndown('<p><em>S</em></p>')).toBe('_S_');
+    });
+
+    it('a disclosure ending in a list leaves no line of only spaces before its closing tag', () => {
+        expect(toMarkdown('<details><summary>S</summary><ul><li><p>a</p></li></ul></details>')).toBe('<details>\n<summary>S</summary>\n\n*   a\n\n</details>');
+    });
+
+    it('a source comment in inline code holding a key is written as a real comment', () => {
+        expect(toMarkdown('<p><code><kbd>K</kbd><span data-html-comment=" c "></span></code></p>')).toContain('<!-- c -->');
+    });
+
+    it('a source comment in a summary is written as a real comment, as anywhere', () => {
+        const md = toMarkdown('<details open><summary>S <span data-html-comment=" note "></span>t</summary><p>x</p></details>');
+        expect(md).toBe('<details open>\n<summary>S <!-- note -->t</summary>\n\nx\n\n</details>');
+        const { before, after } = roundTrip('<details open><summary>S <span data-html-comment=" note "></span>t</summary><p>x</p></details>');
+        expect(after).toBe(before);
+    });
+
+    it('a link in a disclosure\'s summary, written as HTML there, leaves no definition behind', () => {
+        const td = new TurndownService({ headingStyle: 'atx', linkStyle: 'referenced' });
+        applyInscriptEditorTurndownRules(td);
+        expect(td.turndown('<details><summary><a href="https://x.com">l</a></summary><p>b</p></details>'))
+            .toBe('<details>\n<summary><a href="https://x.com">l</a></summary>\n\nb\n\n</details>');
+    });
+});
+

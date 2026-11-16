@@ -1,5 +1,6 @@
 import { COLUMN_ALIGN, COLUMN_ALIGNMENTS, DEFAULT_TABLE_ALIGN, TABLE_ALIGN_ATTRIBUTE } from '../constants.js';
 import { columnAlignOf, readingAlign } from '../utils/cellAlignment.js';
+import { isOwnSummary, summaryChild } from '../utils/summaryChild.js';
 import { encodeCommentText } from '../utils/commentText.js';
 
 /**
@@ -51,14 +52,17 @@ const closeTag = node => (VOID_ELEMENTS.has(node.nodeName) ? '' : `</${node.node
 
 /**
  * The node as one line of HTML. `literal`: its text is data, so no character in it may act as
- * Markdown (the text of inline HTML is otherwise parsed as Markdown).
+ * Markdown (the text of inline HTML is otherwise parsed as Markdown). `comments`: a source comment
+ * (the editor's comment span) is written as the real `<!-- -->` it stands for, as elsewhere in the
+ * Markdown.
  */
-function serializeHtml(node, literal = false) {
+function serializeHtml(node, literal = false, comments = false) {
     if (node.nodeType === TEXT_NODE) return encodeText(node.nodeValue, literal);
     if (node.nodeType !== ELEMENT_NODE) return '';
+    if (comments && node.hasAttribute('data-html-comment')) return `<!--${encodeCommentText(node.getAttribute('data-html-comment') || '')}-->`;
     if (VOID_ELEMENTS.has(node.nodeName)) return openTag(node);
     let inner = '';
-    for (const child of node.childNodes) inner += serializeHtml(child, literal);
+    for (const child of node.childNodes) inner += serializeHtml(child, literal, comments);
     return `${openTag(node)}${inner}${closeTag(node)}`;
 }
 
@@ -137,7 +141,7 @@ function adjacentCharacter(node, direction) {
 // --- Formatting Markdown has no syntax for ---------------------------------------------------
 
 /** Inline formatting the toolbar offers that Markdown cannot write: kept as its own HTML tag. */
-const KEPT_INLINE_TAGS = ['mark', 'sub', 'sup', 'u'];
+const KEPT_INLINE_TAGS = ['mark', 'sub', 'sup', 'u', 'kbd'];
 /** Alignments that are the page default, so a block carrying one is still plain Markdown. */
 const DEFAULT_TEXT_ALIGNMENTS = ['left', 'start'];
 /** A block's `text-align` declaration. */
@@ -376,25 +380,107 @@ function gfmCell(content, node) {
 
 /**
  * Escapes turndown (7.2) does not make, applied after its own. Each turns text that would be read
- * as syntax into the same text: HTML (`<b>`, `&copy;`), strikethrough (`~`), a heading or list
- * opened by a line that is only `#`, `+` or `1.`, an ordered list with `1)`, a heading's closing
+ * as syntax into the same text: HTML (`<b>`, `&copy;`), strikethrough (`~`), a heading's closing
  * `#`s, and a bare URL, which GFM would turn into a link (`https\://`, `www\.`).
  */
 const EXTRA_ESCAPES = [
     [/</g, '\\<'],
     [/&(?=#?[a-zA-Z0-9]+;)/g, '\\&'],
     [/~/g, '\\~'],
-    [/^(#{1,6})$/, '\\$1'],
     [/(\s)#(#*)$/, '$1\\#$2'],
-    [/^\+$/, '\\+'],
-    [/^(\d+)\.$/, '$1\\.'],
-    [/^(\d+)\)(?=\s|$)/, '$1\\)'],
     [/\b(https?|ftp):\/\//gi, '$1\\://'],
     [/\bwww\./gi, 'www\\.'],
 ];
 
-function escapeWith(baseEscape) {
-    return text => EXTRA_ESCAPES.reduce((acc, [pattern, replacement]) => acc.replace(pattern, replacement), baseEscape(String(text)));
+/**
+ * Escapes for what a piece of text would open when it starts a line: a heading or list from text
+ * that is only `#`, `+` or `1.`, an ordered list from `1)`. Skipped only for text that follows, on
+ * the same line, something already written there (see escapeWith): a `+` between two keys
+ * (`<kbd>Ctrl</kbd>+<kbd>S</kbd>`) opens nothing and is written as it is.
+ */
+const LINE_START_ESCAPES = [
+    [/^(#{1,6})$/, '\\$1'],
+    [/^\+$/, '\\+'],
+    [/^(\d+)\.$/, '$1\\.'],
+    [/^(\d+)\)(?=\s|$)/, '$1\\)'],
+];
+
+/** A character no escape touches, put before mid-line text so no line-start escape sees its start. */
+const MID_LINE = '\uE000';
+
+/**
+ * Turndown's escape with the ones it does not make. `afterInline.text` is the text node that
+ * follows an element written on the same line (see marksLineContinuation); turndown escapes that
+ * text next, and only that text skips the line-start escapes. Everything else is escaped as if it
+ * opened a line, which it may.
+ */
+function escapeWith(baseEscape, afterInline) {
+    return text => {
+        const value = String(text);
+        const midLine = afterInline.text === value;
+        afterInline.text = null;
+        // Mid-line, turndown's own line-start escapes (`-`, `+ `, `1. `, `>`, `=`, `#`) are skipped
+        // too: each only looks at the very start of the text, which the mark keeps from being one.
+        const base = midLine ? baseEscape(MID_LINE + value).slice(MID_LINE.length) : baseEscape(value);
+        let out = EXTRA_ESCAPES.reduce((acc, [pattern, replacement]) => acc.replace(pattern, replacement), base);
+        if (!midLine) out = LINE_START_ESCAPES.reduce((acc, [pattern, replacement]) => acc.replace(pattern, replacement), out);
+        return out;
+    };
+}
+
+/** A rule writing nothing, with no other effect. */
+const WRITTEN_AS_NOTHING = { filter: () => true, replacement: () => '' };
+
+/** Whether an element is inside a summary its disclosure writes as HTML (its first summary). */
+function inWrittenSummary(node) {
+    const summary = node.parentNode?.closest?.('summary');
+    return isOwnSummary(summary);
+}
+
+/**
+ * Turndown's rule lookup (one per service), its rules handed back so that an element written
+ * without ending its line (inline formatting, a key, inline code, a link) marks the text node right
+ * after it as continuing that line. Rules are copied, never changed: turndown shares its own rules
+ * between services.
+ *
+ * Also, an element in a disclosure's summary is written as nothing: the disclosure writes its
+ * summary as HTML itself, and turndown's rules for what is inside would leave traces elsewhere
+ * (a referenced link adds its definition to the end of the document).
+ */
+function marksLineContinuation(forNode, afterInline) {
+    const copies = new WeakMap();
+    const copyOf = rule => {
+        if (!copies.has(rule)) {
+            copies.set(rule, {
+                ...rule,
+                replacement(content, element, options) {
+                    // Called on the rule itself: a rule may keep its state on `this` (turndown's
+                    // referenced links collect their definitions there).
+                    const output = rule.replacement.call(rule, content, element, options);
+                    const next = element.nextSibling;
+                    // Inside code turndown does not escape the text after it, so nothing would take
+                    // the mark (the code element itself is fine: what follows it is outside).
+                    const continues = typeof output === 'string' && output !== '' && !output.endsWith('\n')
+                        && next?.nodeType === TEXT_NODE && !element.parentNode?.closest?.('pre, code');
+                    afterInline.text = continues ? next.nodeValue : null;
+                    return output;
+                },
+            });
+        }
+        return copies.get(rule);
+    };
+    return node => {
+        // Any element turndown turns to next ends the mark's life: it is only for the text right
+        // after the element that set it (and turndown escapes that text before it looks further).
+        afterInline.text = null;
+        if (inWrittenSummary(node)) return WRITTEN_AS_NOTHING;
+        // A disclosure and its summary are blocks, which turndown does not know: as for any block,
+        // no space at their edges is moved outside them (a no-break space would become a line of
+        // its own after the disclosure, one more on every save).
+        if (node.nodeName === 'DETAILS' || node.nodeName === 'SUMMARY') node.flankingWhitespace = { leading: '', trailing: '' };
+        const rule = forNode(node);
+        return rule && typeof rule.replacement === 'function' ? copyOf(rule) : rule;
+    };
 }
 
 // --- Empty blocks ------------------------------------------------------------------------
@@ -402,10 +488,14 @@ function escapeWith(baseEscape) {
 const TURNDOWN_ROOT_ID = 'turndown-root';
 const isTopLevel = node => {
     const parent = node.parentNode;
-    return !parent || parent.id === TURNDOWN_ROOT_ID || parent.nodeName === 'BODY' || parent.nodeName === 'BLOCKQUOTE';
+    // A disclosure's body is written as Markdown between its tags, so it is a top level too.
+    return !parent || parent.id === TURNDOWN_ROOT_ID || ['BODY', 'BLOCKQUOTE', 'DETAILS'].includes(parent.nodeName);
 };
 
 // ----------------------------------------------------------------------------------------
+
+/** The services these rules are on: their escape and rule lookup are wrapped once. */
+const applied = new WeakSet();
 
 /**
  * Applies custom Turndown rules for inscript-editor specific nodes.
@@ -416,9 +506,16 @@ const isTopLevel = node => {
  * Works with a real TurndownService (with or without turndown-plugin-gfm; apply this after
  * `use(gfm)` so these rules take precedence) and with any duck-typed `{ addRule }` object.
  *
+ * Applying them again to the same service adds the rules again on top (to win over a plugin used
+ * since), and wraps turndown's escape and rule lookup only the first time.
+ *
  * @param {TurndownService} turndownService
  */
 export function applyInscriptEditorTurndownRules(turndownService) {
+    // Applied again (say after another plugin), the rules are added again on top, and the escape and
+    // rule lookup are wrapped only once (wrapped twice they would escape twice).
+    const firstTime = !applied.has(turndownService);
+    applied.add(turndownService);
     // Turndown decides an element is "blank" (no text, no media) BEFORE it consults any rule,
     // and hands blank elements to its blank rule, which writes nothing. Several editor nodes are
     // empty on purpose (a source comment is an empty span, a gated embed an empty div), so every
@@ -428,6 +525,8 @@ export function applyInscriptEditorTurndownRules(turndownService) {
         claimed.push(rule);
         turndownService.addRule(key, rule);
     };
+    // This service's own: the text that follows an element on its line (see escapeWith).
+    const afterInline = { text: null };
 
     // Lists, emphasis and line breaks, written so CommonMark reads back what was written (see the
     // helpers above). Registered first, so the editor-specific rules below win where they overlap.
@@ -464,7 +563,7 @@ export function applyInscriptEditorTurndownRules(turndownService) {
     // math are spans, footnote references are <sup>) wins over these: turndown tries the last rule
     // added first.
     //
-    // Highlight, subscript, superscript and underline have no Markdown syntax, and without a rule
+    // Highlight, subscript, superscript, underline and keyboard input have no Markdown syntax, and without a rule
     // turndown keeps only their text ("H<sub>2</sub>O" saved as "H2O"). They keep their tag, and a
     // coloured highlight its colour; what is inside still becomes Markdown.
     add('inscriptInlineFormat', {
@@ -520,6 +619,32 @@ export function applyInscriptEditorTurndownRules(turndownService) {
     add('inscriptAdmonition', {
         filter: node => node.nodeName === 'DIV' && node.classList.contains('admonition'),
         replacement: rawBlock,
+    });
+
+    // A disclosure, written as GitHub reads one: the opening tag and the summary as HTML on their own
+    // lines, then a blank line, so the body is Markdown again, and the closing tag after another.
+    // The summary is written by the disclosure, not by the walk through its children.
+    add('inscriptDetailsSummary', {
+        filter: node => isOwnSummary(node),
+        replacement: () => '',
+    });
+    add('inscriptDetails', {
+        filter: 'details',
+        replacement: (content, node) => {
+            const summary = summaryChild(node);
+            const open = node.hasAttribute('open') ? ' open' : '';
+            const head = `<details${open}>\n${summary ? serializeHtml(summary, false, true) : '<summary></summary>'}`;
+            // Without the blank lines at its edges (one a list leaves holds only its indent).
+            const body = content.replace(/^(?:[ \t]*\n)+|(?:\n[ \t]*)+$/g, '');
+            return body ? `\n\n${head}\n\n${body}\n\n</details>\n\n` : `\n\n${head}\n\n</details>\n\n`;
+        },
+    });
+
+    // Inline code holding a key: Markdown code cannot hold a tag (it would be written as its text),
+    // so the code is kept as HTML.
+    add('inscriptCodeWithKey', {
+        filter: node => node.nodeName === 'CODE' && node.parentNode?.nodeName !== 'PRE' && !!node.querySelector('kbd'),
+        replacement: (content, node) => serializeHtml(node, true, true),
     });
 
     add('inscriptDefinitionList', {
@@ -630,8 +755,20 @@ export function applyInscriptEditorTurndownRules(turndownService) {
 
     // Text: the escapes turndown leaves out (see EXTRA_ESCAPES). Only a real TurndownService
     // has an escape to extend.
-    if (typeof turndownService.escape === 'function') {
-        turndownService.escape = escapeWith(turndownService.escape.bind(turndownService));
+    if (firstTime && typeof turndownService.escape === 'function') {
+        turndownService.escape = escapeWith(turndownService.escape.bind(turndownService), afterInline);
+    }
+    if (firstTime && turndownService.rules && typeof turndownService.rules.forNode === 'function') {
+        turndownService.rules.forNode = marksLineContinuation(turndownService.rules.forNode.bind(turndownService.rules), afterInline);
+    }
+    // Each conversion starts with no mark (one an earlier conversion left, cut short, say, is not
+    // for this one's text).
+    if (firstTime && typeof turndownService.turndown === 'function') {
+        const convert = turndownService.turndown.bind(turndownService);
+        turndownService.turndown = input => {
+            afterInline.text = null;
+            return convert(input);
+        };
     }
 
     // Blank nodes. Turndown copies options.blankReplacement into its rule set when the service is
@@ -655,7 +792,8 @@ export function applyInscriptEditorTurndownRules(turndownService) {
                 const rule = ruleFor(node, options);
                 if (rule) return rule.replacement(content, node, options);
             }
-            if (node.nodeName === 'P' && isTopLevel(node) && nextMeaningfulSibling(node)) return '\n\n<p></p>\n\n';
+            // In a disclosure's body also the last (a reader sees the space it leaves).
+            if (node.nodeName === 'P' && isTopLevel(node) && (nextMeaningfulSibling(node) || node.parentNode?.nodeName === 'DETAILS')) return '\n\n<p></p>\n\n';
             return fallback.call(this, content, node, options);
         };
         if (turndownService.options) turndownService.options.blankReplacement = blankRule.replacement;

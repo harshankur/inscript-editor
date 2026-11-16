@@ -4,6 +4,7 @@ import { useInscriptT } from '../hooks/useInscriptT.js';
 import { GripVertical, X, Plus, Check, SlidersHorizontal } from 'lucide-react';
 import { TOOL_REGISTRY, DIVIDER, TOOLBAR_TOOL_IDS, BUBBLE_ALLOWED_TOOL_IDS, sanitizeToolConfig } from '../toolbar/toolRegistry.js';
 import { TOOLBAR_PRESETS, BUBBLE_PRESETS, PRESET_LABELS, DEFAULT_TOOLBAR_CONFIG, DEFAULT_BUBBLE_CONFIG } from '../toolbar/presets.js';
+import { slotsWithoutStrayDividers } from '../toolbar/slotsWithoutStrayDividers.js';
 
 /** What Tab can reach inside the drawer. */
 const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -33,6 +34,8 @@ export const ToolbarCustomizer = ({
     container = null,
     // Where focus goes back to when the drawer closes (the button that opened it).
     returnFocusRef = null,
+    // Tool ids this editor cannot show (a feature the host turned off): marked, and not offered.
+    unavailableTools = null,
 }) => {
     const { t } = useInscriptT();
     const [activeTab, setActiveTab] = useState('toolbar'); // 'toolbar' | 'bubble'
@@ -41,37 +44,46 @@ export const ToolbarCustomizer = ({
     const toolLabel = (id) => (TOOL_REGISTRY[id]?.labelKey ? t(TOOL_REGISTRY[id].labelKey, TOOL_REGISTRY[id].label) : (TOOL_REGISTRY[id]?.label ?? id));
     const presetLabel = (key) => (toolbarPresetLabels?.[key] ?? (PRESET_LABELS[key] ? t(`toolbarPreset.${key}`, PRESET_LABELS[key]) : key));
 
+    // Tools this editor cannot show (a feature the host turned off) are not offered: not to add, and
+    // not in a preset or the default layout (left out, with the dividers that leaves stranded, as on
+    // the toolbar). One already in the host's layout stays there, marked as not available here: a
+    // layout shared with an editor that has it keeps it on save, and every entry is seen where it is
+    // (dragging and removing included).
+    const hidden = useMemo(() => new Set(unavailableTools ?? []), [unavailableTools]);
+    const withoutHidden = useCallback(config => (hidden.size ? slotsWithoutStrayDividers(config, id => !hidden.has(id)) : config), [hidden]);
+    const presetsWithoutHidden = useCallback(presets => Object.fromEntries(Object.entries(presets).map(([k, v]) => [k, withoutHidden(v)])), [withoutHidden]);
+
     // Effective presets: built-ins, optionally replaced/merged with the
     // consumer-supplied ones (each validated for its surface).
     const effToolbarPresets = useMemo(() => {
-        if (!toolbarPresets) return TOOLBAR_PRESETS;
+        if (!toolbarPresets) return presetsWithoutHidden(TOOLBAR_PRESETS);
         const clean = Object.fromEntries(Object.entries(toolbarPresets).map(([k, v]) => [k, sanitizeToolConfig(v, 'toolbar')]));
-        return presetsMode === 'replace' ? clean : { ...TOOLBAR_PRESETS, ...clean };
-    }, [toolbarPresets, presetsMode]);
+        return presetsWithoutHidden(presetsMode === 'replace' ? clean : { ...TOOLBAR_PRESETS, ...clean });
+    }, [toolbarPresets, presetsMode, presetsWithoutHidden]);
 
     const effBubblePresets = useMemo(() => {
-        if (!bubbleMenuPresets) return BUBBLE_PRESETS;
+        if (!bubbleMenuPresets) return presetsWithoutHidden(BUBBLE_PRESETS);
         const clean = Object.fromEntries(Object.entries(bubbleMenuPresets).map(([k, v]) => [k, sanitizeToolConfig(v, 'bubble')]));
-        return presetsMode === 'replace' ? clean : { ...BUBBLE_PRESETS, ...clean };
-    }, [bubbleMenuPresets, presetsMode]);
+        return presetsWithoutHidden(presetsMode === 'replace' ? clean : { ...BUBBLE_PRESETS, ...clean });
+    }, [bubbleMenuPresets, presetsMode, presetsWithoutHidden]);
 
     // Local state for main toolbar
-    const initialToolbarConfig = currentConfig ?? DEFAULT_TOOLBAR_CONFIG;
+    const initialToolbarConfig = currentConfig ?? withoutHidden(DEFAULT_TOOLBAR_CONFIG);
     const [toolbarConfig, setToolbarConfig] = useState(initialToolbarConfig);
 
     // Local state for selection bubble menu
-    const initialBubbleConfig = currentBubbleConfig ?? DEFAULT_BUBBLE_CONFIG;
+    const initialBubbleConfig = currentBubbleConfig ?? withoutHidden(DEFAULT_BUBBLE_CONFIG);
     const [bubbleConfig, setBubbleConfig] = useState(initialBubbleConfig);
 
     // Track active presets per tab (matched against the effective set)
-    const [activeToolbarPreset, setActiveToolbarPreset] = useState(
+    const [activeToolbarPreset, setActiveToolbarPreset] = useState(() =>
         Object.keys(effToolbarPresets).find(k =>
-            JSON.stringify(effToolbarPresets[k]) === JSON.stringify(initialToolbarConfig)
+            JSON.stringify(effToolbarPresets[k]) === JSON.stringify(withoutHidden(initialToolbarConfig))
         ) ?? null
     );
-    const [activeBubblePreset, setActiveBubblePreset] = useState(
+    const [activeBubblePreset, setActiveBubblePreset] = useState(() =>
         Object.keys(effBubblePresets).find(k =>
-            JSON.stringify(effBubblePresets[k]) === JSON.stringify(initialBubbleConfig)
+            JSON.stringify(effBubblePresets[k]) === JSON.stringify(withoutHidden(initialBubbleConfig))
         ) ?? null
     );
 
@@ -118,9 +130,11 @@ export const ToolbarCustomizer = ({
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
         const active = drawer.ownerDocument.activeElement;
-        if (!drawer.contains(active)) { e.preventDefault(); (e.shiftKey ? last : first).focus(); }
-        else if (e.shiftKey && active === first) { e.preventDefault(); last.focus(); }
-        else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+        // Moving focus never scrolls the host (a contained drawer's host may not be meant to scroll).
+        const focus = el => el.focus({ preventScroll: true });
+        if (!drawer.contains(active)) { e.preventDefault(); focus(e.shiftKey ? last : first); }
+        else if (e.shiftKey && active === first) { e.preventDefault(); focus(last); }
+        else if (!e.shiftKey && active === last) { e.preventDefault(); focus(first); }
     }, []);
 
     // Focus goes back when the drawer goes away (not when a host keeps it open after onClose), and
@@ -202,7 +216,10 @@ export const ToolbarCustomizer = ({
     const getActivePreset = () => (activeTab === 'toolbar' ? activeToolbarPreset : activeBubblePreset);
 
     // ── Preset selection ──────────────────────────────────────────────────────
+    // The preset in use is the one the layout shows (tools this editor cannot show aside): choosing it
+    // again changes nothing, so a layout holding such a tool keeps it.
     const applyPreset = useCallback((key) => {
+        if (key === (activeTab === 'toolbar' ? activeToolbarPreset : activeBubblePreset)) return;
         if (activeTab === 'toolbar') {
             setToolbarConfig([...effToolbarPresets[key]]);
             setActiveToolbarPreset(key);
@@ -210,7 +227,7 @@ export const ToolbarCustomizer = ({
             setBubbleConfig([...effBubblePresets[key]]);
             setActiveBubblePreset(key);
         }
-    }, [activeTab, effToolbarPresets, effBubblePresets]);
+    }, [activeTab, effToolbarPresets, effBubblePresets, activeToolbarPreset, activeBubblePreset]);
 
     // ── Config mutations ──────────────────────────────────────────────────────
     const removeItem = useCallback((idx) => {
@@ -261,14 +278,17 @@ export const ToolbarCustomizer = ({
         ? TOOLBAR_TOOL_IDS
         : BUBBLE_ALLOWED_TOOL_IDS;
 
-    const availableTools = totalAllowedTools.filter(id => !usedToolIds.has(id));
+    // Tools this editor cannot show (a feature the host turned off) are not offered.
+    const availableTools = totalAllowedTools.filter(id => !usedToolIds.has(id) && !hidden.has(id));
 
     const tree = (
         // Backdrop container — fixed (viewport) by default, absolute when contained.
         // Once it is sliding out it is out of the way: no clicks caught, nothing announced (a host may
         // keep it mounted after onClose).
         <div
-            className={`${container ? 'absolute' : 'fixed'} inset-0 z-[80] flex justify-end ${isClosing ? 'pointer-events-none' : ''}`}
+            // overflow-hidden: the drawer, slid out of view on its way in and out, is clipped by its own
+            // backdrop and never gives a host container anything to scroll.
+            className={`${container ? 'absolute' : 'fixed'} inset-0 z-[80] flex justify-end overflow-hidden ${isClosing ? 'pointer-events-none' : ''}`}
             aria-hidden={isClosing || undefined}
             onClick={handleClose}
         >
@@ -342,6 +362,7 @@ export const ToolbarCustomizer = ({
                                 <button type="button"
                                     key={key}
                                     onClick={() => applyPreset(key)}
+                                    aria-pressed={getActivePreset() === key}
                                     className={`px-3 py-2 rounded-lg text-sm font-medium text-left transition-all border
                                         ${getActivePreset() === key
                                             ? 'bg-[var(--inscript-color-text)] text-[var(--inscript-color-surface)] border-transparent'
@@ -364,6 +385,7 @@ export const ToolbarCustomizer = ({
                         <div className="flex flex-col gap-1">
                             {activeConfig.map((item, idx) => {
                                 const isDivider = item === DIVIDER;
+                                const unavailable = !isDivider && hidden.has(item);
                                 const meta = isDivider ? null : TOOL_REGISTRY[item];
                                 const Icon = meta?.icon ?? null;
                                 const isDropTarget = dragOverIndex === idx;
@@ -378,7 +400,7 @@ export const ToolbarCustomizer = ({
                                         onDragEnd={handleDragEnd}
                                         className={`flex items-center gap-2 rounded-lg px-2 py-1.5 cursor-grab active:cursor-grabbing transition-all
                                             ${isDropTarget ? 'bg-[var(--inscript-color-active)] ring-2 ring-[var(--inscript-color-border-strong)]' : 'hover:bg-[var(--inscript-color-hover)]'}
-                                            ${isDivider ? 'opacity-60' : ''}
+                                            ${isDivider || unavailable ? 'opacity-60' : ''}
                                         `}
                                     >
                                         <GripVertical size={14} className="text-[var(--inscript-color-muted)] shrink-0" />
@@ -391,7 +413,12 @@ export const ToolbarCustomizer = ({
                                         ) : (
                                             <>
                                                 {Icon && <Icon size={14} className="text-[var(--inscript-color-muted)] shrink-0" />}
-                                                <span className="flex-1 text-sm text-[var(--inscript-color-text)]">{toolLabel(item)}</span>
+                                                <span className="flex-1 text-sm text-[var(--inscript-color-text)]">
+                                                    {toolLabel(item)}
+                                                    {unavailable && (
+                                                        <span className="block text-xs text-[var(--inscript-color-muted)]">{t('customizerUnavailable', 'Not available in this editor')}</span>
+                                                    )}
+                                                </span>
                                             </>
                                         )}
                                         <button type="button"

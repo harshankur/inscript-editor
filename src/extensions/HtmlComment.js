@@ -1,26 +1,7 @@
 import { Node } from '@tiptap/core';
-import { DOMParser as ProseMirrorDOMParser } from '@tiptap/pm/model';
-import { normalizeForParse } from '../utils/parseDom.js';
+import { installSchemaFittingParser } from './SchemaFittingParser.js';
 import { editorT, onEditorLanguageChanged } from '../utils/editorT.js';
-
-/** Collapse runs of whitespace so a multi-line comment reads as one line in its chip. */
-const collapse = text => text.replace(/\s+/g, ' ');
-
-/**
- * ProseMirror's DOMParser, reading the DOM as normalizeForParse reshapes it: real comment nodes
- * as source-comment nodes (ProseMirror's parser only ever visits elements and text, so a real
- * comment, what marked, markdown-it and most HTML carry, vanished on load), and a Markdown
- * renderer's images and list items fitted to the schema.
- */
-class CommentAwareDOMParser extends ProseMirrorDOMParser {
-    parse(dom, options) {
-        return super.parse(normalizeForParse(dom), options);
-    }
-
-    parseSlice(dom, options) {
-        return super.parseSlice(normalizeForParse(dom), options);
-    }
-}
+import { runSpacesTogether } from '../utils/spaces.js';
 
 /**
  * A source comment (`<!-- ... -->`) from the document: the author's hidden note. It is kept verbatim so a
@@ -59,13 +40,10 @@ export const HtmlComment = Node.create({
         return ['span', HTMLAttributes];
     },
 
-    // Every parse (initial content, setContent, insertContent, paste) goes through the parser
-    // ProseMirror caches on the schema, and beforeCreate runs after the schema exists but before
-    // the initial content is parsed. Installing the comment-aware parser there covers them all.
+    // The parser that reads a real comment as this node (the editor's own extensions always have it;
+    // this node used on its own brings it too).
     onBeforeCreate() {
-        const schema = this.editor?.schema;
-        if (!schema || schema.cached.domParser instanceof CommentAwareDOMParser) return;
-        schema.cached.domParser = new CommentAwareDOMParser(schema, ProseMirrorDOMParser.schemaRules(schema));
+        installSchemaFittingParser(this.editor);
     },
 
     addNodeView() {
@@ -79,7 +57,7 @@ export const HtmlComment = Node.create({
             const label = () => dom.setAttribute('aria-label', editorT('htmlComment', 'Hidden comment', {}, editor));
             label();
             dom.title = text.trim();
-            dom.textContent = `<!--${collapse(text)}-->`;
+            dom.textContent = `<!--${runSpacesTogether(text)}-->`;
             // The label follows a language switch, as the rest of the editor does.
             const stopListening = onEditorLanguageChanged(editor, label);
             return { dom, destroy: stopListening };

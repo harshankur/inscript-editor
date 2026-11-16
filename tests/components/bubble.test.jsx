@@ -383,4 +383,23 @@ describe('TextBubbleMenu does not open over node selections that have their own 
         render(<TextBubbleMenu editor={editor} />);
         expect(lastShouldShow.fn({ editor })).toBe(false);
     });
+
+    it('lights Keyboard Input for a selection holding a key among text, which a click turns back', () => {
+        const editor = mount('<p>press <kbd>Ctrl</kbd> now</p>');
+        act(() => { editor.commands.setTextSelection({ from: 1, to: editor.state.doc.firstChild.nodeSize - 1 }); });
+        render(<TextBubbleMenu editor={editor} bubbleMenuConfig={['kbd']} />);
+        expect(screen.getByTitle('Keyboard Input').getAttribute('aria-pressed')).toBe('true');
+        act(() => { fireEvent.click(screen.getByTitle('Keyboard Input')); });
+        expect(editor.getHTML()).toBe('<p>press Ctrl now</p>');
+    });
+
+    it('opens over a selected key, which is text, so its Keyboard Input button can turn it back', () => {
+        const editor = mount('<p>a <kbd>Ctrl</kbd> b</p>');
+        act(() => { editor.commands.setNodeSelection(nodePos(editor, 'keyboardInput')); });
+        render(<TextBubbleMenu editor={editor} bubbleMenuConfig={['kbd']} />);
+        expect(lastShouldShow.fn({ editor })).toBe(true);
+        const button = screen.getByTitle('Keyboard Input');
+        expect(button.getAttribute('aria-pressed')).toBe('true');
+        expect(button.disabled).toBe(false);
+    });
 });

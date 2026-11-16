@@ -197,6 +197,7 @@
   "customizerCurrentSelectionMenu": "Current selection menu",
   "customizerDivider": "Divider",
   "customizerRemove": "Remove",
+  "customizerUnavailable": "Not available in this editor",
   "customizerAddDivider": "Add divider",
   "customizerAvailable": "Available to add",
   "customizerSave": "Save layout",
@@ -220,5 +221,11 @@
   "clearColumnAlign": "Clear column alignment",
   "fontSizeValue": "Font Size {{size}}",
   "editLink": "Edit Link",
-  "colorValue": "{{name}}: {{color}}"
+  "colorValue": "{{name}}: {{color}}",
+  "keyboardInput": "Keyboard Input",
+  "details": "Disclosure",
+  "detailsSubtitle": "A summary that shows or hides what follows",
+  "detailsShow": "Show content",
+  "detailsHide": "Hide content",
+  "detailsSummaryDefault": "Details"
 }

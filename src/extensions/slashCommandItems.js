@@ -1,5 +1,6 @@
 import { getHostHandlers } from './HostBridge.js';
 import { editorT } from '../utils/editorT.js';
+import { detailsWrapRange } from './Details.js';
 
 // Read a host handler live: <InscriptEditor>'s prop or the editorOptions one through the editor's
 // host bridge (options.hostHandlersRef is refreshed every render by useInscriptEditor), falling
@@ -146,6 +147,21 @@ export const getDefaultSlashItems = (t, options = {}) => [
             group: 'text',
             command: ({ editor, range }) => {
                 editor.chain().focus().deleteRange(range).setAdmonition('caution').run();
+            }
+        }
+    ] : []),
+    ...(options.details !== false ? [
+        {
+            id: 'details',
+            titleKey: 'details', titleDefault: 'Disclosure',
+            subtitleKey: 'detailsSubtitle', subtitleDefault: 'A summary that shows or hides what follows',
+            keywords: ['details', 'disclosure', 'summary', 'collapse', 'expand', 'toggle', 'spoiler'],
+            group: 'text',
+            // Offered only where the line itself can be wrapped (not a list item's first paragraph):
+            // setDetails would wrap the whole list there, not what typing in one item asks for.
+            isAvailable: ({ editor }) => !!detailsWrapRange(editor.state, false),
+            command: ({ editor, range }) => {
+                editor.chain().focus().deleteRange(range).setDetails().run();
             }
         }
     ] : []),

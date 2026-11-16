@@ -16,11 +16,12 @@ import {
     Link, Link2, MessageSquareQuote,
     List, ListOrdered, SquareCheck, BookType, BookOpen,
     AlignLeft,
-    Code, SquareCode, Quote, Minus, RemoveFormatting,
+    Code, Keyboard, SquareCode, Quote, Minus, RemoveFormatting, ListCollapse,
     Info,
     Sigma, Workflow,
     Image as ImageIcon, SquarePlay as YoutubeIcon, Table as TableIcon, Tag,
 } from 'lucide-react';
+import { ABBREVIATION_MARK, DETAILS_NODE, KEYBOARD_INPUT_NODE, NODE } from '../constants.js';
 
 /** Sentinel value used to represent a divider in a serialized config. */
 export const DIVIDER = '|';
@@ -28,6 +29,9 @@ export const DIVIDER = '|';
 /**
  * Full registry of all available toolbar tools.
  * id must be unique and stable — it is used in serialized configs.
+ * `requires`: the node or mark a tool works on, for a feature the host can turn off (editorOptions);
+ * without it in the editor, the tool is left out. Not the wikilink tool: a host's onAddWikilink
+ * handler serves it without the Wikilink extension.
  */
 export const TOOL_REGISTRY = {
     // History
@@ -45,9 +49,10 @@ export const TOOL_REGISTRY = {
     underline:   { id: 'underline',   label: 'Underline', labelKey: 'underline',         icon: UnderlineIcon,    group: 'formatting' },
     strike:      { id: 'strike',      label: 'Strikethrough', labelKey: 'strike',     icon: Strikethrough,    group: 'formatting' },
     inlineCode:  { id: 'inlineCode',  label: 'Inline Code', labelKey: 'inlineCode',       icon: Code,             group: 'formatting' },
+    kbd:         { id: 'kbd',         label: 'Keyboard Input', labelKey: 'keyboardInput', icon: Keyboard,         group: 'formatting', requires: { node: KEYBOARD_INPUT_NODE } },
     sub:         { id: 'sub',         label: 'Subscript', labelKey: 'subscript',         icon: SubscriptIcon,    group: 'formatting' },
     sup:         { id: 'sup',         label: 'Superscript', labelKey: 'superscript',       icon: SuperscriptIcon,  group: 'formatting' },
-    abbreviation:{ id: 'abbreviation',label: 'Abbreviation', labelKey: 'abbreviation',      icon: TextSelect,       group: 'formatting' },
+    abbreviation:{ id: 'abbreviation',label: 'Abbreviation', labelKey: 'abbreviation',      icon: TextSelect,       group: 'formatting', requires: { mark: ABBREVIATION_MARK } },
     clearFormat: { id: 'clearFormat', label: 'Clear Formatting', labelKey: 'clearFormat',  icon: RemoveFormatting, group: 'formatting' },
 
     // Styling
@@ -58,14 +63,14 @@ export const TOOL_REGISTRY = {
     // Links & references
     link:        { id: 'link',        label: 'Link', labelKey: 'insertLink',              icon: Link,             group: 'links'      },
     wikilink:    { id: 'wikilink',    label: 'Wikilink', labelKey: 'insertWikilink',          icon: Link2,            group: 'links'      },
-    footnote:    { id: 'footnote',    label: 'Footnote', labelKey: 'footnote',          icon: MessageSquareQuote, group: 'links'    },
-    citation:    { id: 'citation',    label: 'Citation', labelKey: 'citation',          icon: BookOpen,         group: 'links'      },
+    footnote:    { id: 'footnote',    label: 'Footnote', labelKey: 'footnote',          icon: MessageSquareQuote, group: 'links', requires: { node: NODE.FOOTNOTE_REFERENCE } },
+    citation:    { id: 'citation',    label: 'Citation', labelKey: 'citation',          icon: BookOpen,         group: 'links', requires: { node: NODE.CITATION } },
 
     // Lists
     bullet:      { id: 'bullet',      label: 'Bullet List', labelKey: 'bulletList',       icon: List,             group: 'lists'      },
     ordered:     { id: 'ordered',     label: 'Numbered List', labelKey: 'orderedList',     icon: ListOrdered,      group: 'lists'      },
-    task:        { id: 'task',        label: 'Task List', labelKey: 'taskList',         icon: SquareCheck,      group: 'lists'      },
-    definition:  { id: 'definition',  label: 'Definition List', labelKey: 'definitionList',   icon: BookType,         group: 'lists'      },
+    task:        { id: 'task',        label: 'Task List', labelKey: 'taskList',         icon: SquareCheck,      group: 'lists', requires: { node: NODE.TASK_LIST } },
+    definition:  { id: 'definition',  label: 'Definition List', labelKey: 'definitionList',   icon: BookType,         group: 'lists', requires: { node: NODE.DEFINITION_LIST } },
 
     // Alignment (dropdown)
     align:       { id: 'align',       label: 'Text Alignment', labelKey: 'textAlign',    icon: AlignLeft,        group: 'alignment'  },
@@ -73,12 +78,13 @@ export const TOOL_REGISTRY = {
     // Block types
     code:        { id: 'code',        label: 'Code Block', labelKey: 'codeBlock',        icon: SquareCode,       group: 'blocks'     },
     quote:       { id: 'quote',       label: 'Quote', labelKey: 'quote',             icon: Quote,            group: 'blocks'     },
-    admonitions: { id: 'admonitions', label: 'Admonitions', labelKey: 'admonitions',       icon: Info,             group: 'blocks'     },
+    admonitions: { id: 'admonitions', label: 'Admonitions', labelKey: 'admonitions',       icon: Info,             group: 'blocks', requires: { node: NODE.ADMONITION } },
+    details:     { id: 'details',     label: 'Disclosure', labelKey: 'details',           icon: ListCollapse,     group: 'blocks', requires: { node: DETAILS_NODE } },
     hr:          { id: 'hr',          label: 'Divider', labelKey: 'horizontalRule',           icon: Minus,            group: 'blocks'     },
 
     // Advanced
-    math:        { id: 'math',        label: 'Math Block', labelKey: 'slash.math',        icon: Sigma,            group: 'advanced'   },
-    mermaid:     { id: 'mermaid',     label: 'Mermaid Diagram', labelKey: 'slash.mermaid',   icon: Workflow,         group: 'advanced'   },
+    math:        { id: 'math',        label: 'Math Block', labelKey: 'slash.math',        icon: Sigma,            group: 'advanced', requires: { node: NODE.MATH_BLOCK } },
+    mermaid:     { id: 'mermaid',     label: 'Mermaid Diagram', labelKey: 'slash.mermaid',   icon: Workflow,         group: 'advanced', requires: { node: NODE.MERMAID } },
 
     // Media & meta
     image:       { id: 'image',       label: 'Image', labelKey: 'insertImage',             icon: ImageIcon,        group: 'media'      },
@@ -99,7 +105,7 @@ export const TOOLBAR_DIVIDER = DIVIDER;
  * (headings, lists, tables, image, …) have no meaning mid-selection.
  */
 const BUBBLE_ALLOWED = new Set([
-    'bold', 'italic', 'underline', 'strike', 'inlineCode', 'sub', 'sup', 'abbreviation',
+    'bold', 'italic', 'underline', 'strike', 'inlineCode', 'kbd', 'sub', 'sup', 'abbreviation',
     'fontSize', 'highlight', 'color', 'link', 'quote', 'clearFormat',
 ]);
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, Fragment } from 'rea
 import { useInscriptT } from '../hooks/useInscriptT.js';
 import {
     AlignCenter, AlignJustify, AlignLeft, AlignRight,
-    Bold, ChevronsRight, Code, SquareCode, Minus, RemoveFormatting, Heading1, Heading2, Heading3,
+    Bold, ChevronsRight, Code, Keyboard, ListCollapse, SquareCode, Minus, RemoveFormatting, Heading1, Heading2, Heading3,
     Image as ImageIcon, Italic, List, ListOrdered,
     Palette, Quote, Redo, Strikethrough,
     Subscript as SubscriptIcon, Superscript as SuperscriptIcon,
@@ -18,14 +18,17 @@ import { ToolbarCustomizer } from './ToolbarCustomizer.jsx';
 import { ColorSelector } from './ColorSelector.jsx';
 import { HighlightSelector } from './HighlightSelector.jsx';
 import { useEditorTransaction } from '../hooks/useEditorTransaction.js';
-import { TEXT_COLOR_PRESETS } from '../constants.js';
+import { DETAILS_NODE, TEXT_COLOR_PRESETS } from '../constants.js';
 import { FontSizeSelector } from './FontSizeSelector.jsx';
 import { LinkSelector } from './LinkSelector.jsx';
 import { useInscriptEditorTranslations } from '../hooks/useInscriptEditorTranslations.js';
 import { DIVIDER, sanitizeToolConfig } from '../toolbar/toolRegistry.js';
+import { toolIsAvailable, unavailableToolIds, visibleSlots } from '../toolbar/toolAvailability.js';
 import { TOOLBAR_PRESETS } from '../toolbar/presets.js';
 import { abbreviationTool } from '../toolbar/abbreviationTool.js';
-import { isActiveCached } from '../utils/editorView.js';
+import { keyboardInputTool } from '../toolbar/keyboardInputTool.js';
+import { detailsActive } from '../extensions/Details.js';
+import { cachedPerState, isActiveCached } from '../utils/editorView.js';
 import { selectionTextAlign } from '../utils/selectionTextAlign.js';
 
 // Width of a ToolbarDropdown (primary btn + divider + chevron)
@@ -35,13 +38,16 @@ const DROPDOWN_WIDTH = TOOLBAR_SIZES.BUTTON + 14 + 1;
  * Builds the full map of tool ID → tool slot descriptor.
  * This needs the editor instance + callbacks, so it's a function not a constant.
  */
-function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t, showsAlignment = true }) {
+function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t, shownTools }) {
     // In a code block marks and inline nodes cannot apply: those tools are off there (a mark set
     // for typing would otherwise light up its button without ever applying).
     const inCode = !!editor.state.selection.$from.parent.type.spec.code;
     const mark = (name) => ({ active: !inCode && isActiveCached(editor, name), disabled: inCode });
     // Read only when the toolbar shows the alignment control: it walks the selection.
-    const textAlign = showsAlignment ? selectionTextAlign(editor) : null;
+    const textAlign = shownTools.has('align') ? selectionTextAlign(editor) : null;
+    // A tool's state, read only when it is on the toolbar and its feature is in the editor (its
+    // command and node exist only then): off otherwise.
+    const ifShown = (id, state) => (shownTools.has(id) && toolIsAvailable(editor, id) ? state() : { active: false, disabled: true });
     return {
         undo: { id: 'undo', icon: Undo, action: onHistoryUndo, disabled: !canUndo, title: t('undo', 'Undo') },
         redo: { id: 'redo', icon: Redo, action: onHistoryRedo, disabled: !canRedo, title: t('redo', 'Redo') },
@@ -57,6 +63,9 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
         underline:   { id: 'underline',   icon: UnderlineIcon,    action: () => editor.chain().focus().toggleUnderline().run(),    ...mark('underline'),    title: t('underline', 'Underline') },
         strike:      { id: 'strike',      icon: Strikethrough,    action: () => editor.chain().focus().toggleStrike().run(),       ...mark('strike'),       title: t('strike', 'Strikethrough') },
         inlineCode:  { id: 'inlineCode',  icon: Code,             action: () => editor.chain().focus().toggleCode().run(),         ...mark('code'),         title: t('inlineCode', 'Inline Code') },
+        // Turns the selected text into a key, or selected keys back into text (left out of the
+        // toolbar when the host turned keyboard input off, see configToSlots).
+        kbd:         { id: 'kbd',         icon: Keyboard,         ...ifShown('kbd', () => keyboardInputTool(editor)), title: t('keyboardInput', 'Keyboard Input') },
         sub:         { id: 'sub',         icon: SubscriptIcon,    action: () => editor.chain().focus().toggleSubscript().run(),    ...mark('subscript'),    title: t('subscript', 'Subscript') },
         sup:         { id: 'sup',         icon: SuperscriptIcon,  action: () => editor.chain().focus().toggleSuperscript().run(),  ...mark('superscript'),  title: t('superscript', 'Superscript') },
         abbreviation:{ id: 'abbreviation',icon: TextSelect,       ...abbreviationTool(editor, t, onAddAbbreviation), title: t('abbreviation', 'Abbreviation') },
@@ -152,6 +161,10 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
         },
 
         // Blocks
+        // Wraps the selected blocks (in a list, the whole list) or unwraps the disclosure around them:
+        // pressed in one, unless a click would fold blocks of its body into one of their own. Left out
+        // of the toolbar when the host turned disclosures off (see configToSlots).
+        details: { id: 'details', icon: ListCollapse, action: () => editor.chain().focus().toggleDetails().run(), ...ifShown('details', () => ({ active: cachedPerState(editor.state, 'detailsActive', () => detailsActive(editor.state)), disabled: !cachedPerState(editor.state, 'canToggleDetails', () => editor.can().toggleDetails()) })), title: t('details', 'Disclosure') },
         code:  { id: 'code',  icon: SquareCode, action: () => editor.chain().focus().toggleCodeBlock().run(),  active: isActiveCached(editor, 'codeBlock'),  title: t('codeBlock', 'Code Block') },
         quote: { id: 'quote', icon: Quote,      action: () => editor.chain().focus().toggleBlockquote().run(), active: isActiveCached(editor, 'blockquote'), title: t('quote', 'Quote') },
         hr:    { id: 'hr',    icon: Minus,      action: () => editor.chain().focus().insertDivider().run(), title: t('horizontalRule', 'Divider') },
@@ -204,13 +217,9 @@ function buildToolMap(editor, { onHistoryUndo, onHistoryRedo, canUndo, canRedo, 
  * Converts a serializable config array (IDs + '|' dividers) into renderable tool slots.
  * Unknown IDs are silently skipped.
  */
-function configToSlots(config, toolMap) {
-    return config.flatMap((entry, idx) => {
-        if (entry === DIVIDER) return [{ type: 'divider', _key: `div-${idx}` }];
-        const tool = toolMap[entry];
-        if (!tool) return [];
-        return [tool];
-    });
+function configToSlots(config, toolMap, editor) {
+    // A tool the editor cannot show (its feature turned off by the host) is left out, with its divider.
+    return visibleSlots(config, toolMap, editor).map((entry, idx) => (entry === DIVIDER ? { type: 'divider', _key: `div-${idx}` } : toolMap[entry]));
 }
 
 /**
@@ -243,6 +252,8 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
         return () => document.removeEventListener('keydown', onKeyDown);
     }, [showMore]);
     const [customizerOpen, setCustomizerOpen] = useState(false);
+    // Tools whose feature the host turned off: left out of the toolbar, and not offered to add.
+    const unavailableTools = useMemo(() => unavailableToolIds(editor), [editor]);
     // Focus goes back to the Customize button when its dialog closes.
     const customizeButtonRef = useRef(null);
 
@@ -264,9 +275,10 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
             onHistoryUndo, onHistoryRedo, canUndo, canRedo,
             onShowMetadataModal, hasMetadata, showMetadataActive,
             onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t,
-            showsAlignment: activeConfig.includes('align'),
+            // What the toolbar shows: tools that read the whole selection are read only then.
+            shownTools: new Set(activeConfig),
         });
-        return configToSlots(activeConfig, toolMap);
+        return configToSlots(activeConfig, toolMap, editor);
     }, [editor, editorVersion, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, t, activeConfig]);
 
     // Mirror `tools` into a ref so the resize handler always reads the latest list.
@@ -407,7 +419,7 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
             {/* Toolbar customizer drawer — portal-like, rendered outside the toolbar div */}
             {customizerOpen && onToolbarConfigChange && (
                 <ToolbarCustomizer
-                    currentConfig={toolbarConfig ?? TOOLBAR_PRESETS.full}
+                    currentConfig={toolbarConfig}
                     onSave={(newConfig) => onToolbarConfigChange(newConfig)}
                     currentBubbleConfig={bubbleMenuConfig}
                     onSaveBubble={onBubbleMenuConfigChange}
@@ -418,6 +430,7 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
                     container={customizerContainer}
                     onClose={() => setCustomizerOpen(false)}
                     returnFocusRef={customizeButtonRef}
+                    unavailableTools={unavailableTools}
                 />
             )}
         </>

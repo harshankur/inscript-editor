@@ -1,6 +1,7 @@
 import { Extension } from '@tiptap/core';
 import Suggestion from '@tiptap/suggestion';
 import { slashItemText } from './slashCommandItems.js';
+import { DETAILS_SUMMARY_NODE } from '../constants.js';
 
 /**
  * The slash menu's state for one editor, kept in that editor's extension storage: the open
@@ -26,12 +27,13 @@ export function createSlashCommandStore() {
 
 /**
  * Where "/" opens the menu: an editable editor, outside code (a code block, inline code), where
- * a "/" is code and Enter must stay a line break.
+ * a "/" is code and Enter must stay a line break, and outside a disclosure's summary, a single
+ * line that holds none of the blocks the menu makes.
  */
 function allowSlashMenu({ editor, state, range }) {
     if (!editor.isEditable) return false;
     const $from = state.doc.resolve(range.from);
-    if ($from.parent.type.spec.code) return false;
+    if ($from.parent.type.spec.code || $from.parent.type.name === DETAILS_SUMMARY_NODE) return false;
     const codeMark = state.schema.marks.code;
     if (codeMark && ($from.marks().some(mark => mark.type === codeMark) || state.doc.rangeHasMark(range.from, range.to, codeMark))) return false;
     return true;

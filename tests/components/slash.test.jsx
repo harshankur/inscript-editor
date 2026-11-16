@@ -146,6 +146,17 @@ describe('slash menu', () => {
         expect(editor.state.doc.firstChild.textContent).toContain('a /');
     });
 
+    it('does not open in a disclosure\'s summary (one line, holding none of its blocks)', async () => {
+        const { container, editor } = await setup({}, {}, '<details open><summary>Sum</summary><p>Body</p></details>');
+        await act(async () => { editor.commands.setTextSelection(5); });
+        expect(editor.state.selection.$from.parent.type.name).toBe('detailsSummary');
+        await type(editor, ' /');
+        expect(menu(container)).toBeNull();
+        await act(async () => { editor.commands.setTextSelection(editor.state.doc.firstChild.nodeSize - 2); });
+        await type(editor, ' /');
+        expect(menu(container)).not.toBeNull();
+    });
+
     it('a read-only editor shows no menu', async () => {
         const { container, editor } = await setup({ isReadonly: true }, { isReadonly: true });
         await act(async () => { editor.view.dispatch(editor.state.tr.insertText('/')); });

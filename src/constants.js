@@ -40,3 +40,31 @@ export const BUBBLE_MENU_OFFSET = 8;
 /** The alignments a table column can carry (a cell's `text-align`; a Markdown `:---`, `:---:`, `---:`). */
 export const COLUMN_ALIGN = HORIZONTAL;
 export const COLUMN_ALIGNMENTS = Object.freeze(Object.values(COLUMN_ALIGN));
+
+/** The disclosure node, its summary, and the keyboard-input node (their names in the schema). */
+export const DETAILS_NODE = 'details';
+export const DETAILS_SUMMARY_NODE = 'detailsSummary';
+export const KEYBOARD_INPUT_NODE = 'keyboardInput';
+
+/**
+ * The names in the schema of the nodes and marks the toolbar and the parser ask about: those of
+ * features a host can turn off, and the blocks a list item cannot open with.
+ */
+export const NODE = Object.freeze({
+    TASK_LIST: 'taskList',
+    ADMONITION: 'admonition',
+    FOOTNOTE_REFERENCE: 'footnoteReference',
+    DEFINITION_LIST: 'definitionList',
+    MERMAID: 'mermaid',
+    MATH_BLOCK: 'mathBlock',
+    CITATION: 'citation',
+    IMAGE: 'image',
+    CODE_BLOCK: 'codeBlock',
+    BLOCKQUOTE: 'blockquote',
+    TABLE: 'table',
+    BULLET_LIST: 'bulletList',
+    ORDERED_LIST: 'orderedList',
+    HEADING: 'heading',
+    HORIZONTAL_RULE: 'horizontalRule',
+});
+export const ABBREVIATION_MARK = 'abbreviation';

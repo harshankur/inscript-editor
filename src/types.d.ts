@@ -64,6 +64,10 @@ export interface EditorBuildOptions {
     footnote?: boolean;
     definitionList?: boolean;
     abbreviation?: boolean;
+    /** Keyboard input, `<kbd>` (default on). Off, a `<kbd>` is plain text. */
+    keyboardInput?: boolean;
+    /** Disclosures, `<details><summary>…</summary>…</details>` (default on). */
+    details?: boolean;
     mermaid?: boolean;
     math?: boolean;
     citation?: boolean;
@@ -405,6 +409,11 @@ export interface ToolMeta {
     labelKey?: string;
     icon: React.ComponentType<{ size?: number }> | null;
     group: string;
+    /**
+     * The node or mark the tool works on, for a feature the host can turn off (`editorOptions`):
+     * without it in the editor, the tool is left out of the toolbar and the selection menu.
+     */
+    requires?: { node: string; mark?: never } | { mark: string; node?: never };
 }
 export interface ToolMetaWithSurfaces extends ToolMeta {
     surfaces: ToolSurface[];
@@ -419,6 +428,10 @@ export const TOOLBAR_TOOLS: ToolMetaWithSurfaces[];
 export const TOOL_GROUPS: Array<{ id: string; label: string }>;
 /** Validate a serialized tool config for a surface; drops invalid ids, never throws. */
 export function sanitizeToolConfig(config: unknown, surface?: ToolSurface): string[];
+/** Whether this editor can show the tool: false for one whose feature the host turned off (`TOOL_REGISTRY[id].requires`). */
+export function toolIsAvailable(editor: Editor | null | undefined, id: string): boolean;
+/** The tool ids this editor cannot show, for `ToolbarCustomizer`'s `unavailableTools`. */
+export function unavailableToolIds(editor: Editor | null | undefined): string[];
 export const TOOLBAR_PRESETS: Record<string, string[]>;
 export const BUBBLE_PRESETS: Record<string, string[]>;
 export const BUBBLE_MENU_PRESETS: Record<string, string[]>;
@@ -461,6 +474,27 @@ export function setColumnAlign(editor: Editor, align: ColumnAlign | null): boole
 
 declare module '@tiptap/core' {
     interface Commands<ReturnType> {
+        keyboardInput: {
+            /** Makes the selected text (within one block) a key. */
+            setKeyboardInput: () => ReturnType;
+            /** Turns the selected keys (a key selected, or those in a selected range) back into text, selected. */
+            unsetKeyboardInput: () => ReturnType;
+            /** Whichever of the two applies. */
+            toggleKeyboardInput: () => ReturnType;
+        };
+        details: {
+            /** Wraps the selected blocks in an open disclosure, its summary selected for typing. */
+            setDetails: () => ReturnType;
+            /** Unwraps the disclosure around the selection: the summary becomes a paragraph. */
+            unsetDetails: () => ReturnType;
+            /**
+             * Unwraps the disclosure around the selection, or wraps the selected blocks in one: outside
+             * a disclosure, or within its body (a selection across blocks, or a selected block), nested.
+             */
+            toggleDetails: () => ReturnType;
+            /** Opens or closes the disclosure around the selection (`<details open>`). */
+            setDetailsOpen: (open: boolean) => ReturnType;
+        };
         inscriptTable: {
             /** Aligns the columns the selection covers: every cell of each, header included, and
              *  clears the alignment of the paragraphs inside them. null clears the column's; any
@@ -590,6 +624,11 @@ export interface ToolbarCustomizerProps {
     /** Where focus goes back to when the drawer closes (the button that opened it), unless the
      *  reader has already moved focus somewhere else. The drawer takes focus when it opens. */
     returnFocusRef?: { current: HTMLElement | null };
+    /**
+     * Tool ids this editor cannot show (a feature the host turned off): not offered to add, and
+     * marked as not available where the layout has them. `unavailableToolIds(editor)` gives them.
+     */
+    unavailableTools?: string[];
 }
 export const ToolbarCustomizer: (props: ToolbarCustomizerProps) => ReactNode;
 

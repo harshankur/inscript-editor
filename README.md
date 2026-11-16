@@ -8,7 +8,7 @@ A standalone, TipTap-based rich text editor for React. Extracted from [Inscript]
 
 ## Features
 
-- **Rich text editing** built on [TipTap v3](https://tiptap.dev) — bold/italic/underline/strike, headings, lists, blockquotes, code blocks, sub/superscript, text alignment, font size, text/highlight color, and links.
+- **Rich text editing** built on [TipTap v3](https://tiptap.dev): bold/italic/underline/strike, headings, lists, blockquotes, code blocks, sub/superscript, keyboard input (`<kbd>`), disclosures (`<details>` that open and close), text alignment, font size, text/highlight color, and links.
 - **Images** with inline resizing, alignment, and a media-library modal (bring your own upload/list backend).
 - **Tables** with per-cell/row/column controls, header row/column toggles, column alignment (a Markdown `---:` column), and placement on the page.
 - **YouTube embeds** by URL or search, with strict ID validation, a placeholder for legacy/corrupt content instead of a broken embed, and an optional consent placeholder that contacts YouTube only once the visitor agrees ([YouTube options](#youtube-options)).
@@ -211,18 +211,40 @@ What the rules do:
 | Emphasis inside a word or against punctuation | `*` delimiters, or the HTML tag where Markdown would not read them back (`un*believ*able`, `H<strong><sub>2</sub></strong>O`) |
 | Hard line breaks | Two spaces and a newline, or `<br>` where that would end a heading, make a blank line, or be dropped |
 | Empty paragraphs between blocks, empty list items, headings and code blocks | Kept (`<p></p>` for a paragraph) |
-| Highlight, subscript, superscript, underline, text colour, font size | Their own HTML tag around Markdown content (`H<sub>2</sub>O`) |
+| Highlight, subscript, superscript, underline, keyboard input, text colour, font size | Their own HTML tag around Markdown content (`H<sub>2</sub>O`, `<kbd>Ctrl</kbd>+<kbd>S</kbd>`) |
+| Disclosures | As GitHub reads them: `<details>` (with `open` when open) and `<summary>…</summary>` as HTML on their own lines, a blank line, the body as Markdown, a blank line, `</details>` |
 | Centred, right-aligned or justified paragraphs and headings | An HTML block |
 | Math, Mermaid, admonitions, definition lists, footnotes, abbreviations, wikilinks, citations, embeds, YouTube, resized or aligned images | HTML that loads back as the same node: written on one line, attributes fully escaped, and the text of a formula, abbreviation, citation or wikilink as character references, so nothing in it is read as Markdown or ends the HTML early |
 | Source comments | A real `<!-- comment -->` (line breaks and anything that would close it early written as references, and read back exactly) |
-| Text that looks like syntax | Escaped: `<b>`, `&copy;`, `~`, a line that is only `#`, `+` or `1.`, `1)`, a heading's closing `#`, a bare URL (so it stays text) |
+| Text that looks like syntax | Escaped: `<b>`, `&copy;`, `~`, a line that is only `#`, `+` or `1.`, a line opening with `1)`, a heading's closing `#`, a bare URL (so it stays text). Text right after an element on the same line (`<kbd>Ctrl</kbd>+<kbd>S</kbd>`) is left as it is |
 
 Loading goes the other way with no extra step: real `<!-- -->` comments and the task lists Markdown
 renderers produce (`<li><input type="checkbox"> …`, or a bare `[ ]` for an empty last item) parse into the
 editor's own nodes; an image alone in its paragraph loads as an image block, a list item that opens with an
-image, a code block or a quote keeps it, and the newline a renderer adds at the end of every code block is
-dropped. Images are blocks in this editor, so an image in the middle of a sentence (a badge) splits the
-paragraph.
+image, a code block, a quote or a disclosure keeps it, and the newline a renderer adds at the end of every code block is
+dropped. A `<details>` loads as a disclosure, its `<summary>` first (an empty one is added when it has
+none). Images are blocks in this editor, so an image in the middle of a sentence (a badge) splits the
+paragraph. A key is a token holding its text, so keys side by side (`<kbd>Ctrl</kbd><kbd>S</kbd>`)
+always stay apart; formatting around a key stays on it (a key made from text keeps the formatting
+all of that text shares), and a `<kbd>` nested in another is one key with the outer one's text. A
+key is never made of spaces only (`<kbd>Space</kbd>` names that key): a `<kbd>` holding only spaces
+is read as text, since Markdown could not keep it. A second `<summary>` in a disclosure, or one outside any, is text, as a
+browser shows it.
+
+In the editor a disclosure has a toggle beside its summary. In an editable editor it opens and closes
+the disclosure in the document (`<details open>`), as a task's checkbox ticks it, and is undoable; in a
+read-only editor it opens and closes it for the reader only (the outline going to a heading in a
+closed one opens it for them too). A closed disclosure shows its body while the
+cursor is in it, so nothing is edited unseen. Enter in the summary goes on into the body, and Backspace at
+its start unwraps the disclosure. The toolbar's Disclosure button wraps the selected blocks in a
+disclosure (in a list, the whole list, as a list holds only its items). With the selection in a
+disclosure (all of it) the button is pressed and unwraps it, or, with blocks of its body selected
+(a selection across them, or a selected block such as an image), is not pressed and folds those
+into a disclosure of their own. Inline code holding
+a key is written to Markdown as HTML (Markdown code cannot hold a tag). The commands are `setDetails`, `unsetDetails`, `toggleDetails` and
+`setDetailsOpen(open)`; keyboard input has `setKeyboardInput` (the selected text becomes a key),
+`unsetKeyboardInput` (the selected keys become text again, to edit them) and `toggleKeyboardInput`. Both can be turned off with `editorOptions` (`details: false`, `keyboardInput: false`); their buttons
+are then left out of the toolbar and the selection menu, with any divider they leave stranded.
 
 Two things about the HTML the editor saves:
 
@@ -380,7 +402,10 @@ button that shows text of its own, like the font size, includes that text in it.
 shows the alignment of the selected paragraphs and headings: Align Left for text with none of its own,
 and none in a code block, on an image or across paragraphs aligned differently. The
 exported `ToolbarCustomizer` takes `returnFocusRef`, where focus goes back when it closes; it is a modal
-dialog (Tab stays inside) when it covers the page, and not when scoped to a `container`.
+dialog (Tab stays inside) when it covers the page, and not when scoped to a `container`. Given
+`unavailableTools={unavailableToolIds(editor)}`, it does not offer the tools of features the editor
+was built without (`editorOptions.math: false`, say), and marks those already in a layout as not
+available; `toolIsAvailable(editor, id)` answers for one tool.
 
 These read the editor while rendering. The exported toolbar and bubble menus keep themselves current;
 in a component of your own, use TipTap's `useEditorState` to re-render when the editor changes

@@ -31,8 +31,16 @@ describe('normalizeForParse', () => {
         expect(normalizeForParse(input)).toBe(input);
     });
 
-    it.each(['<img src="s.png">', '<pre><code>x</code></pre>', '<blockquote><p>q</p></blockquote>'])('gives a list item that opens with %s an empty first paragraph', (block) => {
+    it.each(['<img src="s.png">', '<pre><code>x</code></pre>', '<blockquote><p>q</p></blockquote>', '<details><summary>S</summary><p>b</p></details>'])('gives a list item that opens with %s an empty first paragraph', (block) => {
         expect(normalizeForParse(dom(`<ul><li>${block}</li></ul>`)).innerHTML).toBe(`<ul><li><p></p>${block}</li></ul>`);
+    });
+
+    it('leaves a list item opening with <details> alone for a schema without disclosures', () => {
+        const input = dom('<ul><li><details><summary>S</summary><p>b</p></details></li></ul>');
+        expect(normalizeForParse(input, { nodes: {} })).toBe(input);
+        const dl = dom('<ul><li><dl><dt>T</dt><dd>D</dd></dl></li></ul>');
+        expect(normalizeForParse(dl, { nodes: {} })).toBe(dl);
+        expect(normalizeForParse(input, { nodes: { details: {} } }).innerHTML).toBe('<ul><li><p></p><details><summary>S</summary><p>b</p></details></li></ul>');
     });
 
     it('leaves task items and items that open with text alone', () => {

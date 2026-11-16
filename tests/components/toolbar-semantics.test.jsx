@@ -1,5 +1,5 @@
 // Targeted toolbar behaviours: active states, dropdowns, host handlers and a seeded click walk.
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TextSelection } from '@tiptap/pm/state';
 import { ALL_TOOL_IDS } from '../../src/toolbar/toolRegistry.js';
@@ -205,3 +205,120 @@ describe('host handlers win over prompts', () => {
         expect(editor.getHTML()).toBe(before);
     });
 });
+
+describe('keyboard input', () => {
+    it('the Keyboard Input button makes the selected text a key, lights up on a selected key, and turns it back', async () => {
+        const { editor } = await setup('<p>Esc closes</p>');
+        act(() => { editor.commands.setTextSelection({ from: 1, to: 4 }); });
+        await act(async () => { fireEvent.click(screen.getByTitle('Keyboard Input')); });
+        expect(editor.getHTML()).toContain('<kbd>Esc</kbd>');
+        act(() => { editor.commands.setNodeSelection(1); });
+        expect(screen.getByTitle('Keyboard Input').getAttribute('aria-pressed')).toBe('true');
+        await act(async () => { fireEvent.click(screen.getByTitle('Keyboard Input')); });
+        expect(editor.getHTML()).not.toContain('<kbd>');
+        act(() => { editor.commands.setTextSelection(2); });
+        expect(screen.getByTitle('Keyboard Input').disabled).toBe(true);
+    });
+
+    it('is left out when the host turned keyboard input off', async () => {
+        await setup('<p>x</p>', { editorOptions: { keyboardInput: false } });
+        expect(screen.queryByTitle('Keyboard Input')).toBeNull();
+    });
+});
+
+describe('disclosure', () => {
+    it('the Disclosure button wraps, lights up inside, and in a list wraps the list', async () => {
+        const { editor } = await setup('<p>Body</p><ul><li><p>item</p></li></ul>');
+        act(() => { editor.commands.setTextSelection(2); });
+        await act(async () => { fireEvent.click(screen.getByTitle('Disclosure')); });
+        expect(editor.getHTML()).toContain('<details open=""><summary>Details</summary><p>Body</p></details>');
+        expect(screen.getByTitle('Disclosure').getAttribute('aria-pressed')).toBe('true');
+        let item = null;
+        editor.state.doc.descendants((node, pos) => { if (item === null && node.isText && node.text === 'item') item = pos; });
+        act(() => { editor.commands.setTextSelection(item + 1); });
+        expect(screen.getByTitle('Disclosure').disabled).toBe(false);
+        await act(async () => { fireEvent.click(screen.getByTitle('Disclosure')); });
+        expect(editor.getHTML()).toContain('<details open=""><summary>Details</summary><ul><li><p>item</p></li></ul></details>');
+    });
+
+    it('the Disclosure button is not pressed where a click would fold body blocks into a disclosure of their own', async () => {
+        const { editor } = await setup('<details open><summary>S</summary><p>one</p><p>two</p></details>');
+        let one = null;
+        editor.state.doc.descendants((node, pos) => { if (one === null && node.isText && node.text === 'one') one = pos; });
+        act(() => { editor.commands.setTextSelection(one + 1); });
+        expect(screen.getByTitle('Disclosure').getAttribute('aria-pressed')).toBe('true');
+        act(() => { editor.commands.setTextSelection({ from: one + 1, to: one + 7 }); });
+        expect(screen.getByTitle('Disclosure').getAttribute('aria-pressed')).toBe('false');
+    });
+
+    it('is left out when the host turned disclosures off, and not offered by the customizer', async () => {
+        await setup('<p>x</p>', { editorOptions: { details: false } }, { onToolbarConfigChange: () => {}, toolbarConfig: ['bold'] });
+        expect(screen.queryByTitle('Disclosure')).toBeNull();
+        await act(async () => { fireEvent.click(screen.getByTitle('Customize toolbar')); });
+        const dialog = screen.getByRole('dialog', { name: 'Customize Layout' });
+        expect(within(dialog).queryByText('Disclosure')).toBeNull();
+        expect(within(dialog).getByText('Italic')).toBeTruthy();
+    });
+
+    it('a selection menu whose tools are all turned off does not show at all', async () => {
+        const { TextBubbleMenu } = await import('../../src/components/bubble-menus/TextBubbleMenu.jsx');
+        const { createEditor } = await import('../helpers/createEditor.js');
+        const plain = createEditor({ content: '<p>x</p>' }, { keyboardInput: false });
+        try {
+            const { container } = render(<TextBubbleMenu editor={plain} bubbleMenuConfig={['kbd']} />);
+            expect(container.innerHTML).toBe('');
+        } finally { plain.destroy(); }
+    });
+
+    it('any tool whose feature the host turned off is left out (math, Mermaid)', async () => {
+        await setup('<p>x</p>', { editorOptions: { math: false, mermaid: false } });
+        expect(screen.queryByTitle('Math Block')).toBeNull();
+        expect(screen.queryByTitle('Mermaid Diagram')).toBeNull();
+        expect(screen.getByTitle('Bold')).toBeTruthy();
+    });
+
+    it('saving the customizer of an editor without disclosures keeps them in a shared layout', async () => {
+        const onToolbarConfigChange = vi.fn();
+        await setup('<p>x</p>', { editorOptions: { details: false } }, { onToolbarConfigChange, toolbarConfig: ['bold', '|', 'details'] });
+        await act(async () => { fireEvent.click(screen.getByTitle('Customize toolbar')); });
+        const dialog = screen.getByRole('dialog', { name: 'Customize Layout' });
+        await act(async () => { fireEvent.click(within(dialog).getByText('Save layout')); });
+        expect(onToolbarConfigChange).toHaveBeenCalledWith(['bold', '|', 'details']);
+    });
+
+    it('the customizer\'s default layout and presets leave a turned-off tool out, with its divider', async () => {
+        // No layout of the host's own: the default one.
+        await setup('<p>x</p>', { editorOptions: { details: false, keyboardInput: false } }, { onToolbarConfigChange: () => {}, toolbarConfig: undefined });
+        await act(async () => { fireEvent.click(screen.getByTitle('Customize toolbar')); });
+        const dialog = screen.getByRole('dialog', { name: 'Customize Layout' });
+        expect(within(dialog).queryByText('Not available in this editor')).toBeNull();
+        expect(within(dialog).queryByText('Disclosure')).toBeNull();
+        expect(within(dialog).getByText('Full').closest('button').getAttribute('aria-pressed')).toBe('true');
+        await act(async () => { fireEvent.click(within(dialog).getByText('Technical Writer')); });
+        expect(within(dialog).queryByText('Disclosure')).toBeNull();
+        expect(within(dialog).queryByText('Keyboard Input')).toBeNull();
+    });
+
+    it('a host layout that is a preset holding a turned-off tool shows as that preset, and choosing it keeps the tool', async () => {
+        const { TOOLBAR_PRESETS } = await import('../../src/toolbar/presets.js');
+        const onToolbarConfigChange = vi.fn();
+        await setup('<p>x</p>', { editorOptions: { keyboardInput: false } }, { onToolbarConfigChange, toolbarConfig: TOOLBAR_PRESETS.technical });
+        await act(async () => { fireEvent.click(screen.getByTitle('Customize toolbar')); });
+        const dialog = screen.getByRole('dialog', { name: 'Customize Layout' });
+        const technical = within(dialog).getByText('Technical Writer').closest('button');
+        expect(technical.getAttribute('aria-pressed')).toBe('true');
+        await act(async () => { fireEvent.click(technical); });
+        await act(async () => { fireEvent.click(within(dialog).getByText('Save layout')); });
+        expect(onToolbarConfigChange).toHaveBeenCalledWith(TOOLBAR_PRESETS.technical);
+    });
+
+    it('the customizer lists a turned-off tool already in the layout where it is, marked, with its divider', async () => {
+        await setup('<p>x</p>', { editorOptions: { details: false } }, { onToolbarConfigChange: () => {}, toolbarConfig: ['bold', '|', 'details'] });
+        await act(async () => { fireEvent.click(screen.getByTitle('Customize toolbar')); });
+        const dialog = screen.getByRole('dialog', { name: 'Customize Layout' });
+        const entry = within(dialog).getByText('Disclosure');
+        expect(entry.textContent).toBe('DisclosureNot available in this editor');
+        expect(entry.closest('[draggable]').parentElement.textContent).toBe('BoldDividerDisclosureNot available in this editorAdd divider');
+    });
+});
+

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { ChevronRight, Map as MapIcon } from 'lucide-react';
 import { useInscriptT } from '../hooks/useInscriptT.js';
 import { hasView, viewDom } from '../utils/editorView.js';
+import { DETAILS_NODE } from '../constants.js';
 
 // ── What this is ────────────────────────────────────────────────────────────
 // A "spatial outline", not a photo of the text. Prose has weak silhouette (most
@@ -59,7 +60,7 @@ const HUMAN_LABEL = {
     table: 'Table', customTable: 'Table',
     codeBlock: 'Code block', blockquote: 'Quote', admonition: 'Admonition',
     mathBlock: 'Math', mermaid: 'Diagram', horizontalRule: 'Divider',
-    definitionList: 'Definition list',
+    definitionList: 'Definition list', [DETAILS_NODE]: 'Disclosure',
 };
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
@@ -179,6 +180,7 @@ function fallbackHeight(b) {
         case 'mermaid': return 12;
         case 'horizontalRule': return 3;
         case 'definitionList': return clamp(b.itemCount || 2, 1, 5) * 5;
+        case DETAILS_NODE: return 6;
         default: return 3;
     }
 }

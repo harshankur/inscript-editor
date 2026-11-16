@@ -162,3 +162,26 @@ describe('overflow "More tools"', () => {
         expect(editor.getHTML()).toContain('<blockquote>');
     });
 });
+
+describe('a contained customizer', () => {
+    it('clips its own drawer, so a host container gains nothing to scroll', () => {
+        const host = document.createElement('div');
+        document.body.appendChild(host);
+        try {
+            render(<ToolbarCustomizer currentConfig={['bold']} onSave={() => {}} onClose={() => {}} container={host} />);
+            const backdrop = host.querySelector('.inset-0.z-\\[80\\]');
+            expect(backdrop.className).toMatch(/\boverflow-hidden\b/);
+            expect(backdrop.contains(screen.getByRole('dialog'))).toBe(true);
+        } finally { host.remove(); }
+    });
+
+    it('moves focus inside the drawer without scrolling anything', () => {
+        render(<ToolbarCustomizer currentConfig={['bold']} onSave={() => {}} onClose={() => {}} />);
+        const dialog = screen.getByRole('dialog');
+        const buttons = [...dialog.querySelectorAll('button')].filter(b => !b.disabled);
+        const focus = vi.spyOn(buttons[0], 'focus');
+        buttons.at(-1).focus();
+        fireEvent.keyDown(buttons.at(-1), { key: 'Tab' });
+        expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+    });
+});

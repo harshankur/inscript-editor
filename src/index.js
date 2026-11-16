@@ -18,6 +18,7 @@ export {
     TOOLBAR_TOOL_IDS, BUBBLE_ALLOWED_TOOL_IDS, TOOLBAR_TOOLS, TOOL_GROUPS,
     sanitizeToolConfig,
 } from './toolbar/toolRegistry.js';
+export { toolIsAvailable, unavailableToolIds } from './toolbar/toolAvailability.js';
 export {
     TOOLBAR_PRESETS, PRESET_LABELS, TOOLBAR_PRESET_LABELS,
     BUBBLE_PRESETS, BUBBLE_MENU_PRESETS,

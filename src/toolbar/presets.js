@@ -19,12 +19,12 @@ export const TOOLBAR_PRESETS = {
     full: [
         'undo', 'redo', D,
         'h1', 'h2', 'h3', D,
-        'bold', 'italic', 'underline', 'strike', 'inlineCode', 'sub', 'sup', 'abbreviation', 'clearFormat', D,
+        'bold', 'italic', 'underline', 'strike', 'inlineCode', 'kbd', 'sub', 'sup', 'abbreviation', 'clearFormat', D,
         'fontSize', 'highlight', 'color', D,
         'link', 'footnote', 'citation', D,
         'bullet', 'ordered', 'task', 'definition', D,
         'align', D,
-        'code', 'quote', 'admonitions', 'hr', D,
+        'code', 'quote', 'admonitions', 'details', 'hr', D,
         'math', 'mermaid', D,
         'image', 'youtube', 'table', 'tags',
     ],
@@ -52,11 +52,11 @@ export const TOOLBAR_PRESETS = {
     technical: [
         'undo', 'redo', D,
         'h1', 'h2', 'h3', D,
-        'bold', 'italic', 'underline', 'strike', 'inlineCode', 'abbreviation', D,
+        'bold', 'italic', 'underline', 'strike', 'inlineCode', 'kbd', 'abbreviation', D,
         'link', 'footnote', D,
         'bullet', 'ordered', 'task', 'definition', D,
         'align', D,
-        'code', 'quote', 'admonitions', 'hr', D,
+        'code', 'quote', 'admonitions', 'details', 'hr', D,
         'mermaid', D,
         'image', 'table', 'tags',
     ],
@@ -98,7 +98,7 @@ export const BUBBLE_PRESETS = {
         'link', 'quote', 'clearFormat'
     ],
     technical: [
-        'bold', 'italic', 'underline', 'inlineCode', D,
+        'bold', 'italic', 'underline', 'inlineCode', 'kbd', D,
         'link', 'quote'
     ],
     science: [

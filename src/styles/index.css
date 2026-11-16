@@ -582,6 +582,69 @@ img.ProseMirror-separator {
   inset: 0;
 }
 
+/* Disclosure (<details>): a toggle beside the summary; the body shows while data-open is set (the
+   node view sets it when open, and in an editable editor while the cursor is in a closed body). */
+.ProseMirror .inscript-details {
+  position: relative;
+  padding-left: 1.75rem;
+  margin-bottom: var(--inscript-block-gap, 1rem);
+}
+.ProseMirror .inscript-details-toggle {
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--inscript-color-muted, #71717a);
+  border-radius: var(--inscript-radius-sm, 0.25rem);
+  cursor: pointer;
+}
+.ProseMirror .inscript-details-toggle:hover {
+  background-color: var(--inscript-color-hover, rgba(0, 0, 0, 0.05));
+  color: var(--inscript-color-text, #18181b);
+}
+.ProseMirror .inscript-details-toggle::before {
+  content: '';
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 150ms ease;
+}
+.ProseMirror .inscript-details[data-open] > .inscript-details-toggle::before {
+  transform: rotate(45deg);
+}
+.ProseMirror .inscript-details-summary {
+  font-weight: 600;
+  color: var(--inscript-color-heading, var(--inscript-color-text, #18181b));
+  margin-bottom: 0.5rem;
+}
+.ProseMirror .inscript-details:not([data-open]) > .inscript-details-content > :not(.inscript-details-summary) {
+  display: none;
+}
+.ProseMirror .inscript-details:not([data-open]) > .inscript-details-content > .inscript-details-summary {
+  margin-bottom: 0;
+}
+
+/* Keyboard input: a key, drawn as a keycap */
+.ProseMirror kbd {
+  @apply px-1.5 py-0.5 text-sm;
+  font-family: var(--inscript-mono-font);
+  color: var(--inscript-color-code-text, var(--inscript-color-text, #18181b));
+  background-color: var(--inscript-color-surface-raised, #fafafa);
+  border: 1px solid var(--inscript-color-border-strong, #d4d4d8);
+  border-bottom-width: 2px;
+  border-radius: var(--inscript-radius-sm, 0.25rem);
+  white-space: nowrap;
+}
+
 /* Abbreviation Styles */
 .ProseMirror abbr[title] {
   @apply underline decoration-dotted cursor-help;

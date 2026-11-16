@@ -3,7 +3,7 @@ import { useInscriptT } from '../../hooks/useInscriptT.js';
 import { BubbleMenu } from '@tiptap/react/menus';
 import { BUBBLE_MENU_STYLE, bubbleMenuContainer, useBubbleMenuOptions } from './menuOptions.js';
 import {
-    Bold, Code, Italic, Palette, Quote,
+    Bold, Code, Italic, Keyboard, Palette, Quote,
     Underline as UnderlineIcon, Strikethrough,
     Subscript as SubscriptIcon, Superscript as SuperscriptIcon,
     TextSelect, RemoveFormatting,
@@ -12,14 +12,16 @@ import { ColorSelector } from '../ColorSelector.jsx';
 import { ToolbarButton } from '../ToolbarButton.jsx';
 import { HighlightSelector } from '../HighlightSelector.jsx';
 import { useEditorTransaction } from '../../hooks/useEditorTransaction.js';
-import { TEXT_COLOR_PRESETS } from '../../constants.js';
+import { KEYBOARD_INPUT_NODE, TEXT_COLOR_PRESETS } from '../../constants.js';
 import { FontSizeSelector } from '../FontSizeSelector.jsx';
 import { LinkSelector } from '../LinkSelector.jsx';
 import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTranslations.js';
 import { BUBBLE_PRESETS } from '../../toolbar/presets.js';
 import { DIVIDER, sanitizeToolConfig } from '../../toolbar/toolRegistry.js';
+import { visibleSlots } from '../../toolbar/toolAvailability.js';
 import { isActiveCached } from '../../utils/editorView.js';
 import { abbreviationTool } from '../../toolbar/abbreviationTool.js';
+import { keyboardInputTool } from '../../toolbar/keyboardInputTool.js';
 
 /**
  * A button of the selection menu: a ToolbarButton (named by its tooltip, a toggle when given
@@ -157,6 +159,18 @@ function buildToolMap(editor, t, onAddAbbreviation) {
                 </MenuButton>
             )
         },
+        // Turns the selected text into a key (left out when the host turned keyboard input off).
+        kbd: {
+            id: 'kbd',
+            render: () => {
+                const { action, active, disabled } = keyboardInputTool(editor);
+                return (
+                    <MenuButton onClick={action} title={t('keyboardInput', 'Keyboard Input')} active={active} disabled={disabled}>
+                        <Keyboard size={16} />
+                    </MenuButton>
+                );
+            }
+        },
         clearFormat: {
             id: 'clearFormat',
             render: () => (
@@ -204,12 +218,14 @@ export const TextBubbleMenu = ({ editor, isReadonly, bubbleMenuConfig, onAddAbbr
     // so an inline function would dispatch one on every render (and, in a menu that re-renders
     // on transactions, loop forever).
     const menuOptions = useBubbleMenuOptions('top', scrollContainer);
-    // For selected text only: a selected node (an image, a video, an embed, a formula, a diagram,
-    // a rule) has its own menu or none, and table cells have theirs.
+    // For selected text only, a selected key included (text, to its menu): any other selected node
+    // (an image, a video, an embed, a formula, a diagram, a rule) has its own menu or none, and
+    // table cells have theirs.
     const shouldShow = useCallback(({ editor: current }) => {
         if (isReadonly) return false;
         const { selection } = current.state;
-        if (selection.empty || selection.node || '$anchorCell' in selection) return false;
+        if (selection.empty || '$anchorCell' in selection) return false;
+        if (selection.node && selection.node.type.name !== KEYBOARD_INPUT_NODE) return false;
         return true;
     }, [isReadonly]);
 
@@ -224,6 +240,10 @@ export const TextBubbleMenu = ({ editor, isReadonly, bubbleMenuConfig, onAddAbbr
     if (!editor) return null;
 
     const toolMap = buildToolMap(editor, t, onAddAbbreviation);
+    // The config's slots this editor can show (its own features).
+    const slots = visibleSlots(activeConfig, toolMap, editor);
+    // Nothing this editor can show: no empty menu.
+    if (slots.length === 0) return null;
 
     return (
         <BubbleMenu
@@ -234,13 +254,11 @@ export const TextBubbleMenu = ({ editor, isReadonly, bubbleMenuConfig, onAddAbbr
             style={BUBBLE_MENU_STYLE}
         >
             <div className="bg-[var(--inscript-color-surface-raised)] border border-[var(--inscript-color-border-strong)] rounded-lg shadow-xl flex items-center p-1 gap-1 flex-wrap overflow-visible max-w-[90vw] custom-scrollbar">
-                {activeConfig.map((entry, idx) => {
+                {slots.map((entry, idx) => {
                     if (entry === DIVIDER) {
                         return <div key={`div-${idx}`} className="w-px h-4 bg-[var(--inscript-color-border)] mx-1 shrink-0" />;
                     }
-                    const tool = toolMap[entry];
-                    if (!tool) return null;
-                    return <span key={`${entry}-${idx}`}>{tool.render()}</span>;
+                    return <span key={`${entry}-${idx}`}>{toolMap[entry].render()}</span>;
                 })}
             </div>
         </BubbleMenu>

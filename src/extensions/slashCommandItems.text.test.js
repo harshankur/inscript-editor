@@ -21,3 +21,16 @@ describe('slashItemText', () => {
         expect(slashItemText({ titleKey: 'heading1', title: 'Translated by host' }, 'title', editor)).toBe('Translated by host');
     });
 });
+
+describe('the Disclosure slash item', () => {
+    it('is offered only where a disclosure can go', () => {
+        editor = createEditor({ content: '<p>Body</p><ul><li><p>item</p></li></ul>' });
+        const details = getDefaultSlashItems(editorT).find(item => item.id === 'details');
+        editor.commands.setTextSelection(2);
+        expect(details.isAvailable({ editor })).toBe(true);
+        let item = null;
+        editor.state.doc.descendants((node, pos) => { if (item === null && node.isText && node.text === 'item') item = pos; });
+        editor.commands.setTextSelection(item + 1);
+        expect(details.isAvailable({ editor })).toBe(false);
+    });
+});
