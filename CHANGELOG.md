@@ -5,6 +5,44 @@ All notable changes to `inscript-editor` are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (pre-1.0: minor versions may
 carry small breaking changes, called out below).
 
+## [0.11.0] - 2026-11-16
+
+### Added
+- **Image files dropped, pasted or picked go in, through your handler.** A new `onImageFile(file,
+  { editor, source, signal })` (in `editorOptions`, or as an `<InscriptEditor>` prop, which wins;
+  `<ResponsiveToolbar>` takes it too, for its Image button) takes each image file and gives the src to show: a data
+  URL, or where you stored the file (or `{ src, alt, title }`), at once or as a Promise. A "Loading
+  image…" placeholder marks the spot meanwhile. Each image goes in as soon as its file is read, in the
+  files' order, however the document changed in the meantime. A selection pasted over is replaced
+  only once an image comes, and only as it was. `signal` aborts when an image will not go in (its spot
+  was deleted, or the editor was closed or made read-only), so the upload can stop. A src that would
+  run script, or a `data:` URL that is not an image, is left out. Not taken as files: a copied web
+  page or office cells, whose HTML is more than the picture; a paste as text (Shift with the paste
+  keys); an image dragged within or between editors. Without `onShowMediaLibrary`, the toolbar's
+  Image button and the slash menu's Image item open the browser's file picker for it. Without
+  `onImageFile`, image files are not taken, as before.
+- **Inline math has a way in.** An Inline Math button joins the toolbar's full and science layouts,
+  and the slash menu has an Inline Math item. Text selected within a line becomes the formula's
+  source, keeping the formatting all of it shares, with the spaces at its edges left round it. A
+  selected key or formula stays, and the new formula goes after it. Both turn off with
+  `editorOptions.math: false`.
+
+### Changed
+- **`insertMathInline` goes only where text does.** It refuses inline code and code blocks (which
+  it would split), the gaps between blocks, selected cells or blocks, the whole document, text
+  running across blocks, and text holding a footnote, citation or other inline element, which it
+  would delete. Over a selected inline node, it no longer replaces it.
+- **The image menu's URL field takes a URL of the scheme the image already has** (a host's own,
+  such as `asset://`, given by its image-file handler), besides an image URL or a relative path.
+  Never a file on the reader's machine.
+- **History previews keep an image's SVG data URL**, as the editor shows it. A data URL used as a
+  link is still dropped.
+
+### Fixed
+- **A selected formula's or diagram's source editor closes when the editor is made read-only**, also
+  when `setEditable(false, false)` is used, which sends no update. The toolbar follows that change
+  too.
+
 ## [0.10.0] - 2026-11-16
 
 ### Added
