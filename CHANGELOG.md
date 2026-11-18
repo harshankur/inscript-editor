@@ -5,6 +5,60 @@ All notable changes to `inscript-editor` are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) (pre-1.0: minor versions may
 carry small breaking changes, called out below).
 
+## [0.13.0] - 2026-11-18
+
+Saved toolbar layouts that keep up with their preset, the editor's nodes exported for headless tests,
+formulas and diagrams that show their source while their library loads, and support for i18next 27,
+react-i18next 18 and KaTeX 0.19. One change needs action from some hosts: KaTeX must now be 0.18.2 or
+later (see **Changed**).
+
+### Added
+- **A saved layout follows its preset across releases.** Store `INSCRIPT_EDITOR_VERSION` with a
+  toolbar or selection-menu layout you save, and pass it back as `configSavedWith` (on
+  `<InscriptEditor>`, or on `<ResponsiveToolbar>` and `<TextBubbleMenu>`; one release for both
+  layouts, or `{ toolbar, bubble }`). A layout that was a built-in preset when it was saved is then
+  shown, offered in the customizer and saved as that preset is today, so a tool a release adds to it
+  (as 0.10.0 and 0.11.0 did) reaches the reader. Without `configSavedWith`, saved layouts are shown as
+  they are.
+- **`upgradeToolbarConfig(config, surface, options)` and `toolbarPresetOf(config, surface, options)`**
+  bring a saved layout up to date and name the preset it is. Options: `savedWith`, `unavailable` (the
+  tools you turned off) and, for the upgrade, your own `presets` and `presetsMode`.
+  `TOOLBAR_PRESET_HISTORY` and `BUBBLE_PRESET_HISTORY` hold every shape each preset has had since
+  0.1.0, and the release each first shipped in.
+- **The editor's nodes are exported** for a host's round-trip tests: `KeyboardInput`, `Details`,
+  `DetailsSummary`, `MathInline` and `MathBlock`, and `buildExtensions(options)`, the editor's whole
+  extension list for the options you give `useInscriptEditor`, for a headless `getSchema` or `Editor`.
+- **`INSCRIPT_EDITOR_VERSION`**, the release in use.
+- **New locale keys** for what formulas and diagrams show: `mathBlockEmpty`, `mathEmpty`,
+  `mathFailed`, `mathLoading`, `mathMissing`, `mathPlaceholder`, `mermaidEmpty`, `mermaidLoading`,
+  `mermaidMissing`, `mermaidPlaceholder` and `mermaidSyntaxError`.
+
+### Changed
+- **Breaking: the `katex` peer dependency now starts at 0.18.2** (`^0.18.2 || ^0.19.0`). Earlier KaTeX
+  lets a page's existing prototype pollution get past its `trust` setting (GHSA-238p-pmpm-9mq7),
+  which the editor turns off for every formula. Hosts on KaTeX 0.16 or 0.17 must upgrade. Math inside
+  a Mermaid diagram goes through the KaTeX Mermaid depends on, which may be a copy of its own: the
+  README shows how to check it. Mermaid 11 and 12 are both still supported.
+- **i18next 27 and react-i18next 18 are supported** (react-i18next 18 needs i18next 27; 16 and 17 go
+  with i18next 25 to 27). The editor's own English still shows when your i18next is not initialized.
+  With i18next 27, an empty translation shows the English default unless you
+  `init({ returnEmptyString: true })`.
+- **KaTeX 0.19 is supported.**
+- **Code highlighting redoes only the code blocks a change touches**, so typing in one block no longer
+  highlights every other block again.
+
+### Fixed
+- **The contained customize drawer opens at its container's edge.** Its layer could be scrolled while
+  the drawer slid in and then kept the drawer 384px to the left, with the container uncovered to its
+  right. The layer is now `overflow: clip`, which has no scroll position (hidden where clip is not
+  known), in both stylesheets.
+- **A formula no longer reads "Empty math" while KaTeX loads.** Formulas and diagrams show their
+  source, muted and marked busy, until their library is ready; "Empty math" is only for an empty
+  formula. Every word they show now goes through the locales. A diagram whose drawing comes out empty
+  says it cannot be shown, instead of staying blank.
+- **A text cursor is never left between blocks** (for example after a horizontal rule is inserted at
+  the end of the document): it moves to the nearest place text can go.
+
 ## [0.12.0] - 2026-11-17
 
 A release that hardens the editor against hostile documents, pastes, files and history. Documents,
