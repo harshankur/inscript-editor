@@ -136,17 +136,23 @@ const hasOddSpan = cell => ['colspan', 'rowspan'].some(name => {
     return String(read) !== value.trim();
 });
 
+/**
+ * Whether `dom` needs reshaping: null when it fits already, else what was found on the way. The
+ * cheaper checks go first; a table's size (its excess, the costly one) is weighed last, and when it is
+ * the only reason, the excesses found are handed on (`excess`, one per table in document order): the
+ * spans needed no fixing, so the copy's tables come to the same.
+ * @returns {{ excess: number[] | null } | null}
+ */
 function needsWork(dom, doc, blocks) {
-    if (typeof dom.querySelectorAll !== 'function') return false;
+    if (typeof dom.querySelectorAll !== 'function') return null;
     const walker = doc.createTreeWalker(dom, SHOW_COMMENT);
-    if (walker.nextNode()) return true;
-    // A table is copied only when something in it needs changing (its spans, or its size).
+    if (walker.nextNode()) return { excess: null };
     const tables = Array.from(dom.querySelectorAll('table'));
-    if (tables.length) {
-        if (tables.some(hasOverlongRowspan) || Array.from(dom.querySelectorAll('td, th')).some(hasOddSpan)) return true;
-        if (tables.reduce((sum, table) => sum + tableExcess(table), 0) > TABLE_GROWTH_LIMIT) return true;
-    }
-    return Array.from(dom.querySelectorAll('p, li')).some(el => isLoneImageParagraph(el) || opensWithBlock(el, blocks));
+    if (tables.length && (tables.some(hasOverlongRowspan) || Array.from(dom.querySelectorAll('td, th')).some(hasOddSpan))) return { excess: null };
+    if (Array.from(dom.querySelectorAll('p, li')).some(el => isLoneImageParagraph(el) || opensWithBlock(el, blocks))) return { excess: null };
+    // A table is copied only when something in it needs changing: here, its size.
+    const excess = tables.map(tableExcess);
+    return excess.reduce((sum, cells) => sum + cells, 0) > TABLE_GROWTH_LIMIT ? { excess } : null;
 }
 
 /** A table too large to make rectangular, read as its caption's and cells' contents in order (nothing lost). */
@@ -171,7 +177,8 @@ function unpackTable(table, doc) {
 export function normalizeForParse(dom, schema) {
     const doc = dom?.ownerDocument;
     const blocks = blocksFor(schema);
-    if (!doc || typeof doc.createTreeWalker !== 'function' || !needsWork(dom, doc, blocks)) return dom;
+    const work = doc && typeof doc.createTreeWalker === 'function' ? needsWork(dom, doc, blocks) : null;
+    if (!work) return dom;
     const copy = dom.cloneNode(true);
 
     // Real comments become the comment span the HtmlComment node parses from (text as an
@@ -195,7 +202,8 @@ export function normalizeForParse(dom, schema) {
             if (cell.hasAttribute(name)) cell.setAttribute(name, String(htmlSpan(cell.getAttribute(name), limit)));
         }
     }
-    const tables = Array.from(copy.querySelectorAll('table')).map(table => ({ table, cells: tableExcess(table) }));
+    // Weighed once: the excesses needsWork found when its size was the only reason (nothing above changed them).
+    const tables = Array.from(copy.querySelectorAll('table')).map((table, index) => ({ table, cells: work.excess?.[index] ?? tableExcess(table) }));
     let total = tables.reduce((sum, { cells }) => sum + cells, 0);
     for (const { table, cells } of tables.sort((a, b) => b.cells - a.cells)) {
         if (total <= TABLE_GROWTH_LIMIT) break;
