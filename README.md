@@ -49,6 +49,13 @@ Math (KaTeX) and Mermaid load their heavy libraries via a dynamic `import()` onl
 when a math/diagram node actually renders, so they are declared as **optional**
 peers and kept out of this package's bundle.
 
+KaTeX must be **0.18.2 or later**: earlier releases let a page's existing prototype pollution get past
+KaTeX's `trust` setting (GHSA-238p-pmpm-9mq7), which the editor turns off for every formula. Math inside
+a Mermaid diagram goes through the KaTeX Mermaid depends on, which may be a copy of its own: Mermaid 12.2
+and later ask for KaTeX 0.18 (npm shares your KaTeX with them when it is 0.18.2 or a later 0.18), while
+Mermaid 11 and 12.0 to 12.1 ask for KaTeX 0.16. Run `npm ls katex` to see which copies you have, and
+keep each at 0.18.2 or later (an `overrides` entry in your `package.json` can do it).
+
 ```bash
 # Math (KaTeX). Also import its stylesheet once in your app (see below).
 npm install katex
