@@ -449,7 +449,17 @@ Without a handler, image files are not taken.
 
 ### Extensions
 
-`Youtube`, `FontSize`, `CustomTable`, `CustomImage`, `Citation`, `HtmlComment`, `Embed`: TipTap extensions used internally, exported so you can build a headless editor with the same schema (e.g. for tests) via `@tiptap/core`'s `Editor`.
+`Youtube`, `FontSize`, `CustomTable`, `CustomImage`, `Citation`, `HtmlComment`, `Embed`, `KeyboardInput`, `Details`, `DetailsSummary`, `MathInline`, `MathBlock`: TipTap extensions used internally, exported so you can build a headless editor with the same schema (e.g. for tests) via `@tiptap/core`'s `Editor`.
+
+`buildExtensions(editorOptions)` gives the editor's whole extension list for the options you pass `useInscriptEditor`, so a test can import, edit and save through exactly the editor's schema and parsing:
+
+```js
+import { Editor, getSchema } from '@tiptap/core';
+import { buildExtensions } from 'inscript-editor';
+
+const schema = getSchema(buildExtensions({ math: true }));
+const editor = new Editor({ extensions: buildExtensions(), content: html });
+```
 
 ### Utilities
 

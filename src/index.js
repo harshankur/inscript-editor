@@ -3,7 +3,10 @@ import './styles/index.css';
 export { useInscriptEditor } from './hooks/useInscriptEditor.js';
 export { InscriptEditor } from './InscriptEditor.jsx';
 
-export { Youtube, FontSize, CustomTable, CustomImage, Citation, HtmlComment, Embed } from './extensions/index.js';
+export { Youtube, FontSize, CustomTable, CustomImage, Citation, HtmlComment, Embed, buildExtensions } from './extensions/index.js';
+export { KeyboardInput } from './extensions/KeyboardInput.js';
+export { Details, DetailsSummary } from './extensions/Details.js';
+export { MathInline, MathBlock } from './extensions/Math.jsx';
 export { getTableNode, isHeaderRowActive, isHeaderColumnActive, setTableLayout, getColumnAlign, setColumnAlign } from './utils/tableHelpers.js';
 export { COLUMN_ALIGNMENTS } from './constants.js';
 export { extractHeadings } from './utils/headingExtraction.js';

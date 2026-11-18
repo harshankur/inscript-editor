@@ -50,6 +50,12 @@ const PUBLIC_SYMBOLS = [
     'TableBubbleMenu',
     'ImageBubbleMenu',
     'YoutubeBubbleMenu',
+    'buildExtensions',
+    'KeyboardInput',
+    'Details',
+    'DetailsSummary',
+    'MathInline',
+    'MathBlock',
 ];
 
 maybeDescribe('dist build output', () => {

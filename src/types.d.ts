@@ -487,6 +487,21 @@ export const Citation: import('@tiptap/core').Node;
 /** `<!-- ... -->` source comments as hidden, deletable inline atoms (`<span data-html-comment>`). */
 export const HtmlComment: import('@tiptap/core').Node;
 export const Embed: import('@tiptap/core').Node;
+/** `<kbd>` as a token holding its text (keys side by side always stay apart). */
+export const KeyboardInput: import('@tiptap/core').Node;
+/** `<details>`: a summary (DetailsSummary), then any blocks. */
+export const Details: import('@tiptap/core').Node;
+export const DetailsSummary: import('@tiptap/core').Node;
+/** A LaTeX formula within a line, and one as a block (drawn by KaTeX, an optional peer dependency). */
+export const MathInline: import('@tiptap/core').Node;
+export const MathBlock: import('@tiptap/core').Node;
+/**
+ * The editor's whole extension list for the given options, as `useInscriptEditor` builds it: for a
+ * headless `getSchema(buildExtensions(options))` or `new Editor({ extensions: buildExtensions(options) })`,
+ * to test a round trip through exactly the editor's schema and parsing. Host handlers (`onImageFile`,
+ * `onOpenExternal`, …) are read from `options` as given.
+ */
+export function buildExtensions(options?: EditorBuildOptions): import('@tiptap/core').AnyExtension[];
 
 // --- Table utils ---
 export interface TableNodeResult {
