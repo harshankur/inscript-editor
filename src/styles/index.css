@@ -274,6 +274,10 @@ img.ProseMirror-separator {
   vertical-align: baseline;
   clip-path: inset(-1em -2em);
 }
+/* A formula's source, shown while KaTeX loads: muted, as a placeholder is. */
+.ProseMirror .math-render.math-loading {
+  color: var(--inscript-color-muted);
+}
 /* Its wrapper is at most its line's width too (less its side margins, mx-1): sized by the formula
    alone, the formula's own width cap would have nothing to be a share of. */
 .ProseMirror span.math-node-wrapper {

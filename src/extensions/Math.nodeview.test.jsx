@@ -24,6 +24,22 @@ const nodePos = (name) => {
 };
 
 describe('Math node view', () => {
+    it('shows a formula\'s source while KaTeX loads, and "Empty math" only for empty code', async () => {
+        const container = mount({ type: 'doc', content: [{ type: 'paragraph', content: [
+            { type: 'text', text: 'x ' }, { type: 'mathInline', attrs: { code: 'r^2' } },
+            { type: 'text', text: ' y ' }, { type: 'mathInline', attrs: { code: '' } },
+        ] }] });
+        // Before KaTeX has loaded (the first formula of a session waits for it): the source, marked as loading.
+        await waitFor(() => {
+            const [formula, empty] = container.querySelectorAll('.math-render');
+            expect(formula.textContent).toBe('r^2');
+            expect(formula.getAttribute('aria-busy')).toBe('true');
+            expect(empty.textContent).toBe('Empty math');
+        });
+        await waitFor(() => expect(container.querySelector('.math-render .katex')).not.toBeNull());
+        expect(container.querySelector('.math-render').getAttribute('aria-busy')).toBeNull();
+    });
+
     it('shows the source as text when KaTeX throws while rendering a block', async () => {
         const code = '\\sqrt{'.repeat(DEEP_NESTING) + PROBE + '}'.repeat(DEEP_NESTING);
         const container = mount(`<div class="math-block">${escapeHtml(code)}</div>`);

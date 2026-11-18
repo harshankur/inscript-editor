@@ -2,9 +2,11 @@ import { Node, mergeAttributes } from '@tiptap/core';
 import { NodeSelection } from '@tiptap/pm/state';
 import { NODE } from '../constants.js';
 import { useEditorEditable } from '../hooks/useEditorEditable.js';
+import { useInscriptT } from '../hooks/useInscriptT.js';
 import { inInlineCode, onlyTextBetween, sharedMarks, withoutEdgeSpaces } from '../utils/selectionText.js';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { saidError } from '../utils/saidError.js';
 
 // `katex` is an OPTIONAL peer dependency, imported dynamically so it never lands
 // in the library bundle and the editor loads fine when a consumer hasn't installed
@@ -60,9 +62,15 @@ function observeSize(element, callback) {
     };
 }
 
+/** The message when KaTeX is not installed, in the editor's `t`. */
+const KATEX_MISSING = t => t('mathMissing', 'Math rendering requires the optional "katex" package to be installed.');
+/** The message when KaTeX failed without saying why. */
+const FORMULA_FAILED = t => t('mathFailed', 'This formula could not be drawn.');
+
 const MathComponent = ({ node, editor, updateAttributes, selected, isInline }) => {
     const { code } = node.attrs;
     const editable = useEditorEditable(editor);
+    const { t } = useInscriptT();
     const [html, setHtml] = useState('');
     const [error, setError] = useState(null);
     // An inline formula wider than its line scrolls sideways (see .math-render-wide); one that fits
@@ -90,7 +98,8 @@ const MathComponent = ({ node, editor, updateAttributes, selected, isInline }) =
             try {
                 katex = (await import('katex')).default;
             } catch {
-                if (!cancelled) setError('Math rendering requires the optional "katex" package to be installed.');
+                // A message of the editor's own, said when shown: in the language of the moment.
+                if (!cancelled) setError({ say: KATEX_MISSING });
                 return;
             }
             try {
@@ -105,11 +114,13 @@ const MathComponent = ({ node, editor, updateAttributes, selected, isInline }) =
                     maxSize: KATEX_MAX_SIZE_EM,
                 });
                 if (!cancelled) {
-                    setHtml(rendered);
-                    setError(null);
+                    // A drawing that came back empty is no drawing (never left loading).
+                    setHtml(rendered || '');
+                    setError(rendered ? null : { say: FORMULA_FAILED });
                 }
             } catch (err) {
-                if (!cancelled) setError(err.message);
+                // KaTeX's message, or one of the editor's own when it gave none (never left loading).
+                if (!cancelled) setError(err?.message || { say: FORMULA_FAILED });
             }
         })();
         return () => { cancelled = true; };
@@ -118,6 +129,8 @@ const MathComponent = ({ node, editor, updateAttributes, selected, isInline }) =
     const WrapperTag = isInline ? 'span' : 'div';
     // The source editor changes the document, so a read-only editor never offers it.
     const showSourceEditor = selected && editable;
+    // KaTeX's own message as it gave it; one of the editor's own, translated now.
+    const errorText = saidError(error, t);
     const renderClass = `math-render ${wide ? 'math-render-wide' : ''} ${selected ? 'ring-2 ring-[var(--inscript-color-accent)] rounded' : ''} ${error ? 'text-red-500' : ''}`;
 
     return (
@@ -126,9 +139,16 @@ const MathComponent = ({ node, editor, updateAttributes, selected, isInline }) =
             className={`math-node-wrapper ${isInline ? 'inline-block mx-1' : 'my-4 block'} relative cursor-pointer`}
         >
             {error || !html ? (
-                // Text, never markup: on the error path this is the document's raw source.
-                <WrapperTag ref={renderRef} className={renderClass} title={error || undefined}>
-                    {error ? code : (isInline ? 'Empty math' : 'Empty math block')}
+                // Text, never markup: the document's raw source, shown while KaTeX loads (the first
+                // formula of a session waits for it) and when it cannot draw it. Only a formula with no
+                // code at all is empty.
+                <WrapperTag
+                    ref={renderRef}
+                    className={`${renderClass} ${!error && code.trim() ? 'math-loading' : ''}`}
+                    title={errorText || (code.trim() ? t('mathLoading', 'Drawing the formula…') : undefined)}
+                    aria-busy={!error && code.trim() ? 'true' : undefined}
+                >
+                    {error || code.trim() ? code : (isInline ? t('mathEmpty', 'Empty math') : t('mathBlockEmpty', 'Empty math block'))}
                 </WrapperTag>
             ) : (
                 // KaTeX's own output (trust off, so no \href, \url or \html* commands).
@@ -144,7 +164,7 @@ const MathComponent = ({ node, editor, updateAttributes, selected, isInline }) =
                     <input
                         type="text"
                         className="flex-1 p-1 border border-[var(--inscript-color-border)] rounded font-mono text-sm text-[var(--inscript-color-text)] outline-none focus:border-[var(--inscript-color-accent)]"
-                        placeholder="LaTeX math..."
+                        placeholder={t('mathPlaceholder', 'LaTeX math...')}
                         value={code}
                         onChange={e => updateAttributes({ code: e.target.value })}
                         onKeyDown={e => {

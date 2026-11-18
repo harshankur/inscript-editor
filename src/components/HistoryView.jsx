@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useInscriptT } from '../hooks/useInscriptT.js';
 import * as Diff from 'diff';
 import { Redo } from 'lucide-react';
@@ -7,6 +7,7 @@ import { inertPreviewNodes } from '../utils/previewHtml.js';
 import { clickedLink, openOutside } from '../extensions/HostBridge.js';
 import { urlScheme } from '../utils/url.js';
 import { useInscriptEditorTranslations } from '../hooks/useInscriptEditorTranslations.js';
+import { useInsertedNodes } from '../hooks/useInsertedNodes.js';
 
 const BASELINE_KINDS = new Set(['opened', 'imported']);
 /**
@@ -35,13 +36,7 @@ const PREVIEW_CONTAINMENT = Object.freeze({ position: 'relative', overflow: 'aut
  * openOutside), anything else (an anchor in the version) nowhere.
  */
 function PreviewNodes({ nodes, which, editor }) {
-    const ref = useRef(null);
-    useLayoutEffect(() => {
-        const el = ref.current;
-        if (!el) return;
-        if (nodes) el.replaceChildren(el.ownerDocument.importNode(nodes, true));
-        else el.replaceChildren();
-    }, [nodes]);
+    const ref = useInsertedNodes(ownerDocument => (nodes ? ownerDocument.importNode(nodes, true) : null), [nodes]);
     const followLink = event => {
         const anchor = clickedLink(event, event.currentTarget);
         if (!anchor) return;

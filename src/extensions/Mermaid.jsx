@@ -1,9 +1,11 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { cleanSvg } from '../utils/cleanSvg.js';
 import { useInscriptT } from '../hooks/useInscriptT.js';
 import { useEditorEditable } from '../hooks/useEditorEditable.js';
+import { useInsertedNodes } from '../hooks/useInsertedNodes.js';
+import { saidError } from '../utils/saidError.js';
 
 // `mermaid` is an OPTIONAL peer dependency, imported dynamically so its (large)
 // bundle never lands in the library and the editor loads fine when a consumer
@@ -31,35 +33,43 @@ const MERMAID_REDRAW_DELAY_MS = 250;
  * the diagram's styles and ids stay inside it, never reaching the host's page.
  */
 function DiagramNodes({ svg }) {
+    // Cleaned once for each drawing, in the element's own document, and put in as it is. A drawing that
+    // could not be cleaned says so beside it, as text of the editor's own (following its language).
     const { t } = useInscriptT();
-    // The message read when needed: `t` may change on every render (no i18next), the drawing must not.
-    const message = useRef(t);
-    message.current = t;
-    const ref = useRef(null);
-    useLayoutEffect(() => {
-        const el = ref.current;
-        if (!el) return;
-        const root = el.shadowRoot ?? el.attachShadow({ mode: 'open' });
-        const nodes = cleanSvg(svg, el.ownerDocument);
-        if (nodes) root.replaceChildren(nodes);
-        else root.replaceChildren(el.ownerDocument.createTextNode(message.current('mermaidUnavailable', 'This diagram could not be shown.')));
-    }, [svg]);
+    const [unshownSvg, setUnshownSvg] = useState(null);
+    const ref = useInsertedNodes(
+        ownerDocument => {
+            const nodes = cleanSvg(svg, ownerDocument);
+            // Changed only when it changes (no render of its own for a drawing shown as before).
+            const unshown = nodes ? null : svg;
+            if (unshown !== unshownSvg) setUnshownSvg(unshown);
+            return nodes;
+        },
+        [svg],
+        { shadow: true },
+    );
     // The shadow's host inside a box of its own, contained: the diagram can style its host (`:host`),
     // never this box, so nothing in it (a fixed position) reaches past it.
     return (
         <div style={DIAGRAM_CONTAINMENT}>
             <div ref={ref} />
+            {unshownSvg === svg && <div className="text-[var(--inscript-color-muted)] text-sm">{t('mermaidUnavailable', 'This diagram could not be shown.')}</div>}
         </div>
     );
 }
 
 const DIAGRAM_CONTAINMENT = Object.freeze({ position: 'relative', overflowX: 'auto', overflowY: 'hidden', contain: 'paint', maxWidth: '100%' });
 
+/** Messages of the editor's own about a diagram, in the editor's `t` (said when shown). */
+const MERMAID_MISSING = t => t('mermaidMissing', 'Mermaid diagrams require the optional "mermaid" package to be installed.');
+const MERMAID_SYNTAX_ERROR = t => t('mermaidSyntaxError', 'Syntax Error in Mermaid graph');
+
 const MermaidComponent = (props) => {
     const { node, editor, updateAttributes, selected } = props;
     const { code } = node.attrs;
     // The source editor changes the document: only while the editor can be edited, followed as it changes.
     const editable = useEditorEditable(editor);
+    const { t } = useInscriptT();
     const [svg, setSvg] = useState('');
     const [error, setError] = useState(null);
     const idRef = useRef(`mermaid-${Math.random().toString(36).substr(2, 9)}`);
@@ -78,7 +88,8 @@ const MermaidComponent = (props) => {
             try {
                 mermaid = (await import('mermaid')).default;
             } catch {
-                if (isMounted) setError('Mermaid diagrams require the optional "mermaid" package to be installed.');
+                // A message of the editor's own, said when shown: in the language of the moment.
+                if (isMounted) setError({ say: MERMAID_MISSING });
                 return;
             }
             // Mermaid's configuration is the page's: a host may set its own (a `loose` security level
@@ -107,12 +118,13 @@ const MermaidComponent = (props) => {
                 }
                 const { svg: renderedSvg } = await mermaid.render(idRef.current, code);
                 if (isMounted) {
-                    setSvg(renderedSvg);
-                    setError(null);
+                    // A drawing that came back empty is no drawing (never left loading).
+                    setSvg(renderedSvg || '');
+                    setError(renderedSvg ? null : { say: MERMAID_SYNTAX_ERROR });
                 }
             } catch (err) {
                 if (isMounted) {
-                    setError(err.message || 'Syntax Error in Mermaid graph');
+                    setError(err?.message || { say: MERMAID_SYNTAX_ERROR });
                 }
             } finally {
                 if (counted) drawing -= 1;
@@ -138,7 +150,7 @@ const MermaidComponent = (props) => {
                     <textarea
                         className="w-full p-2 border border-[var(--inscript-color-border-strong)] rounded font-mono text-sm text-[var(--inscript-color-text)] outline-none focus:ring-2 focus:ring-[var(--inscript-color-accent)]"
                         rows={5}
-                        placeholder="Enter mermaid code here... (e.g. graph TD;\n A-->B;)"
+                        placeholder={t('mermaidPlaceholder', 'Enter mermaid code here... (e.g. graph TD;\n A-->B;)')}
                         value={code}
                         onChange={e => updateAttributes({ code: e.target.value })}
                         onKeyDown={e => {
@@ -152,11 +164,15 @@ const MermaidComponent = (props) => {
             )}
             <div className="mermaid-render flex justify-center items-center min-h-[50px]">
                 {error ? (
-                    <div className="text-red-500 text-sm font-mono whitespace-pre-wrap">{error}</div>
+                    <div className="text-red-500 text-sm font-mono whitespace-pre-wrap">{saidError(error, t)}</div>
                 ) : svg ? (
                     <DiagramNodes svg={svg} />
+                ) : code.trim() ? (
+                    // Its source, as text, while Mermaid loads and draws it (the first diagram of a session
+                    // waits for it): only a diagram with no code at all is empty.
+                    <div className="text-[var(--inscript-color-muted)] text-sm font-mono whitespace-pre-wrap" aria-busy="true" title={t('mermaidLoading', 'Drawing the diagram…')}>{code}</div>
                 ) : (
-                    <div className="text-[var(--inscript-color-muted)] italic">Empty Mermaid diagram</div>
+                    <div className="text-[var(--inscript-color-muted)] italic">{t('mermaidEmpty', 'Empty Mermaid diagram')}</div>
                 )}
             </div>
         </NodeViewWrapper>
