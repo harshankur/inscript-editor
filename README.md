@@ -2,6 +2,8 @@
 
 A standalone, TipTap-based rich text editor for React. Extracted from [Inscript](https://inscript.harshankur.com), a self-hosted markdown CMS, so it can be reused across other projects.
 
+[![Inscript Editor on StartupScores](https://startupscores.com/badge/inscript-editor.svg?style=shield&v=combo&theme=dark)](https://startupscores.com/open-source/inscript-editor)
+
 **[Homepage &amp; live demo →](https://inscript-editor.harshankur.com)**
 
 <!-- screenshot: docs/screenshot.png -->
