@@ -1580,3 +1580,19 @@ describe('round 29', () => {
         expect(numberAt(def)).toBe(2);
     });
 });
+
+describe('0.13.0 review', () => {
+    it('a privacy link is checked as it is used: a no-break space before a script scheme is refused', async () => {
+        const { resolvePrivacyUrl } = await import('../src/utils/youtubeConsent.js');
+        expect(resolvePrivacyUrl(' javascript:alert(1)')).toBeNull();
+        expect(resolvePrivacyUrl('﻿javascript:alert(1)')).toBeNull();
+        expect(resolvePrivacyUrl('  https://example.com/privacy ')).toBe('https://example.com/privacy');
+    });
+
+    it('isWebUrl reads a value as it is trimmed: a no-break space before a script scheme is no web address', async () => {
+        const { isWebUrl } = await import('../src/utils/url.js');
+        expect(isWebUrl('\u00a0javascript:alert(1)')).toBe(false);
+        expect(isWebUrl('\ufeffjavascript:alert(1)')).toBe(false);
+        expect(isWebUrl(' https://example.com/ ')).toBe(true);
+    });
+});

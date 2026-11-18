@@ -45,6 +45,7 @@ let idCounter = 0;
  * @returns {string | null}
  */
 export function resolvePrivacyUrl(value) {
+    // isWebUrl reads the value trimmed, as it is used here.
     return isWebUrl(value) ? value.trim() : null;
 }
 

@@ -9,15 +9,31 @@ export const IMAGE_PROTOCOLS = Object.freeze(['http:', 'https:', 'blob:']);
 const DATA_IMAGE = /^data:image\//i;
 const URL_BASE_FALLBACK = 'https://localhost/';
 
-/** `value` parsed against the page, or null when it is not a non-empty URL. */
-function parse(value) {
+/** The page an address is read against: the current one, or a stand-in with none (on a server). */
+const pageBase = () => (typeof location !== 'undefined' ? location.href : URL_BASE_FALLBACK);
+
+/** `value` read as a browser reads it, against `base` when given (absolute only, without), or null. */
+function readUrl(value, base) {
     if (typeof value !== 'string' || !value.trim()) return null;
     try {
-        const base = typeof location !== 'undefined' ? location.href : URL_BASE_FALLBACK;
-        return new URL(value.trim(), base);
+        return base === undefined ? new URL(value) : new URL(value, base);
     } catch {
         return null;
     }
+}
+
+/** `value`, trimmed, parsed against the page, or null when it is not a non-empty URL. */
+const parse = value => (typeof value === 'string' ? readUrl(value.trim(), pageBase()) : null);
+
+/**
+ * `value` read as a browser reads it (as given: a caller trims it when it uses it trimmed), against
+ * `base` when given (absolute only, without), and kept only when it is an http(s) address: the one
+ * rule the web-address checks below share (webHref, followedHref, isWebUrl).
+ * @returns {URL | null}
+ */
+function webUrl(value, base) {
+    const url = readUrl(value, base);
+    return url && WEB_PROTOCOLS.includes(url.protocol) ? url : null;
 }
 
 /**
@@ -28,15 +44,10 @@ function parse(value) {
  * @returns {string | null}
  */
 export function webHref(value) {
-    if (typeof value !== 'string' || !value.trim()) return null;
+    if (typeof value !== 'string') return null;
     // A protocol-relative address (`//host/x`, as embed codes give) is a web address over https.
-    const absolute = protocolRelativeAsWeb(value.trim());
-    try {
-        const url = new URL(absolute);
-        return WEB_PROTOCOLS.includes(url.protocol) && url.host ? url.href : null;
-    } catch {
-        return null;
-    }
+    const url = webUrl(protocolRelativeAsWeb(value.trim()));
+    return url?.host ? url.href : null;
 }
 
 /**
@@ -91,19 +102,13 @@ export function pageHref(value) {
  * @returns {string | null}
  */
 export function followedHref(value, base) {
-    if (typeof value !== 'string' || !value.trim() || urlStart(value).startsWith('#')) return null;
-    try {
-        const url = new URL(value, base);
-        return WEB_PROTOCOLS.includes(url.protocol) ? url.href : null;
-    } catch {
-        return null;
-    }
+    if (typeof value !== 'string' || urlStart(value).startsWith('#')) return null;
+    return webUrl(value, base)?.href ?? null;
 }
 
-/** Is `value` an http(s) URL (absolute, or relative to the page)? */
+/** Is `value`, trimmed (as its callers use it), an http(s) URL (absolute, or relative to the page)? */
 export function isWebUrl(value) {
-    const url = parse(value);
-    return !!url && WEB_PROTOCOLS.includes(url.protocol);
+    return typeof value === 'string' && webUrl(value.trim(), pageBase()) !== null;
 }
 
 /** Schemes that run script, never an image's. */
