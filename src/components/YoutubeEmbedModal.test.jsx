@@ -29,6 +29,16 @@ describe('YoutubeEmbedModal', () => {
         expect(bold.parentElement.textContent).toMatch(/^External search uses public proxy instances which can be unreliable\. If search fails, please use the Direct Link tab instead\.$/);
     });
 
+    it('shows the notice\'s English with an i18next not initialized yet (react-i18next 18 gives none)', async () => {
+        const { createInstance } = await import('i18next');
+        const { I18nextProvider } = await import('react-i18next');
+        const i18n = createInstance({ react: { useSuspense: false } });
+        render(<I18nextProvider i18n={i18n}><YoutubeEmbedModal isOpen onSearch={async () => []} onClose={() => {}} onConfirm={() => {}} /></I18nextProvider>);
+        await user.click(screen.getByText('Search YouTube (Experimental)'));
+        const bold = screen.getByText('Direct Link', { selector: 'strong' });
+        expect(bold.parentElement.textContent).toMatch(/^External search uses public proxy instances which can be unreliable\. If search fails, please use the Direct Link tab instead\.$/);
+    });
+
     it('previews a valid URL and confirms with the extracted id', async () => {
         const onConfirm = vi.fn();
         render(<YoutubeEmbedModal isOpen onClose={() => {}} onConfirm={onConfirm} />);

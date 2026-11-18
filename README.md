@@ -318,6 +318,10 @@ The editor's own strings (toolbar tooltips, modal copy, etc.) ship in **English*
 
 **Never initialized i18next?** `i18next` and `react-i18next` must be installed, as they are peer dependencies, but you don't have to call `init()`. Every string carries an English `defaultValue`, so the editor renders correctly in English. If your app initializes i18next later, the editor's strings are registered at that point.
 
+`react-i18next` 18 needs `i18next` 27; `react-i18next` 16 and 17 go with `i18next` 25 to 27.
+
+**An empty translation** (`''`) is shown as empty only when your i18next keeps empty strings: i18next 27 shows the English default instead unless you `init({ returnEmptyString: true })` (i18next 26 and earlier keep them by default).
+
 **Adding a language, or rewording the defaults**, from the `inscript-editor/locales` subpath:
 
 ```js

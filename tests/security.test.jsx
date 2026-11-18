@@ -1152,7 +1152,9 @@ describe('round 14', () => {
         const holder = document.createElement('div');
         holder.innerHTML = html;
         expect(holder.querySelector('a').getAttribute('href')).toBe('&#x6a;avascript:alert(1)');
-        expect(html).toContain('href="https://a.example/?a=1&b=2"');
+        expect(holder.querySelector('img').getAttribute('src')).toBe('&#x6a;avascript:x');
+        // An ordinary address keeps its `&` (written `&amp;` or `&` by the Markdown renderer, read the same).
+        expect(holder.querySelectorAll('a')[1].getAttribute('href')).toBe('https://a.example/?a=1&b=2');
     });
 
     it('an unpacked table keeps its caption', () => {

@@ -113,14 +113,15 @@ describe('CustomTable extension', () => {
             live.commands.insertTable({ rows: 2, cols: 2, withHeaderRow: true });
             setTableLayout(live, { align: 'right' });
 
-            const table = el.querySelector('table');
-            expect(table.style.marginLeft).toBe('auto');
-            expect(table.style.marginRight).toBe('0px');
+            // Read anew after each change: TipTap may draw the table again (3.34 does on a change of its attributes).
+            const table = () => el.querySelector('table');
+            expect(table().style.marginLeft).toBe('auto');
+            expect(table().style.marginRight).toBe('0px');
             expect(el.querySelector('.tableWrapper').style.marginLeft).toBe('');
 
             setTableLayout(live, { align: 'left' });
-            expect(table.style.marginLeft).toBe('0px');
-            expect(table.style.marginRight).toBe('auto');
+            expect(table().style.marginLeft).toBe('0px');
+            expect(table().style.marginRight).toBe('auto');
             done();
         });
 

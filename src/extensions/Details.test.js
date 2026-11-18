@@ -89,7 +89,8 @@ describe('Details: commands and keys', () => {
         const { createInstance } = await import('i18next');
         const { setEditorI18n } = await import('./HostBridge.js');
         const blank = createInstance();
-        await blank.init({ lng: 'en', resources: { en: { 'inscript-editor': { detailsSummaryDefault: '' } } } });
+        // A host that keeps empty translations (i18next 27 drops them unless asked; 26 kept them).
+        await blank.init({ lng: 'en', returnEmptyString: true, resources: { en: { 'inscript-editor': { detailsSummaryDefault: '' } } } });
         editor = createEditor({ content: '<p>Body</p>' });
         setEditorI18n(editor, blank);
         editor.commands.setTextSelection(2);

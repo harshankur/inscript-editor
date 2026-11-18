@@ -28,7 +28,10 @@ describe('Mermaid extension', () => {
         const html = editor.getHTML();
 
         expect(html).toContain('class="mermaid"');
-        expect(html).toContain('data-mermaid="graph TD; A-->B;"');
+        // The attribute as a browser reads it (TipTap 3.34 writes `>` in an attribute as `&gt;`, as valid).
+        const holder = document.createElement('div');
+        holder.innerHTML = html;
+        expect(holder.querySelector('.mermaid').getAttribute('data-mermaid')).toBe('graph TD; A-->B;');
         expect(html).toContain('graph TD; A--&gt;B;');
     });
 

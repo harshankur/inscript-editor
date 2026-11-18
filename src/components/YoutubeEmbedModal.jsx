@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Trans } from 'react-i18next';
+import { InscriptTrans } from './InscriptTrans.jsx';
 import { Filter, Plus, X, SquarePlay as YoutubeIcon } from 'lucide-react';
 import { InlineNotice } from './InlineNotice.jsx';
 import { extractYoutubeId, youtubeEmbedUrl } from '../utils/youtubeUrl.js';
@@ -184,9 +184,9 @@ export const YoutubeEmbedModal = ({ isOpen, onClose, onConfirm, onSearch, privac
                             </div>
 
                             <InlineNotice variant="warning" title={t('experimentalFeature', 'Experimental Feature')}>
-                                <Trans i18nKey="experimentalFeatureDescription" ns="inscript-editor" components={{ 1: <EmphasisText /> }}>
+                                <InscriptTrans i18nKey="experimentalFeatureDescription" components={{ 1: <EmphasisText /> }}>
                                     External search uses public proxy instances which can be unreliable. If search fails, please use the <EmphasisText>Direct Link</EmphasisText> tab instead.
-                                </Trans>
+                                </InscriptTrans>
                             </InlineNotice>
 
                             {searchError && (

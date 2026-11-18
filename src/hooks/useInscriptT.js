@@ -10,7 +10,9 @@ import { translatedOr, unescapedValues } from '../utils/editorT.js';
  * returns the English default untouched), and the values are not HTML-escaped: the result is text
  * that React renders or puts in an attribute, which escapes it already, so a translated name with
  * an apostrophe would otherwise be read out as `&#39;`.
- * @returns {{ t: (key: string, defaultValue?: string | object, options?: object) => string, i18n: import('i18next').i18n }}
+ * `translates` says whether an initialized i18next answers (else every string is its English default:
+ * markup that goes through react-i18next itself, such as `<Trans>`, gives its default then).
+ * @returns {{ t: (key: string, defaultValue?: string | object, options?: object) => string, i18n: import('i18next').i18n, translates: boolean }}
  */
 export function useInscriptT() {
     const { t, i18n } = useTranslation('inscript-editor');
@@ -24,13 +26,13 @@ export function useInscriptT() {
     const translate = useCallback((key, defaultValue, options) => {
         const values = defaultValue !== null && typeof defaultValue === 'object' ? defaultValue : options;
         const fallback = typeof defaultValue === 'string' ? defaultValue : values?.defaultValue ?? key;
+        // No initialized i18next: the English default, never asked of an instance that cannot answer
+        // (react-i18next 18 gives an empty string for one not initialized yet).
+        if (noI18next) return values ? fillPlaceholders(fallback, values) : fallback;
         if (!values) return translatedOr(() => t(key, defaultValue), fallback);
         const unescaped = unescapedValues(values);
-        // Filled once: here when there is no i18next to do it, or by translatedOr's fallback.
-        return translatedOr(() => {
-            const text = values === defaultValue ? t(key, unescaped) : t(key, defaultValue, unescaped);
-            return typeof text === 'string' && noI18next ? fillPlaceholders(text, values) : text;
-        }, fallback, values);
+        // Filled by i18next here, or by translatedOr's fallback (never twice).
+        return translatedOr(() => (values === defaultValue ? t(key, unescaped) : t(key, defaultValue, unescaped)), fallback, values);
     }, [t, noI18next]);
-    return { t: translate, i18n };
+    return { t: translate, i18n, translates: !noI18next };
 }
