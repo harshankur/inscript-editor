@@ -34,3 +34,29 @@ describe('ToolbarCustomizer containment', () => {
         host.remove();
     });
 });
+
+describe('ToolbarCustomizer drawer layer', () => {
+    it('is scrolled nowhere while the drawer slides in: the drawer stays at its edge', () => {
+        const host = document.createElement('div');
+        document.body.appendChild(host);
+        render(<ToolbarCustomizer currentConfig={['bold']} onSave={() => {}} onClose={() => {}} container={host} />);
+        const layer = host.querySelector('.inset-0.z-\\[80\\]');
+        // As an engine does while the drawer is still out of view (by script, focus, or bringing
+        // something into view): the layer scrolled by more than the drawer's width.
+        layer.scrollLeft = 1000;
+        layer.scrollTop = 50;
+        layer.dispatchEvent(new Event('scroll'));
+        expect(layer.scrollLeft).toBe(0);
+        expect(layer.scrollTop).toBe(0);
+        host.remove();
+    });
+
+    it('clips the drawer to the layer, never giving it a scroll position (clip, hidden where clip is unknown)', async () => {
+        const { readFileSync } = await import('node:fs');
+        const { resolve } = await import('node:path');
+        const css = readFileSync(resolve(process.cwd(), 'src/styles/index.css'), 'utf8');
+        const flat = css.replace(/\s+/g, ' ');
+        expect(flat).toContain('.inscript-editor-customizer-layer { overflow: hidden; }');
+        expect(flat).toContain('@supports (overflow: clip) { .inscript-editor-customizer-layer { overflow: clip; } }');
+    });
+});

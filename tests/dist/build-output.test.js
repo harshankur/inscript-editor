@@ -77,6 +77,21 @@ maybeDescribe('dist build output', () => {
         expect(css).toContain('.ProseMirror');
     });
 
+    it('keeps the customize drawer\'s layer clipped, with hidden where clip is unknown (never merged away)', () => {
+        const css = fs.readFileSync(path.join(DIST_DIR, 'styles', 'inscript-editor.css'), 'utf-8').replace(/\s+/g, '');
+        expect(css).toContain('.inscript-editor-customizer-layer{overflow:hidden}');
+        expect(css).toMatch(/@supports\(overflow:clip\)\{\.inscript-editor-customizer-layer\{overflow:clip\}\}/);
+    });
+
+    it('ships the customize drawer\'s layer rule in the content-only stylesheet too (hidden, then clip)', () => {
+        const css = fs.readFileSync(path.join(DIST_DIR, 'styles', 'content.css'), 'utf-8').replace(/\s+/g, '');
+        const hidden = css.indexOf('.inscript-editor-customizer-layer{overflow:hidden}');
+        const clip = css.indexOf('.inscript-editor-customizer-layer{overflow:clip}');
+        expect(hidden).toBeGreaterThan(-1);
+        // Clip after hidden: an engine that knows clip takes it, one that does not keeps hidden.
+        expect(clip).toBeGreaterThan(hidden);
+    });
+
     it('compiles the history panel\'s container queries (its layout follows its own width)', () => {
         const css = fs.readFileSync(path.join(DIST_DIR, 'styles', 'inscript-editor.css'), 'utf-8');
         expect(css).toMatch(/container-type:\s*inline-size/);

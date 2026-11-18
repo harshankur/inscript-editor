@@ -291,6 +291,19 @@ img.ProseMirror-separator {
   overflow-y: hidden;
 }
 
+/* The customize drawer's layer (ToolbarCustomizer): the drawer, slid out of view on its way in and
+   out, is clipped to it, and the layer has no scroll position to keep (a hidden box can be scrolled,
+   and kept the drawer a drawer's width to the left). Hidden where clip is not known (in its own rule:
+   a minifier merges two values in one rule into the last). */
+.inscript-editor-customizer-layer {
+  overflow: hidden;
+}
+@supports (overflow: clip) {
+  .inscript-editor-customizer-layer {
+    overflow: clip;
+  }
+}
+
 /* A table as wide as a document makes it scrolls within its own box, never across the page. */
 .ProseMirror .tableWrapper {
   overflow-x: auto;

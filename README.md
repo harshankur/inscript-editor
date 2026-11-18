@@ -647,7 +647,8 @@ no header to expand it from). No CSS overrides or `localStorage` clearing needed
 The settings-gear customizer drawer covers the viewport (`position: fixed`) by
 default. To scope it to your editor panel instead, pass that panel's element as
 `customizerContainer` — the drawer renders into it and positions `absolute`
-within it. The element must be `position: relative; overflow: hidden`.
+within it. The element must be `position: relative; overflow: hidden`. The drawer is clipped to its
+own layer as it slides in and out, so it never gives your element anything to scroll.
 
 ```jsx
 const panelRef = useRef(null);

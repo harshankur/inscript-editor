@@ -9,6 +9,13 @@ import { slotsWithoutStrayDividers } from '../toolbar/slotsWithoutStrayDividers.
 /** What Tab can reach inside the drawer. */
 const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
+/** The drawer's layer scrolled anywhere is put back: it shows the drawer at its edge, never past it. */
+const unscrollLayer = event => {
+    const layer = event.currentTarget;
+    if (layer.scrollLeft !== 0) layer.scrollLeft = 0;
+    if (layer.scrollTop !== 0) layer.scrollTop = 0;
+};
+
 /**
  * ToolbarCustomizer — a slide-in drawer for reordering and customizing
  * both the main toolbar and the text selection bubble menu.
@@ -286,11 +293,16 @@ export const ToolbarCustomizer = ({
         // Once it is sliding out it is out of the way: no clicks caught, nothing announced (a host may
         // keep it mounted after onClose).
         <div
-            // overflow-hidden: the drawer, slid out of view on its way in and out, is clipped by its own
-            // backdrop and never gives a host container anything to scroll.
-            className={`${container ? 'absolute' : 'fixed'} inset-0 z-[80] flex justify-end overflow-hidden ${isClosing ? 'pointer-events-none' : ''}`}
+            // inscript-editor-customizer-layer clips the drawer, slid out of view on its way in and out, to this
+            // layer: overflow clip, which gives the layer no scroll position at all (see the stylesheet).
+            // Hidden alone was not enough: a hidden box can still be scrolled (by script, by focus, by the
+            // engine bringing something into view), and once scrolled while the drawer was out of view it
+            // kept the drawer a drawer's width to the left. Where clip is not known, it is hidden, and any
+            // scroll is put straight back.
+            className={`inscript-editor-customizer-layer ${container ? 'absolute' : 'fixed'} inset-0 z-[80] flex justify-end ${isClosing ? 'pointer-events-none' : ''}`}
             aria-hidden={isClosing || undefined}
             onClick={handleClose}
+            onScroll={unscrollLayer}
         >
             {/* Overlay background with fade-in and backdrop-blur */}
             <div

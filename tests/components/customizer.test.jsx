@@ -170,7 +170,8 @@ describe('a contained customizer', () => {
         try {
             render(<ToolbarCustomizer currentConfig={['bold']} onSave={() => {}} onClose={() => {}} container={host} />);
             const backdrop = host.querySelector('.inset-0.z-\\[80\\]');
-            expect(backdrop.className).toMatch(/\boverflow-hidden\b/);
+            // Clipped to its layer (overflow clip, see .inscript-editor-customizer-layer and the drawer layer tests).
+            expect(backdrop.className).toMatch(/\binscript-editor-customizer-layer\b/);
             expect(backdrop.contains(screen.getByRole('dialog'))).toBe(true);
         } finally { host.remove(); }
     });
