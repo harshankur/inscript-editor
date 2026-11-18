@@ -2,7 +2,7 @@ import { findChildren } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { codeLanguage } from '../utils/codeLanguage.js';
-import { touchesNodes } from '../utils/transactions.js';
+import { changedRange, replacesWholeDocument, touchesNodes } from '../utils/transactions.js';
 
 /**
  * Code blocks highlighted with a (bounded) lowlight, as TipTap's own lowlight plugin does, and also
@@ -21,15 +21,16 @@ function parseNodes(nodes, className = []) {
 }
 
 /**
- * A pass over the document: its decorations, and whether it left blocks plain (for another pass). A
- * block's result is kept by its node (`kept`), so an unchanged block costs nothing in the next pass.
+ * A pass over some code blocks (`{ node, pos }`): their decorations, how many it highlighted, and
+ * whether it left blocks plain (for another pass). A block's result is kept by its node (`kept`), so
+ * an unchanged block costs nothing in the next pass.
  */
-function decorations(doc, { name, lowlight, defaultLanguage }, kept) {
+function blockDecorations(blocks, { lowlight, defaultLanguage }, kept) {
     lowlight.beginPass?.();
     const found = [];
     let highlighted = 0;
     const languages = lowlight.listLanguages();
-    for (const block of findChildren(doc, node => node.type.name === name)) {
+    for (const block of blocks) {
         let from = block.pos + 1;
         // A name only (a document's value may be anything; see codeLanguage).
         const language = codeLanguage(block.node.attrs.language) || codeLanguage(defaultLanguage);
@@ -47,7 +48,47 @@ function decorations(doc, { name, lowlight, defaultLanguage }, kept) {
             from = to;
         }
     }
-    return { set: DecorationSet.create(doc, found), unfinished: !!lowlight.unfinished?.(), highlighted };
+    return { found, unfinished: !!lowlight.unfinished?.(), highlighted };
+}
+
+/** A pass over the whole document: its decorations, and whether it left blocks plain. */
+function decorations(doc, options, kept) {
+    const { found, unfinished, highlighted } = blockDecorations(findChildren(doc, node => node.type.name === options.name), options, kept);
+    return { set: DecorationSet.create(doc, found), unfinished, highlighted };
+}
+
+/**
+ * The decorations after a change that touched code: those of the code blocks in or around what it
+ * changed made again, every other block's carried over (typing in one block never redoes the rest).
+ * Where it changed and no code block is left (one turned into a paragraph, or code joined to a
+ * paragraph before it), the decorations of the text blocks at its edges go, whole.
+ */
+function changedDecorations(tr, current, options, kept) {
+    const range = changedRange([tr]);
+    const size = tr.doc.content.size;
+    let from = Math.max(0, Math.min(range.from, size));
+    let to = Math.max(from, Math.min(range.to, size));
+    // The text blocks the change starts and ends in, whole: text joined into one keeps no decoration
+    // from the block it came from.
+    const $from = tr.doc.resolve(from);
+    const $to = tr.doc.resolve(to);
+    if ($from.parent.isTextblock) from = $from.start();
+    if ($to.parent.isTextblock) to = $to.end();
+    const blocks = [];
+    tr.doc.nodesBetween(from, to, (node, pos) => {
+        if (node.type.name === options.name) {
+            blocks.push({ node, pos });
+            return false;
+        }
+        return !node.isTextblock;
+    });
+    for (const { node, pos } of blocks) {
+        from = Math.min(from, pos);
+        to = Math.max(to, pos + node.nodeSize);
+    }
+    const pass = blockDecorations(blocks, options, kept);
+    const mapped = current.set.map(tr.mapping, tr.doc);
+    return { set: mapped.remove(mapped.find(from, to)).add(tr.doc, pass.found), unfinished: pass.unfinished, highlighted: pass.highlighted };
 }
 
 /**
@@ -71,8 +112,10 @@ export function codeHighlightPlugin(options) {
             init: (_config, { doc }) => decorations(doc, options, kept),
             apply: (tr, current) => {
                 const retry = !!tr.getMeta(codeHighlightKey);
-                // Also after any change while a pass is unfinished (its blocks may be gone).
-                if (retry || touchesCode(tr, options.name) || (current.unfinished && tr.docChanged)) return { ...decorations(tr.doc, options, kept), retry };
+                // The whole document again: a pass of our own, or any change while a pass is unfinished
+                // (its blocks may be gone).
+                if (retry || (current.unfinished && tr.docChanged) || replacesWholeDocument(tr)) return { ...decorations(tr.doc, options, kept), retry };
+                if (touchesCode(tr, options.name)) return { ...changedDecorations(tr, current, options, kept), retry: false };
                 return { ...current, set: current.set.map(tr.mapping, tr.doc) };
             },
         },
