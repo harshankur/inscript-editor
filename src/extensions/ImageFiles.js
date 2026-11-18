@@ -1,5 +1,4 @@
 import { Extension } from '@tiptap/core';
-import { GapCursor } from '@tiptap/pm/gapcursor';
 import { closeHistory } from '@tiptap/pm/history';
 import { Fragment, Slice } from '@tiptap/pm/model';
 import { dropPoint } from '@tiptap/pm/transform';
@@ -10,6 +9,7 @@ import { editorT, onEditorLanguageChanged } from '../utils/editorT.js';
 import { documentImageSrc } from '../utils/url.js';
 import { followEditable, getHostHandlers } from './HostBridge.js';
 import { deleteKeepingDisclosures } from './Details.js';
+import { cursorAt } from '../utils/cursorAt.js';
 
 /** The host handler an image file goes through: a file in, the image's src (or attributes) out. */
 export const IMAGE_FILE_HANDLER = 'onImageFile';
@@ -156,28 +156,6 @@ function imageSpot(doc, pos) {
     const image = doc.type.schema.nodes[NODE.IMAGE].create();
     if ($pos.parent.canReplaceWith($pos.index(), $pos.index(), image.type)) return pos;
     return dropPoint(doc, pos, new Slice(Fragment.from(image), 0, 0)) ?? pos;
-}
-
-/**
- * A cursor right at a position: in a line, there; between blocks, at the start of the next block's
- * first line when nothing comes before it (a paragraph, a list's first item), else a gap cursor
- * there (typing makes a line), else at the end of the line just before; null where none can be.
- * Never one in text further on (past a rule, in a table).
- */
-function cursorAt(doc, pos) {
-    const $pos = doc.resolve(pos);
-    if ($pos.parent.inlineContent) return TextSelection.create(doc, pos);
-    let inner = pos;
-    let node = $pos.nodeAfter;
-    // Into a list or a quote, not a table (its cells are not lines after the image).
-    while (node && !node.isTextblock && !node.isAtom && !node.type.spec.isolating && node.firstChild) {
-        inner += 1;
-        node = node.firstChild;
-    }
-    if (node?.isTextblock) return TextSelection.create(doc, inner + 1);
-    if (GapCursor.valid($pos)) return new GapCursor($pos);
-    // Right after a line (no gap cursor beside a line): at its end.
-    return $pos.nodeBefore?.isTextblock ? TextSelection.create(doc, pos - 1) : null;
 }
 
 // A placeholder's element, in the editor's language as it changes (its listener goes with it).

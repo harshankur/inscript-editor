@@ -234,7 +234,11 @@ describe('inline math', () => {
         const paragraph = editor.state.doc.firstChild;
         expect(paragraph.child(1).type.name).toBe('mathInline');
         expect(paragraph.textContent).toBe('ab');
-        act(() => { editor.commands.setTextSelection(editor.state.doc.content.size - 2); });
+        // In the code block's text (the document may end with an empty paragraph after it).
+        let inCode = null;
+        editor.state.doc.descendants((node, pos) => { if (node.type.name === 'codeBlock') inCode = pos + 1; });
+        act(() => { editor.commands.setTextSelection(inCode); });
+        expect(editor.state.selection.$from.parent.type.name).toBe('codeBlock');
         expect(screen.getByTitle('Inline Math').disabled).toBe(true);
     });
 

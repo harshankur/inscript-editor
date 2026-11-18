@@ -14,6 +14,7 @@ import { Superscript } from '@tiptap/extension-superscript';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { InscriptLink } from './InscriptLink.js';
 import { DocumentValues } from './DocumentValues.js';
+import { ValidSelection } from './ValidSelection.js';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
@@ -105,6 +106,8 @@ export function buildExtensions(options = {}) {
         // Values a document may not keep (a refused image source or link address, a link's target),
         // cleaned from JSON content as HTML is read without them (see DocumentValues.js).
         DocumentValues,
+        // A text cursor never left between blocks by a command (see ValidSelection.js).
+        ValidSelection,
         // Image files dropped or pasted in, through the host's onImageFile (see ImageFiles.js).
         ImageFiles,
         FocusModeBlock,
