@@ -56,6 +56,11 @@ const PUBLIC_SYMBOLS = [
     'DetailsSummary',
     'MathInline',
     'MathBlock',
+    'TOOLBAR_PRESET_HISTORY',
+    'BUBBLE_PRESET_HISTORY',
+    'toolbarPresetOf',
+    'upgradeToolbarConfig',
+    'INSCRIPT_EDITOR_VERSION',
 ];
 
 maybeDescribe('dist build output', () => {

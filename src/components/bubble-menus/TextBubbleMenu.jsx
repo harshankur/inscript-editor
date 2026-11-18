@@ -18,10 +18,11 @@ import { LinkSelector } from '../LinkSelector.jsx';
 import { useInscriptEditorTranslations } from '../../hooks/useInscriptEditorTranslations.js';
 import { BUBBLE_PRESETS } from '../../toolbar/presets.js';
 import { DIVIDER, sanitizeToolConfig } from '../../toolbar/toolRegistry.js';
-import { visibleSlots } from '../../toolbar/toolAvailability.js';
+import { unavailableToolIds, visibleSlots } from '../../toolbar/toolAvailability.js';
 import { isActiveCached } from '../../utils/editorView.js';
 import { abbreviationTool } from '../../toolbar/abbreviationTool.js';
 import { keyboardInputTool } from '../../toolbar/keyboardInputTool.js';
+import { useCurrentLayout } from '../../hooks/useCurrentLayout.js';
 
 /**
  * A button of the selection menu: a ToolbarButton (named by its tooltip, a toggle when given
@@ -209,7 +210,11 @@ function buildToolMap(editor, t, onAddAbbreviation) {
     };
 }
 
-export const TextBubbleMenu = ({ editor, isReadonly, bubbleMenuConfig, onAddAbbreviation, scrollContainer, menuContainer }) => {
+export const TextBubbleMenu = ({ editor, isReadonly, bubbleMenuConfig: savedBubbleMenuConfig, configSavedWith, bubbleMenuPresets, presetsMode, onAddAbbreviation, scrollContainer, menuContainer }) => {
+    // The saved layout as it is today: a preset's earlier shape brought up to date when the host says
+    // which release it was saved with (see currentLayout; the toolbar's customizer does the same).
+    const unavailable = useMemo(() => unavailableToolIds(editor), [editor]);
+    const bubbleMenuConfig = useCurrentLayout(savedBubbleMenuConfig, 'bubble', { savedWith: configSavedWith, unavailable, presets: bubbleMenuPresets, presetsMode });
     useInscriptEditorTranslations();
     const { t } = useInscriptT();
     // The tools' active states are read from the editor while rendering.
@@ -230,11 +235,10 @@ export const TextBubbleMenu = ({ editor, isReadonly, bubbleMenuConfig, onAddAbbr
     }, [isReadonly]);
 
     // Validated once per value, like the toolbar's (duplicates rendered twice under one key).
-    const bubbleConfigKey = bubbleMenuConfig ? JSON.stringify(bubbleMenuConfig) : '';
+    // (bubbleMenuConfig is the same array while its value is: see useCurrentLayout.)
     const activeConfig = useMemo(
         () => (bubbleMenuConfig ? sanitizeToolConfig(bubbleMenuConfig, 'bubble') : BUBBLE_PRESETS.full),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [bubbleConfigKey],
+        [bubbleMenuConfig],
     );
 
     if (!editor) return null;

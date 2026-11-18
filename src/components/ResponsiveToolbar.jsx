@@ -32,6 +32,7 @@ import { detailsActive } from '../extensions/Details.js';
 import { imageTool } from '../toolbar/imageTool.js';
 import { cachedPerState, isActiveCached } from '../utils/editorView.js';
 import { selectionTextAlign } from '../utils/selectionTextAlign.js';
+import { useCurrentLayout } from '../hooks/useCurrentLayout.js';
 
 // Width of a ToolbarDropdown (primary btn + divider + chevron)
 const DROPDOWN_WIDTH = TOOLBAR_SIZES.BUTTON + 14 + 1;
@@ -237,7 +238,12 @@ function configToSlots(config, toolMap, editor) {
  *                            Called with the new config array when the user saves.
  *                            The CONSUMER is responsible for persisting and passing back the config.
  */
-export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onImageFile, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, toolbarConfig, onToolbarConfigChange, bubbleMenuConfig, onBubbleMenuConfigChange, toolbarPresets, bubbleMenuPresets, toolbarPresetLabels, presetsMode, customizerContainer }) => {
+export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUndo, canRedo, onShowMetadataModal, hasMetadata, showMetadataActive, onShowMediaLibrary, onImageFile, onAddYoutube, onAddCitation, onAddWikilink, onAddAbbreviation, toolbarConfig: savedToolbarConfig, onToolbarConfigChange, bubbleMenuConfig: savedBubbleMenuConfig, onBubbleMenuConfigChange, toolbarPresets, bubbleMenuPresets, toolbarPresetLabels, presetsMode, configSavedWith, customizerContainer }) => {
+    const unavailableTools = useMemo(() => unavailableToolIds(editor), [editor]);
+    // Saved layouts as they are today: a preset's earlier shape brought up to date when the host says
+    // which release it was saved with (see currentLayout).
+    const toolbarConfig = useCurrentLayout(savedToolbarConfig, 'toolbar', { savedWith: configSavedWith, unavailable: unavailableTools, presets: toolbarPresets, presetsMode });
+    const bubbleMenuConfig = useCurrentLayout(savedBubbleMenuConfig, 'bubble', { savedWith: configSavedWith, unavailable: unavailableTools, presets: bubbleMenuPresets, presetsMode });
     useInscriptEditorTranslations();
     const { t } = useInscriptT();
     const containerRef = useRef(null);
@@ -257,17 +263,15 @@ export const ResponsiveToolbar = ({ editor, onHistoryUndo, onHistoryRedo, canUnd
     }, [showMore]);
     const [customizerOpen, setCustomizerOpen] = useState(false);
     // Tools whose feature the host turned off: left out of the toolbar, and not offered to add.
-    const unavailableTools = useMemo(() => unavailableToolIds(editor), [editor]);
     // Focus goes back to the Customize button when its dialog closes.
     const customizeButtonRef = useRef(null);
 
     // A host's config is validated (unknown, misplaced and duplicate ids dropped) once per value:
     // duplicates used to render twice, under one React key.
-    const toolbarConfigKey = toolbarConfig ? JSON.stringify(toolbarConfig) : '';
+    // (toolbarConfig is the same array while its value is: see useCurrentLayout.)
     const activeConfig = useMemo(
         () => (toolbarConfig ? sanitizeToolConfig(toolbarConfig, 'toolbar') : TOOLBAR_PRESETS.full),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [toolbarConfigKey],
+        [toolbarConfig],
     );
 
     // The tools read the editor (active marks, colours, what can be undone), so they are rebuilt

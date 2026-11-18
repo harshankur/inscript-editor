@@ -60,6 +60,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
     bubbleMenuPresets,
     toolbarPresetLabels,
     presetsMode,
+    configSavedWith,
     customizerContainer,
     theme,
     fontFamily = '',
@@ -174,6 +175,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                     bubbleMenuPresets={bubbleMenuPresets}
                     toolbarPresetLabels={toolbarPresetLabels}
                     presetsMode={presetsMode}
+                    configSavedWith={configSavedWith}
                     customizerContainer={customizerContainer}
                 />
             )}
@@ -200,7 +202,7 @@ export const InscriptEditor = forwardRef(function InscriptEditor({
                             when it registers it, and ignores the first change after that. */}
                         {menuContainer && (
                             <>
-                                <TextBubbleMenu editor={editor} isReadonly={isReadonly} scrollContainer={scrollContainer} menuContainer={menuContainer} bubbleMenuConfig={bubbleMenuConfig} onAddAbbreviation={resolvedOnAddAbbreviation} />
+                                <TextBubbleMenu editor={editor} isReadonly={isReadonly} scrollContainer={scrollContainer} menuContainer={menuContainer} bubbleMenuConfig={bubbleMenuConfig} configSavedWith={configSavedWith} bubbleMenuPresets={bubbleMenuPresets} presetsMode={presetsMode} onAddAbbreviation={resolvedOnAddAbbreviation} />
                                 <TableBubbleMenu editor={editor} isReadonly={isReadonly} scrollContainer={scrollContainer} menuContainer={menuContainer} />
                                 <ImageBubbleMenu editor={editor} isReadonly={isReadonly} scrollContainer={scrollContainer} menuContainer={menuContainer} />
                                 <YoutubeBubbleMenu editor={editor} isReadonly={isReadonly} scrollContainer={scrollContainer} menuContainer={menuContainer} onOpenExternal={resolvedOnOpenExternal} />

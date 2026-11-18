@@ -27,6 +27,8 @@ export {
     BUBBLE_PRESETS, BUBBLE_MENU_PRESETS,
     DEFAULT_TOOLBAR_CONFIG, DEFAULT_BUBBLE_CONFIG,
 } from './toolbar/presets.js';
+export { TOOLBAR_PRESET_HISTORY, BUBBLE_PRESET_HISTORY, toolbarPresetOf, upgradeToolbarConfig } from './toolbar/presetHistory.js';
+export { INSCRIPT_EDITOR_VERSION } from './version.js';
 export { ColorSelector } from './components/ColorSelector.jsx';
 export { HighlightSelector } from './components/HighlightSelector.jsx';
 export { FontSizeSelector } from './components/FontSizeSelector.jsx';

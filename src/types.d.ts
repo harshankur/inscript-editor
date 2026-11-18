@@ -372,8 +372,10 @@ export interface InscriptEditorProps {
     redo?: () => boolean;
     markSaved?: () => void;
     toolbarConfig?: string[];
+    /** Called with the layout saved. Store `INSCRIPT_EDITOR_VERSION` with it, and pass that back as `configSavedWith`. */
     onToolbarConfigChange?: (newConfig: string[]) => void;
     bubbleMenuConfig?: string[];
+    /** As `onToolbarConfigChange`, for the selection menu's layout. */
     onBubbleMenuConfigChange?: (newConfig: string[]) => void;
     /** Consumer-supplied named presets for the main toolbar (arrays of tool ids + '|'). */
     toolbarPresets?: Record<string, string[]>;
@@ -383,6 +385,12 @@ export interface InscriptEditorProps {
     toolbarPresetLabels?: Record<string, string>;
     /** Whether consumer presets replace the built-ins or extend them. Default 'merge'. */
     presetsMode?: 'replace' | 'merge';
+    /** The inscript-editor release your saved `toolbarConfig` / `bubbleMenuConfig` were saved with
+     *  (`INSCRIPT_EDITOR_VERSION` when you saved them): a layout that was a preset then is shown as that
+     *  preset is today, so tools a release adds to it reach the reader (see upgradeToolbarConfig).
+     *  One release for both layouts, or `{ toolbar, bubble }` when you save them apart. Without it,
+     *  saved layouts are shown as they are. */
+    configSavedWith?: string | { toolbar?: string; bubble?: string };
     /**
      * DOM element to render the toolbar-customizer drawer into and scope it to
      * (position:absolute within it) instead of covering the viewport (the default,
@@ -477,6 +485,37 @@ export const PRESET_LABELS: Record<string, string>;
 export const TOOLBAR_PRESET_LABELS: Record<string, string>;
 export const DEFAULT_TOOLBAR_CONFIG: string[];
 export const DEFAULT_BUBBLE_CONFIG: string[];
+
+/** The release of inscript-editor in use: store it with a layout you save, and pass it back as `configSavedWith`. */
+export const INSCRIPT_EDITOR_VERSION: string;
+
+/** One shape a built-in preset has had, and the release it first shipped in. */
+export interface PresetShape { since: string; tools: readonly string[] }
+/** Every shape each built-in toolbar preset has had, oldest first: the last is today's. */
+export const TOOLBAR_PRESET_HISTORY: Readonly<Record<string, readonly PresetShape[]>>;
+/** Every shape each built-in selection-menu preset has had, oldest first: the last is today's. */
+export const BUBBLE_PRESET_HISTORY: Readonly<Record<string, readonly PresetShape[]>>;
+/** What else is known of a saved layout, for matching it to a preset. */
+export interface PresetMatchOptions {
+    /** The inscript-editor release the layout was saved with: only the shape each preset had then
+     *  counts, so a layout of the reader's own that happens to equal an older shape stays theirs. */
+    savedWith?: string;
+    /** Tools the host turned off (`unavailableTools`), which the customizer leaves out of a preset it saves. */
+    unavailable?: string[];
+}
+/** The built-in preset a saved layout is (today's shape or a past one), or null for a layout of its own. */
+export function toolbarPresetOf(config: unknown, surface?: ToolSurface, options?: PresetMatchOptions): string | null;
+/**
+ * A saved layout brought up to date: one that is a built-in preset's, today's shape or a past one, is
+ * that preset as it is today (a copy, without the tools turned off); a layout of its own is given back as it is.
+ */
+export function upgradeToolbarConfig<T>(config: T, surface?: ToolSurface, options?: PresetMatchOptions & {
+    /** The presets you give the customizer (`toolbarPresets` / `bubbleMenuPresets`) and its `presetsMode`:
+     *  a layout that was a built-in preset comes up as the customizer offers that preset (yours of that
+     *  name where you replaced it; a layout of its own where `replace` leaves it out). */
+    presets?: Record<string, string[]>;
+    presetsMode?: 'merge' | 'replace';
+}): T | string[];
 
 // --- Extensions ---
 export const Youtube: import('@tiptap/core').Node;
@@ -652,13 +691,17 @@ export interface ResponsiveToolbarProps {
     onAddWikilink?: () => void;
     onAddAbbreviation?: () => void;
     toolbarConfig?: string[];
+    /** Called with the layout saved. Store `INSCRIPT_EDITOR_VERSION` with it, and pass that back as `configSavedWith`. */
     onToolbarConfigChange?: (newConfig: string[]) => void;
     bubbleMenuConfig?: string[];
+    /** As `onToolbarConfigChange`, for the selection menu's layout. */
     onBubbleMenuConfigChange?: (newConfig: string[]) => void;
     toolbarPresets?: Record<string, string[]>;
     bubbleMenuPresets?: Record<string, string[]>;
     toolbarPresetLabels?: Record<string, string>;
     presetsMode?: 'replace' | 'merge';
+    /** See InscriptEditor's `configSavedWith`. */
+    configSavedWith?: string | { toolbar?: string; bubble?: string };
     customizerContainer?: HTMLElement | null;
 }
 export const ResponsiveToolbar: (props: ResponsiveToolbarProps) => ReactNode;
@@ -791,7 +834,15 @@ interface BubbleMenuBaseProps {
     scrollContainer?: HTMLElement | null;
     menuContainer?: HTMLElement | null;
 }
-export const TextBubbleMenu: (props: BubbleMenuBaseProps & { bubbleMenuConfig?: string[]; onAddAbbreviation?: () => void }) => ReactNode;
+export const TextBubbleMenu: (props: BubbleMenuBaseProps & {
+    bubbleMenuConfig?: string[];
+    /** The release `bubbleMenuConfig` was saved with (see InscriptEditor's `configSavedWith`), and the
+     *  presets you give the customizer, so a layout that was a preset is shown as that preset is today. */
+    configSavedWith?: string | { toolbar?: string; bubble?: string };
+    bubbleMenuPresets?: Record<string, string[]>;
+    presetsMode?: 'replace' | 'merge';
+    onAddAbbreviation?: () => void;
+}) => ReactNode;
 export const TableBubbleMenu: (props: BubbleMenuBaseProps) => ReactNode;
 export const ImageBubbleMenu: (props: BubbleMenuBaseProps) => ReactNode;
 export const YoutubeBubbleMenu: (props: BubbleMenuBaseProps & { onOpenExternal?: (url: string) => void }) => ReactNode;

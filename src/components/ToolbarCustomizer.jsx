@@ -82,7 +82,9 @@ export const ToolbarCustomizer = ({
     const initialBubbleConfig = currentBubbleConfig ?? withoutHidden(DEFAULT_BUBBLE_CONFIG);
     const [bubbleConfig, setBubbleConfig] = useState(initialBubbleConfig);
 
-    // Track active presets per tab (matched against the effective set)
+    // Track active presets per tab (matched against the effective set). A layout of a preset's earlier
+    // shape comes here already brought up to date (see currentLayout in ResponsiveToolbar, when the host
+    // passes configSavedWith).
     const [activeToolbarPreset, setActiveToolbarPreset] = useState(() =>
         Object.keys(effToolbarPresets).find(k =>
             JSON.stringify(effToolbarPresets[k]) === JSON.stringify(withoutHidden(initialToolbarConfig))

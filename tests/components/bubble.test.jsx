@@ -357,6 +357,26 @@ describe('HighlightSelector and ColorSelector', () => {
 });
 
 describe('TextBubbleMenu config', () => {
+    it('shows a layout saved as a preset\'s earlier shape as that preset today, given the release', async () => {
+        const { BUBBLE_PRESET_HISTORY } = await import('../../src/toolbar/presetHistory.js');
+        const editor = mount('<p>hello</p>');
+        act(() => { editor.commands.setTextSelection({ from: 1, to: 3 }); });
+        // Technical before 0.10.0 had no Keyboard Input; today it has.
+        const old = [...BUBBLE_PRESET_HISTORY.technical.find(shape => shape.since === '0.2.9').tools];
+        render(<TextBubbleMenu editor={editor} bubbleMenuConfig={old} configSavedWith="0.9.0" />);
+        expect(screen.getByTitle('Keyboard Input')).toBeTruthy();
+    });
+
+    it('takes the selection menu\'s own release when given one for each layout', async () => {
+        const { BUBBLE_PRESET_HISTORY } = await import('../../src/toolbar/presetHistory.js');
+        const editor = mount('<p>hello</p>');
+        act(() => { editor.commands.setTextSelection({ from: 1, to: 3 }); });
+        const old = [...BUBBLE_PRESET_HISTORY.technical.find(shape => shape.since === '0.2.9').tools];
+        // The toolbar's release says nothing of the selection menu's.
+        render(<TextBubbleMenu editor={editor} bubbleMenuConfig={old} configSavedWith={{ toolbar: '0.9.0', bubble: '0.12.0' }} />);
+        expect(screen.queryByTitle('Keyboard Input')).toBeNull();
+    });
+
     it('renders only the configured, allowed tools in order and ignores junk', () => {
         const editor = mount('<p>hello</p>');
         act(() => { editor.commands.setTextSelection({ from: 1, to: 3 }); });
@@ -401,5 +421,18 @@ describe('TextBubbleMenu does not open over node selections that have their own 
         const button = screen.getByTitle('Keyboard Input');
         expect(button.getAttribute('aria-pressed')).toBe('true');
         expect(button.disabled).toBe(false);
+    });
+});
+
+describe('TextBubbleMenu layout changed in place', () => {
+    it('shows the change on the next render', () => {
+        const editor = mount('<p>hello</p>');
+        act(() => { editor.commands.setTextSelection({ from: 1, to: 3 }); });
+        const layout = ['bold'];
+        const { rerender } = render(<TextBubbleMenu editor={editor} bubbleMenuConfig={layout} />);
+        expect(screen.queryByTitle('Italic')).toBeNull();
+        layout.push('italic');
+        rerender(<TextBubbleMenu editor={editor} bubbleMenuConfig={layout} />);
+        expect(screen.getByTitle('Italic')).toBeTruthy();
     });
 });
